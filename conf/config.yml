@@ -1,0 +1,5 @@
+configServiceAddress:
+  ip: "10.250.9.114"
+  port: "5000"
+moduleName: "converter"
+instanceUuid: "bf482806-0c3d-4e0d-b9d4-12c037b12d70"
