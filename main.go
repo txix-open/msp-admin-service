@@ -17,14 +17,19 @@ import (
 	"github.com/graarh/golang-socketio"
 	"encoding/json"
 	"gitlab8.alx/msp2.0/msp-lib/database"
+	"os/signal"
+	"net"
 )
 
 var (
 	configData        *conf.Configuration
 	executableFileDir string
+	methodBytes       []byte
 )
+var socketConnected = false
 
 func init() {
+	config.InitConfig(&conf.Configuration{})
 	appConfig := config.Get().(*conf.Configuration)
 	socket.InitClient(
 		socket.SocketConfiguration{
@@ -37,6 +42,12 @@ func init() {
 			subscribeSocket(client, utils.SendConfigWhenConnected)
 			subscribeSocket(client, utils.SendConfigChanged)
 			subscribeSocket(client, utils.SendConfigOnRequest)
+			socket.GetClient().On("connection", func(so *gosocketio.Channel) {
+				socketConnected = true
+				if methodBytes != nil {
+					so.Emit(utils.SendRoutesWhenConnected, string(methodBytes))
+				}
+			})
 		},
 	)
 	time.Sleep(time.Second * 3)
@@ -61,7 +72,8 @@ func main() {
 		_, filename, _, _ := rn.Caller(0)
 		executableFileDir = path.Dir(filename)
 	}
-	createGrpcServer()
+	//createGrpcServer()
+	awaitTerminate()
 }
 
 // Start a GRPC server.
@@ -69,16 +81,24 @@ func createGrpcServer() {
 	// Run our server in a goroutine so that it doesn't block.
 	handlers := helper.GetHandlers()
 	remoteConfig := config.GetRemote().(*conf.RemoteConfig)
+	appConfig := config.Get().(*conf.Configuration)
 	addr := structure.AddressConfiguration{IP: remoteConfig.GrpcAddress.IP, Port: remoteConfig.GrpcAddress.Port}
-	addrInner := structure.AddressConfiguration{IP: remoteConfig.GrpcInnerIp, Port: remoteConfig.GrpcAddress.Port}
-	backend.StartBackendGrpcServer(addr, backend.GetDefaultService(remoteConfig.GrpcPrefix+"/", handlers))
-	methods := backend.GetBackendConfig(addrInner, remoteConfig.GrpcPrefix+"/", handlers)
+	addrOuter := structure.AddressConfiguration{
+		IP: appConfig.GrpcOuterAddress.IP,
+		Port: appConfig.GrpcOuterAddress.Port,
+	}
+	backend.StartBackendGrpcServer(addr, backend.GetDefaultService(remoteConfig.GrpcPrefix, handlers))
+	methods := backend.GetBackendConfig(addrOuter, remoteConfig.GrpcPrefix, handlers)
 	bytes, err := json.Marshal(methods)
 	if err != nil {
 		logger.Warn("Error when serializing Backend Routes", err)
+	} else {
+		methodBytes = bytes
+		logger.Infof("EXPORTED MODULE METHODS: %s", methods)
+		if socketConnected {
+			socket.GetClient().Emit(utils.SendRoutesWhenConnected, string(bytes))
+		}
 	}
-	socket.GetClient().Emit(utils.SendRoutesWhenConnected, string(bytes))
-	logger.Infof("EXPORTED MODULE METHODS: %s", methods)
 }
 
 func validRemoteConfig(remoteConfig *conf.RemoteConfig) {
@@ -96,6 +116,30 @@ func subscribeSocket(client *gosocketio.Client, eventName string) {
 		remoteConfig := &conf.RemoteConfig{}
 		config.InitRemoteConfig(remoteConfig, args)
 		validRemoteConfig(remoteConfig)
+		backend.StopGrpcServer()
+		for !checkPortIsFree(remoteConfig.GrpcAddress.Port) {
+			time.Sleep(time.Second * 3)
+			logger.Info("Wait for free port for new grpc connection")
+		}
+		createGrpcServer()
 		return nil
 	})
+}
+
+func checkPortIsFree(port string) bool {
+	ln, err := net.Listen("tcp", ":" + port)
+	if err != nil {
+		return false
+	} else {
+		defer ln.Close()
+		return true
+	}
+}
+
+func awaitTerminate() {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	<-c
+	logger.Info("Shutting down")
+	os.Exit(0)
 }

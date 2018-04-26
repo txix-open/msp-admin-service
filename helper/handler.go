@@ -1,11 +1,17 @@
 package helper
 
+import (
+	"admin-service/structure"
+	"admin-service/controller"
+)
+
 type Handlers struct {
-	// ===== INSTANCE =====
+	// ===== AUTH =====
+	Auth func() (*structure.Auth, error) `method:"auth"`
 }
 
 func GetHandlers() *Handlers {
 	return &Handlers{
-		// ===== INSTANCE =====
+		controller.Auth,
 	}
 }

@@ -2,6 +2,7 @@ package conf
 
 type Configuration struct {
 	ConfigServiceAddress AddressConfiguration
+	GrpcOuterAddress     AddressConfiguration `valid:"required~Required" json:"grpcOuterAddress"`
 	ModuleName           string
 	InstanceUuid         string
 }

@@ -138,12 +138,6 @@
   version = "v2.1.0"
 
 [[projects]]
-  name = "github.com/processout/grpc-go-pool"
-  packages = ["."]
-  revision = "65ee74e8c5006a01f3cf6f3eb3b90379e45a24ad"
-  version = "v1.0"
-
-[[projects]]
   name = "github.com/sirupsen/logrus"
   packages = ["."]
   revision = "c155da19408a8799da419ed3eeb0cb5db0ad5dbc"
@@ -195,13 +189,13 @@
     "structure",
     "utils"
   ]
-  revision = "292a73558ab9ae03f1d5287dc722ca8a1172c412"
+  revision = "b8d2e54d36c4cd78f376406e75783cde52faa28a"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
-  revision = "b0697eccbea9adec5b7ba8008f4c33d98d733388"
+  revision = "b49d69b5da943f7ef3c9cf91c8777c1f78a0cc3c"
 
 [[projects]]
   branch = "master"
@@ -225,7 +219,7 @@
     "unix",
     "windows"
   ]
-  revision = "79b0c6888797020a994db17c8510466c72fe75d9"
+  revision = "bb9c189858d91f42db229b04d45a4c3d23a7662a"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -297,6 +291,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c6f11f2f89bc92ca9c30a2800a34ad973dda58ff5a45c6fbcb0c52e6cee6c43e"
+  inputs-digest = "b745afdda0080946b809db2f0d4728a407143a4aac82b377fbcd88de0d800927"
   solver-name = "gps-cdcl"
   solver-version = 1

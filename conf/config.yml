@@ -1,5 +1,8 @@
 configServiceAddress:
   ip: "10.250.9.114"
   port: "5000"
-moduleName: "converter"
+grpcOuterAddress:
+    ip: "10.250.9.114"
+    port: "9002"
+moduleName: "admin"
 instanceUuid: "bf482806-0c3d-4e0d-b9d4-12c037b12d70"

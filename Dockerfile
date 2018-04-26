@@ -11,7 +11,6 @@ RUN echo "UTC" >  /etc/timezone
 
 ADD admin-service /app/admin-service
 ADD conf/config.yml /app/config.yml
-ADD static /app/static
 
 ENTRYPOINT ["/app/admin-service"]
 
