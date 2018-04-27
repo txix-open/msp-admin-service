@@ -71,5 +71,4 @@ fabric.properties
 /vendor/
 google/
 package.json
-structure/
 yarn.lock
