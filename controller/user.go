@@ -7,9 +7,10 @@ import (
 	"google.golang.org/grpc/codes"
 	"gitlab8.alx/msp2.0/msp-lib/validate"
 	libUtils "gitlab8.alx/msp2.0/msp-lib/utils"
+	libStr "gitlab8.alx/msp2.0/msp-lib/structure"
 	"gitlab8.alx/msp2.0/msp-lib/token-gen"
 	"golang.org/x/crypto/bcrypt"
-	"admin-service/utils"
+	"gitlab8.alx/msp2.0/msp-lib/utils"
 	"fmt"
 )
 
@@ -25,7 +26,7 @@ func Auth(authRequest structure.AuthRequest) (*structure.Auth, error) {
 	if err != nil {
 		return nil, status.New(codes.Unauthenticated, "Email or password is incorrect").Err()
 	}
-
+	
 	_, err = model.InvalidateOldTokens(user.Id)
 	if err != nil {
 		return nil, validate.CreateUnknownError(err)
@@ -34,7 +35,7 @@ func Auth(authRequest structure.AuthRequest) (*structure.Auth, error) {
 	if err != nil {
 		return nil, validate.CreateUnknownError(err)
 	}
-
+	
 	return &structure.Auth{
 		Token:      token.Token,
 		Expired:    token.ExpiredAt.Format(libUtils.FullDateFormat),
@@ -53,7 +54,7 @@ func GetUsers(identities structure.UsersRequest) (*structure.UsersResponse, erro
 	return &structure.UsersResponse{Items: users}, err
 }
 
-func CreateUpdateUser(user structure.User) (*structure.User, error) {
+func CreateUpdateUser(user libStr.AdminUser) (*libStr.AdminUser, error) {
 	var err error
 	if user.Id == 0 {
 		if user.Password == "" {
@@ -61,7 +62,7 @@ func CreateUpdateUser(user structure.User) (*structure.User, error) {
 			return nil, libUtils.CreateValidationErrorDetails(codes.InvalidArgument,
 				libUtils.ValidationError, validationErrors)
 		}
-
+		
 		userExists, err := model.GetUserByEmail(user.Email)
 		if err != nil {
 			return nil, validate.CreateUnknownError(err)
@@ -73,12 +74,12 @@ func CreateUpdateUser(user structure.User) (*structure.User, error) {
 			return nil, libUtils.CreateValidationErrorDetails(codes.AlreadyExists,
 				libUtils.ValidationError, validationErrors)
 		}
-
+		
 		err = cryptPassword(&user)
 		if err != nil {
 			return nil, err
 		}
-
+		
 		user, err = model.CreateUser(user)
 	} else {
 		userExists, err := model.GetUserById(user.Id)
@@ -92,14 +93,14 @@ func CreateUpdateUser(user structure.User) (*structure.User, error) {
 			return nil, libUtils.CreateValidationErrorDetails(codes.NotFound,
 				libUtils.ValidationError, validationErrors)
 		}
-
+		
 		if user.Password != "" {
 			err = cryptPassword(&user)
 			if err != nil {
 				return nil, err
 			}
 		}
-
+		
 		user, err = model.UpdateUser(user)
 		user.CreatedAt = userExists.CreatedAt
 		user.UpdatedAt = userExists.UpdatedAt
@@ -107,9 +108,9 @@ func CreateUpdateUser(user structure.User) (*structure.User, error) {
 	if err != nil {
 		return nil, validate.CreateUnknownError(err)
 	}
-
+	
 	user.Password = ""
-
+	
 	return &user, err
 }
 
@@ -128,7 +129,7 @@ func DeleteUser(identities structure.IdentitiesRequest) (*structure.DeleteRespon
 	return &structure.DeleteResponse{Deleted: count}, err
 }
 
-func cryptPassword(user *structure.User) error {
+func cryptPassword(user *libStr.AdminUser) error {
 	passwordBytes, err := bcrypt.GenerateFromPassword([]byte(user.Password), 12)
 	if err != nil {
 		return validate.CreateUnknownError(err)

@@ -1,10 +1,10 @@
 package model
 
 import (
+	libStr "gitlab8.alx/msp2.0/msp-lib/structure"
 	"gitlab8.alx/msp2.0/msp-lib/database"
-	"admin-service/structure"
 	"time"
-	"admin-service/utils"
+	"gitlab8.alx/msp2.0/msp-lib/utils"
 )
 
 const DELETE_TOKENS = "DELETE FROM " + utils.DB_SCHEME + ".tokens WHERE user_id=?"
@@ -14,8 +14,8 @@ func InvalidateOldTokens(userId int64) (int, error) {
 	return result.RowsAffected(), err
 }
 
-func CreateNewToken(userId int64, tokenString string, expiredTime *time.Time) (*structure.Token, error) {
-	token := structure.Token{UserId: userId, Token: tokenString}
+func CreateNewToken(userId int64, tokenString string, expiredTime *time.Time) (*libStr.AdminToken, error) {
+	token := libStr.AdminToken{UserId: userId, Token: tokenString}
 	if expiredTime != nil {
 		token.ExpiredAt = expiredTime
 	}

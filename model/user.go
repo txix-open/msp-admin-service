@@ -1,16 +1,17 @@
 package model
 
 import (
-	"admin-service/structure"
+	libStr "gitlab8.alx/msp2.0/msp-lib/structure"
 	"gitlab8.alx/msp2.0/msp-lib/database"
 	"github.com/go-pg/pg"
-	"admin-service/utils"
+	"gitlab8.alx/msp2.0/msp-lib/utils"
+	"admin-service/structure"
 )
 
 const DELETE_USERS = "DELETE FROM " + utils.DB_SCHEME + ".users WHERE id IN (?)"
 
-func GetUserByEmail(email string) (*structure.User, error) {
-	var user structure.User
+func GetUserByEmail(email string) (*libStr.AdminUser, error) {
+	var user libStr.AdminUser
 	err := database.GetDBManager().Db.Model(&user).
 		Where("email = ?", email).
 		First()
@@ -20,8 +21,8 @@ func GetUserByEmail(email string) (*structure.User, error) {
 	return &user, err
 }
 
-func GetUserById(identity int64) (*structure.User, error) {
-	var user structure.User
+func GetUserById(identity int64) (*libStr.AdminUser, error) {
+	var user libStr.AdminUser
 	err := database.GetDBManager().Db.Model(&user).
 		Where("id = ?", identity).
 		First()
@@ -31,8 +32,8 @@ func GetUserById(identity int64) (*structure.User, error) {
 	return &user, err
 }
 
-func GetUsers(usersRequest structure.UsersRequest) (*[]structure.User, error) {
-	var users []structure.User
+func GetUsers(usersRequest structure.UsersRequest) (*[]libStr.AdminUser, error) {
+	var users []libStr.AdminUser
 	query := database.GetDBManager().Db.Model(&users)
 	if len(usersRequest.Ids) > 0 {
 		query.Where("id IN (?)", pg.In(usersRequest.Ids))
@@ -44,7 +45,7 @@ func GetUsers(usersRequest structure.UsersRequest) (*[]structure.User, error) {
 		query.Where("phone LIKE ?", "%"+usersRequest.Phone+"%")
 	}
 	err := query.
-
+		
 		Order("created_at DESC").
 		Limit(usersRequest.Limit).
 		Offset(usersRequest.Offset).
@@ -55,7 +56,7 @@ func GetUsers(usersRequest structure.UsersRequest) (*[]structure.User, error) {
 	return &users, err
 }
 
-func CreateUser(user structure.User) (structure.User, error) {
+func CreateUser(user libStr.AdminUser) (libStr.AdminUser, error) {
 	_, err := database.GetDBManager().Db.Model(&user).
 		Returning("id").
 		Returning("created_at").
@@ -64,7 +65,7 @@ func CreateUser(user structure.User) (structure.User, error) {
 	return user, err
 }
 
-func UpdateUser(user structure.User) (structure.User, error) {
+func UpdateUser(user libStr.AdminUser) (libStr.AdminUser, error) {
 	_, err := database.GetDBManager().Db.Model(&user).
 		WherePK().
 		Returning("id").
