@@ -191,7 +191,7 @@
     "utils",
     "validate"
   ]
-  revision = "ba4557a6c62685f3d95611dd6d84d1faaa8b38a5"
+  revision = "ac0827b7cb710a24b0fff817cbcab3b37539957e"
 
 [[projects]]
   branch = "master"
@@ -201,7 +201,7 @@
     "blowfish",
     "ssh/terminal"
   ]
-  revision = "b49d69b5da943f7ef3c9cf91c8777c1f78a0cc3c"
+  revision = "db7d12313a59cd5b727192a287195e2cdfa40049"
 
 [[projects]]
   branch = "master"

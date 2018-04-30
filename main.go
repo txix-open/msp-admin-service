@@ -16,9 +16,9 @@ import (
 	"github.com/asaskevich/govalidator"
 	"github.com/graarh/golang-socketio"
 	"encoding/json"
-	"gitlab8.alx/msp2.0/msp-lib/database"
 	"os/signal"
 	"net"
+	"gitlab8.alx/msp2.0/msp-lib/database"
 )
 
 var (
@@ -55,10 +55,6 @@ func init() {
 		logger.Warn("Remote config isn't received")
 		time.Sleep(time.Second * 5)
 	}
-	remoteConfig := config.GetRemote().(*conf.RemoteConfig)
-	validRemoteConfig(remoteConfig)
-	config.InitConfig(&conf.Configuration{})
-	database.InitDb(remoteConfig.Database)
 }
 
 func main() {
@@ -116,6 +112,7 @@ func subscribeSocket(client *gosocketio.Client, eventName string) {
 		remoteConfig := &conf.RemoteConfig{}
 		config.InitRemoteConfig(remoteConfig, args)
 		validRemoteConfig(remoteConfig)
+		database.InitDb(remoteConfig.Database)
 		backend.StopGrpcServer()
 		for !checkPortIsFree(remoteConfig.GrpcAddress.Port) {
 			time.Sleep(time.Second * 3)
