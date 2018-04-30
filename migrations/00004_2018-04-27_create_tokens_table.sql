@@ -16,6 +16,7 @@ ALTER TABLE tokens
     ON DELETE CASCADE ON UPDATE CASCADE;
 
 CREATE INDEX IX_tokens_userId ON tokens USING hash (user_id);
+CREATE INDEX IX_tokens_token ON tokens USING btree (token);
 
 -- +goose Down
 DROP TABLE tokens;
