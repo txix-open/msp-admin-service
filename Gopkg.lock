@@ -191,7 +191,7 @@
     "utils",
     "validate"
   ]
-  revision = "ac0827b7cb710a24b0fff817cbcab3b37539957e"
+  revision = "68140c282b811908492ebfdbb96712179cf88893"
 
 [[projects]]
   branch = "master"
@@ -201,7 +201,7 @@
     "blowfish",
     "ssh/terminal"
   ]
-  revision = "db7d12313a59cd5b727192a287195e2cdfa40049"
+  revision = "ae8bce0030810cf999bb2b9868ae5c7c58e6343b"
 
 [[projects]]
   branch = "master"
@@ -225,7 +225,7 @@
     "unix",
     "windows"
   ]
-  revision = "f67ecc163a74fbeea4cb1db0a101dcd07201464a"
+  revision = "4adea008a5e5f820b6028611ae0b6b3fbcec534b"
 
 [[projects]]
   name = "golang.org/x/text"
