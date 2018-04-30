@@ -191,7 +191,7 @@
     "utils",
     "validate"
   ]
-  revision = "88da26c11e2fdb1fafabe7e6fcf57152912e7ba6"
+  revision = "ba4557a6c62685f3d95611dd6d84d1faaa8b38a5"
 
 [[projects]]
   branch = "master"
@@ -225,7 +225,7 @@
     "unix",
     "windows"
   ]
-  revision = "cbbc999da32df943dac6cd71eb3ee39e1d7838b9"
+  revision = "f67ecc163a74fbeea4cb1db0a101dcd07201464a"
 
 [[projects]]
   name = "golang.org/x/text"
