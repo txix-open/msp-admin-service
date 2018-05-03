@@ -29,6 +29,7 @@ var (
 
 func init() {
 	config.InitConfig(&conf.Configuration{})
+	validLocalConfig()
 	appConfig := config.Get().(*conf.Configuration)
 	socket.InitClient(
 		socket.SocketConfiguration{
@@ -77,6 +78,16 @@ func validRemoteConfig(remoteConfig *conf.RemoteConfig) {
 	if err != nil {
 		validationErrors := govalidator.ErrorsByField(err)
 		logger.Fatal("Remote config int't valid", validationErrors)
+		panic(err)
+	}
+}
+
+func validLocalConfig() {
+	localConfig := config.Get().(*conf.Configuration)
+	_, err := govalidator.ValidateStruct(localConfig)
+	if err != nil {
+		validationErrors := govalidator.ErrorsByField(err)
+		logger.Fatal("Local config int't valid", validationErrors)
 		panic(err)
 	}
 }
