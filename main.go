@@ -17,7 +17,6 @@ import (
 	"github.com/graarh/golang-socketio"
 	"encoding/json"
 	"os/signal"
-	"net"
 	"gitlab8.alx/msp2.0/msp-lib/database"
 )
 
@@ -25,6 +24,8 @@ var (
 	configData        *conf.Configuration
 	executableFileDir string
 	configChan        = make(chan bool)
+	version           = "0.1.0"
+	date              = "undefined"
 )
 
 func init() {
@@ -46,7 +47,8 @@ func init() {
 	)
 	time.Sleep(time.Second * 3)
 	for config.GetRemote() == nil {
-		logger.Warn("Remote config isn't received")
+		logger.Warnf("Remote config isn't received, module: %s, instance_uuid: %s",
+			appConfig.ModuleName, appConfig.InstanceUuid)
 		time.Sleep(time.Second * 5)
 	}
 }
@@ -103,16 +105,6 @@ func subscribeSocket(client *gosocketio.Client, eventName string) {
 	})
 }
 
-func checkPortIsFree(port string) bool {
-	ln, err := net.Listen("tcp", ":"+port)
-	if err != nil {
-		return false
-	} else {
-		defer ln.Close()
-		return true
-	}
-}
-
 func listenConfigChange() {
 	go func() {
 		for {
@@ -122,10 +114,6 @@ func listenConfigChange() {
 			remoteConfig := config.GetRemote().(*conf.RemoteConfig)
 			
 			backend.StopGrpcServer()
-			for !checkPortIsFree(remoteConfig.GrpcAddress.Port) {
-				time.Sleep(time.Second * 3)
-				logger.Info("Wait for free port for new grpc connection")
-			}
 			createGrpcServer()
 			database.InitDb(remoteConfig.Database)
 			
@@ -134,7 +122,11 @@ func listenConfigChange() {
 				Port: localConfig.GrpcOuterAddress.Port,
 			}
 			
-			methods := backend.GetBackendConfig(addrOuter, remoteConfig.GrpcPrefix, helper.GetHandlers())
+			methods := backend.CreateBackendConfig(
+				structure.ModuleInfo{ModuleName: localConfig.ModuleName, Version: version},
+				addrOuter,
+				remoteConfig.GrpcPrefix, helper.GetHandlers())
+			
 			bytes, err := json.Marshal(methods)
 			if err != nil {
 				logger.Warn("Error when serializing Backend Routes", err)
