@@ -8,9 +8,15 @@ import (
 )
 
 const DELETE_TOKENS = "DELETE FROM " + utils.DB_SCHEME + ".tokens WHERE user_id=?"
+const DELETE_TOKEN = "DELETE FROM " + utils.DB_SCHEME + ".tokens WHERE token=?"
 
 func InvalidateOldTokens(userId int64) (int, error) {
 	result, err := database.GetDBManager().Db.Exec(DELETE_TOKENS, userId)
+	return result.RowsAffected(), err
+}
+
+func InvalidateOldToken(token string) (int, error) {
+	result, err := database.GetDBManager().Db.Exec(DELETE_TOKEN, token)
 	return result.RowsAffected(), err
 }
 

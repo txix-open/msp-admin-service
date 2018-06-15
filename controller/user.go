@@ -12,9 +12,23 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gitlab8.alx/msp2.0/msp-lib/utils"
 	"fmt"
+	"google.golang.org/grpc/metadata"
+	"gitlab8.alx/msp2.0/msp-lib/logger"
 )
 
-func Auth(authRequest structure.AuthRequest) (*structure.Auth, error) {
+func Logout(metadata metadata.MD) error {
+	token := metadata.Get(utils.ADMIN_AUTH_HEADER_NAME)
+	
+	if len(token) == 0 || token[0] == "" {
+		logger.Errorf("Admin AUTH header: %s, not found, received: %v", utils.ADMIN_AUTH_HEADER_NAME, metadata)
+		st := status.New(codes.InvalidArgument, utils.ServiceError)
+		return st.Err()
+	}
+	model.InvalidateOldToken(token[0])
+	return nil
+}
+
+func Login(authRequest structure.AuthRequest) (*structure.Auth, error) {
 	user, err := model.GetUserByEmail(authRequest.Email)
 	if user == nil {
 		return nil, status.New(codes.NotFound, "User not found").Err()
