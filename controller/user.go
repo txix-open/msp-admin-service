@@ -28,6 +28,21 @@ func Logout(metadata metadata.MD) error {
 	return nil
 }
 
+func GetProfile(metadata metadata.MD) (*structure.AdminUserShort, error) {
+	token := metadata.Get(utils.ADMIN_AUTH_HEADER_NAME)
+	
+	if len(token) == 0 || token[0] == "" {
+		logger.Errorf("Admin AUTH header: %s, not found, received: %v", utils.ADMIN_AUTH_HEADER_NAME, metadata)
+		st := status.New(codes.InvalidArgument, utils.ServiceError)
+		return nil, st.Err()
+	}
+	user, err := model.GetUserByToken(token[0])
+	if err != nil {
+		return nil, validate.CreateUnknownError(err)
+	}
+	return user, nil
+}
+
 func Login(authRequest structure.AuthRequest) (*structure.Auth, error) {
 	user, err := model.GetUserByEmail(authRequest.Email)
 	if user == nil {

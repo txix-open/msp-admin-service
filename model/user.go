@@ -10,6 +10,26 @@ import (
 
 const DELETE_USERS = "DELETE FROM " + utils.DB_SCHEME + ".users WHERE id IN (?)"
 
+func GetUserByToken(token string) (*structure.AdminUserShort, error) {
+	var user structure.AdminUserShort
+	_, err := database.GetDBManager().Db.Model(&user).
+		Query(&user, `SELECT
+			u.image,
+				u.email,
+				u.phone,
+				u.first_name,
+				u.last_name
+			FROM
+				` + utils.DB_SCHEME + `.tokens
+			t LEFT JOIN ` + utils.DB_SCHEME + `.users u ON t.user_id = u.ID
+			WHERE
+				token = ?`, token)
+	if err != nil && err == pg.ErrNoRows {
+		return nil, nil
+	}
+	return &user, err
+}
+
 func GetUserByEmail(email string) (*libStr.AdminUser, error) {
 	var user libStr.AdminUser
 	err := database.GetDBManager().Db.Model(&user).
