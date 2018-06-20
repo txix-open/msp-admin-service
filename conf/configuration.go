@@ -3,6 +3,7 @@ package conf
 type Configuration struct {
 	ConfigServiceAddress AddressConfiguration
 	GrpcOuterAddress     AddressConfiguration `valid:"required~Required" json:"grpcOuterAddress"`
+	GrpcInnerAddress     AddressConfiguration `valid:"required~Required" json:"grpcInnerAddress"`
 	ModuleName           string
 	InstanceUuid         string
 }

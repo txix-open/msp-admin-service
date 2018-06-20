@@ -32,6 +32,7 @@ func init() {
 	config.InitConfig(&conf.Configuration{})
 	validLocalConfig()
 	appConfig := config.Get().(*conf.Configuration)
+	createGrpcServer()
 	socket.InitClient(
 		socket.SocketConfiguration{
 			Host:      appConfig.ConfigServiceAddress.IP,
@@ -70,9 +71,9 @@ func main() {
 
 // Start a GRPC server.
 func createGrpcServer() {
-	remoteConfig := config.GetRemote().(*conf.RemoteConfig)
-	addr := structure.AddressConfiguration{IP: remoteConfig.GrpcAddress.IP, Port: remoteConfig.GrpcAddress.Port}
-	backend.StartBackendGrpcServer(addr, backend.GetDefaultService(remoteConfig.GrpcPrefix, helper.GetHandlers()))
+	appConfig := config.Get().(*conf.Configuration)
+	addr := structure.AddressConfiguration{IP: appConfig.GrpcInnerAddress.IP, Port: appConfig.GrpcInnerAddress.Port}
+	backend.StartBackendGrpcServer(addr, backend.GetDefaultService(appConfig.ModuleName, helper.GetHandlers()))
 }
 
 func validRemoteConfig(remoteConfig *conf.RemoteConfig) {
@@ -113,8 +114,6 @@ func listenConfigChange() {
 			localConfig := config.Get().(*conf.Configuration)
 			remoteConfig := config.GetRemote().(*conf.RemoteConfig)
 			
-			backend.StopGrpcServer()
-			createGrpcServer()
 			database.InitDb(remoteConfig.Database)
 			
 			addrOuter := structure.AddressConfiguration{
@@ -125,7 +124,7 @@ func listenConfigChange() {
 			methods := backend.CreateBackendConfig(
 				structure.ModuleInfo{ModuleName: localConfig.ModuleName, Version: version},
 				addrOuter,
-				remoteConfig.GrpcPrefix, helper.GetHandlers())
+				localConfig.ModuleName, helper.GetHandlers())
 			
 			bytes, err := json.Marshal(methods)
 			if err != nil {
