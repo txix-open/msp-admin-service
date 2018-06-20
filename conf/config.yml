@@ -2,10 +2,10 @@ configServiceAddress:
   ip: "10.250.9.117"
   port: "9000"
 grpcOuterAddress:
-    ip: "10.250.9.117"
-    port: "9009"
+  ip: "10.250.9.117"
+  port: "9009"
 grpcInnerAddress:
-    ip: "0.0.0.0"
-    port: "9009"
+  ip: "0.0.0.0"
+  port: "9009"
 moduleName: "admin"
 instanceUuid: "bf482806-0c3d-4e0d-b9d4-12c037b12d70"
