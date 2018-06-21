@@ -10,8 +10,9 @@ display_help() {
     echo
     echo "   -ma, --major           increase major version, X.0.0. Minor and build versions will set eq 0"
     echo "   -mi, --minor           increase minor version, 0.X.0. Build version will set eq 0"
+    echo "   -b,  --build           increase build version, 0.0.X."
     echo
-    echo "Run without option means that will increase build version 0.0.X"
+    echo "Run without option means that will accomplish only build without increase any version"
     echo
     # echo some stuff here for the -a or --add-options
     exit 1
@@ -19,12 +20,16 @@ display_help() {
 
 INCREASE_MAJOR_VERSION=0
 INCREASE_MINOR_VERSION=0
+INCREASE_BUILD_VERSION=0
 
 ################################
 # Check if parameters options  #
 # are given on the commandline #
 ################################
 case "$1" in
+  -b | --build)
+    INCREASE_BUILD_VERSION=1
+    ;;
   -ma | --major)
     INCREASE_MAJOR_VERSION=1
     ;;
@@ -81,7 +86,8 @@ else
         then
             MINOR_VERSION=$((MINOR_VERSION + 1))
             BUILD_VERSION=0
-        else
+        elif [ ${INCREASE_BUILD_VERSION} -ne 0 ]
+        then
             BUILD_VERSION=$((BUILD_VERSION + 1))
         fi
     fi
