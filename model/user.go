@@ -1,11 +1,11 @@
 package model
 
 import (
-	libStr "gitlab8.alx/msp2.0/msp-lib/structure"
-	"gitlab8.alx/msp2.0/msp-lib/database"
-	"github.com/go-pg/pg"
-	"gitlab8.alx/msp2.0/msp-lib/utils"
 	"admin-service/structure"
+	"github.com/go-pg/pg"
+	"gitlab.alx/msp2.0/msp-lib/database"
+	libStr "gitlab.alx/msp2.0/msp-lib/structure"
+	"gitlab.alx/msp2.0/msp-lib/utils"
 )
 
 const DELETE_USERS = "DELETE FROM " + utils.DB_SCHEME + ".users WHERE id IN (?)"
@@ -20,8 +20,8 @@ func GetUserByToken(token string) (*structure.AdminUserShort, error) {
 				u.first_name,
 				u.last_name
 			FROM
-				` + utils.DB_SCHEME + `.tokens
-			t LEFT JOIN ` + utils.DB_SCHEME + `.users u ON t.user_id = u.ID
+				`+utils.DB_SCHEME+`.tokens
+			t LEFT JOIN `+utils.DB_SCHEME+`.users u ON t.user_id = u.ID
 			WHERE
 				token = ?`, token)
 	if err != nil && err == pg.ErrNoRows {
@@ -65,7 +65,6 @@ func GetUsers(usersRequest structure.UsersRequest) (*[]libStr.AdminUser, error) 
 		query.Where("phone LIKE ?", "%"+usersRequest.Phone+"%")
 	}
 	err := query.
-		
 		Order("created_at DESC").
 		Limit(usersRequest.Limit).
 		Offset(usersRequest.Offset).

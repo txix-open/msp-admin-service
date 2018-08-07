@@ -1,10 +1,10 @@
 package model
 
 import (
-	libStr "gitlab8.alx/msp2.0/msp-lib/structure"
-	"gitlab8.alx/msp2.0/msp-lib/database"
+	"gitlab.alx/msp2.0/msp-lib/database"
+	libStr "gitlab.alx/msp2.0/msp-lib/structure"
+	"gitlab.alx/msp2.0/msp-lib/utils"
 	"time"
-	"gitlab8.alx/msp2.0/msp-lib/utils"
 )
 
 const DELETE_TOKENS = "DELETE FROM " + utils.DB_SCHEME + ".tokens WHERE user_id=?"

@@ -1,18 +1,11 @@
 package conf
 
+import "gitlab.alx/msp2.0/msp-lib/structure"
+
 type Configuration struct {
-	ConfigServiceAddress AddressConfiguration
-	GrpcOuterAddress     AddressConfiguration `valid:"required~Required" json:"grpcOuterAddress"`
-	GrpcInnerAddress     AddressConfiguration `valid:"required~Required" json:"grpcInnerAddress"`
+	ConfigServiceAddress structure.AddressConfiguration
+	GrpcOuterAddress     structure.AddressConfiguration `valid:"required~Required" json:"grpcOuterAddress"`
+	GrpcInnerAddress     structure.AddressConfiguration `valid:"required~Required" json:"grpcInnerAddress"`
 	ModuleName           string
 	InstanceUuid         string
-}
-
-type AddressConfiguration struct {
-	Port string `valid:"required~Required"`
-	IP   string `valid:"required~Required"`
-}
-
-func (addressConfiguration *AddressConfiguration) GetAddress() string {
-	return addressConfiguration.IP + ":" + addressConfiguration.Port
 }

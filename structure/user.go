@@ -1,7 +1,7 @@
 package structure
 
 import (
-	"gitlab8.alx/msp2.0/msp-lib/structure"
+	"gitlab.alx/msp2.0/msp-lib/structure"
 )
 
 type UsersResponse struct {
@@ -17,10 +17,10 @@ type UsersRequest struct {
 }
 
 type AdminUserShort struct {
-	TableName string    `sql:"admin_service.users" json:"-"`
-	Image     string    `json:"image"`
-	FirstName string    `json:"firstName"`
-	LastName  string    `json:"lastName"`
-	Email     string    `json:"email" valid:"required~Required"`
-	Phone     string    `json:"phone"`
+	TableName string `sql:"admin_service.users" json:"-"`
+	Image     string `json:"image"`
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
+	Email     string `json:"email" valid:"required~Required"`
+	Phone     string `json:"phone"`
 }

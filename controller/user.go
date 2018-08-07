@@ -1,24 +1,24 @@
 package controller
 
 import (
-	"admin-service/structure"
 	"admin-service/model"
-	"google.golang.org/grpc/status"
-	"google.golang.org/grpc/codes"
-	"gitlab8.alx/msp2.0/msp-lib/validate"
-	libUtils "gitlab8.alx/msp2.0/msp-lib/utils"
-	libStr "gitlab8.alx/msp2.0/msp-lib/structure"
-	"gitlab8.alx/msp2.0/msp-lib/token-gen"
-	"golang.org/x/crypto/bcrypt"
-	"gitlab8.alx/msp2.0/msp-lib/utils"
+	"admin-service/structure"
 	"fmt"
+	"gitlab.alx/msp2.0/msp-lib/logger"
+	libStr "gitlab.alx/msp2.0/msp-lib/structure"
+	"gitlab.alx/msp2.0/msp-lib/token-gen"
+	"gitlab.alx/msp2.0/msp-lib/utils"
+	libUtils "gitlab.alx/msp2.0/msp-lib/utils"
+	"gitlab.alx/msp2.0/msp-lib/validate"
+	"golang.org/x/crypto/bcrypt"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
-	"gitlab8.alx/msp2.0/msp-lib/logger"
+	"google.golang.org/grpc/status"
 )
 
 func Logout(metadata metadata.MD) error {
 	token := metadata.Get(utils.ADMIN_AUTH_HEADER_NAME)
-	
+
 	if len(token) == 0 || token[0] == "" {
 		logger.Errorf("Admin AUTH header: %s, not found, received: %v", utils.ADMIN_AUTH_HEADER_NAME, metadata)
 		st := status.New(codes.InvalidArgument, utils.ServiceError)
@@ -30,7 +30,7 @@ func Logout(metadata metadata.MD) error {
 
 func GetProfile(metadata metadata.MD) (*structure.AdminUserShort, error) {
 	token := metadata.Get(utils.ADMIN_AUTH_HEADER_NAME)
-	
+
 	if len(token) == 0 || token[0] == "" {
 		logger.Errorf("Admin AUTH header: %s, not found, received: %v", utils.ADMIN_AUTH_HEADER_NAME, metadata)
 		st := status.New(codes.InvalidArgument, utils.ServiceError)
@@ -55,7 +55,7 @@ func Login(authRequest structure.AuthRequest) (*structure.Auth, error) {
 	if err != nil {
 		return nil, status.New(codes.Unauthenticated, "Email or password is incorrect").Err()
 	}
-	
+
 	_, err = model.InvalidateOldTokens(user.Id)
 	if err != nil {
 		return nil, validate.CreateUnknownError(err)
@@ -64,7 +64,7 @@ func Login(authRequest structure.AuthRequest) (*structure.Auth, error) {
 	if err != nil {
 		return nil, validate.CreateUnknownError(err)
 	}
-	
+
 	return &structure.Auth{
 		Token:      token.Token,
 		Expired:    token.ExpiredAt.Format(libUtils.FullDateFormat),
@@ -91,7 +91,7 @@ func CreateUpdateUser(user libStr.AdminUser) (*libStr.AdminUser, error) {
 			return nil, libUtils.CreateValidationErrorDetails(codes.InvalidArgument,
 				libUtils.ValidationError, validationErrors)
 		}
-		
+
 		userExists, err := model.GetUserByEmail(user.Email)
 		if err != nil {
 			return nil, validate.CreateUnknownError(err)
@@ -103,12 +103,12 @@ func CreateUpdateUser(user libStr.AdminUser) (*libStr.AdminUser, error) {
 			return nil, libUtils.CreateValidationErrorDetails(codes.AlreadyExists,
 				libUtils.ValidationError, validationErrors)
 		}
-		
+
 		err = cryptPassword(&user)
 		if err != nil {
 			return nil, err
 		}
-		
+
 		user, err = model.CreateUser(user)
 	} else {
 		userExists, err := model.GetUserById(user.Id)
@@ -122,14 +122,14 @@ func CreateUpdateUser(user libStr.AdminUser) (*libStr.AdminUser, error) {
 			return nil, libUtils.CreateValidationErrorDetails(codes.NotFound,
 				libUtils.ValidationError, validationErrors)
 		}
-		
+
 		if user.Password != "" {
 			err = cryptPassword(&user)
 			if err != nil {
 				return nil, err
 			}
 		}
-		
+
 		user, err = model.UpdateUser(user)
 		user.CreatedAt = userExists.CreatedAt
 		user.UpdatedAt = userExists.UpdatedAt
@@ -137,9 +137,9 @@ func CreateUpdateUser(user libStr.AdminUser) (*libStr.AdminUser, error) {
 	if err != nil {
 		return nil, validate.CreateUnknownError(err)
 	}
-	
+
 	user.Password = ""
-	
+
 	return &user, err
 }
 
