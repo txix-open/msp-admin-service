@@ -1,10 +1,10 @@
 package helper
 
 import (
-	"admin-service/controller"
-	"admin-service/structure"
 	libStr "gitlab.alx/msp2.0/msp-lib/structure"
 	"google.golang.org/grpc/metadata"
+	"msp-admin-service/controller"
+	"msp-admin-service/structure"
 )
 
 type Handlers struct {

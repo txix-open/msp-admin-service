@@ -1,13 +1,13 @@
 package main
 
 import (
-	"admin-service/conf"
-	"admin-service/helper"
 	"context"
 	"gitlab.alx/msp2.0/msp-lib/backend"
 	"gitlab.alx/msp2.0/msp-lib/bootstrap"
 	"gitlab.alx/msp2.0/msp-lib/database"
 	"gitlab.alx/msp2.0/msp-lib/socket"
+	"msp-admin-service/conf"
+	"msp-admin-service/helper"
 	"os"
 )
 

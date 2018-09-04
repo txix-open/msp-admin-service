@@ -1,11 +1,11 @@
 package model
 
 import (
-	"admin-service/structure"
 	"github.com/go-pg/pg"
 	"gitlab.alx/msp2.0/msp-lib/database"
 	libStr "gitlab.alx/msp2.0/msp-lib/structure"
 	"gitlab.alx/msp2.0/msp-lib/utils"
+	"msp-admin-service/structure"
 )
 
 const DELETE_USERS = "DELETE FROM " + utils.DB_SCHEME + ".users WHERE id IN (?)"

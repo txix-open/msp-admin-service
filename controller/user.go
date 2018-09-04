@@ -1,8 +1,6 @@
 package controller
 
 import (
-	"admin-service/model"
-	"admin-service/structure"
 	"fmt"
 	"gitlab.alx/msp2.0/msp-lib/logger"
 	libStr "gitlab.alx/msp2.0/msp-lib/structure"
@@ -14,6 +12,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"msp-admin-service/model"
+	"msp-admin-service/structure"
 )
 
 func Logout(metadata metadata.MD) error {
