@@ -336,7 +336,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:af46b56237e436f8850c7d13037dc3b55eb96fe859c64502ab75393c756bc18d"
+  digest = "1:8408a1be2e82661042730dc06e86466dda50685b00aab10591ead9bf076bf77f"
   name = "gitlab.msp.mobi/go-lib/golang-socketio"
   packages = [
     ".",
@@ -344,7 +344,7 @@
     "transport",
   ]
   pruneopts = "UT"
-  revision = "c895287bbf8575779fcce607a3423d8ae6a38c01"
+  revision = "640e8e5de90dc9a744d687f8c8b220c39f5ab421"
 
 [[projects]]
   branch = "master"
