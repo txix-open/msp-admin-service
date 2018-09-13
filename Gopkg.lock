@@ -313,7 +313,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:e98c6716e55ab2e063283ef34a52bcdfe9c36cb739aed931273216a7829c6af9"
+  digest = "1:1883d50c0e7e8e0e639de6f7fd872612631fa31f530beb25f24a8ba6e62ddace"
   name = "gitlab.alx/msp2.0/msp-lib"
   packages = [
     "backend",
@@ -332,7 +332,7 @@
     "validate",
   ]
   pruneopts = "UT"
-  revision = "7b3d6bf4ef8f6f79a78433b588b4fb4a980902c3"
+  revision = "4ab5e9ad61bfe1ed9680de586c4abcecd80fc573"
 
 [[projects]]
   branch = "master"
