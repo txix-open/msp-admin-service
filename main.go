@@ -5,6 +5,7 @@ import (
 	"gitlab.alx/msp2.0/msp-lib/backend"
 	"gitlab.alx/msp2.0/msp-lib/bootstrap"
 	"gitlab.alx/msp2.0/msp-lib/database"
+	"gitlab.alx/msp2.0/msp-lib/metric"
 	"gitlab.alx/msp2.0/msp-lib/socket"
 	"msp-admin-service/conf"
 	"msp-admin-service/helper"
@@ -45,8 +46,10 @@ func onShutdown(_ context.Context, _ os.Signal) {
 	backend.StopGrpcServer()
 }
 
-func onRemoteConfigReceive(remoteConfig, _ *conf.RemoteConfig) {
+func onRemoteConfigReceive(remoteConfig, oldRemoteConfig *conf.RemoteConfig) {
 	database.InitDb(remoteConfig.Database)
+	metric.InitCollectors(remoteConfig.Metrics, oldRemoteConfig.Metrics)
+	metric.InitHttpServer(remoteConfig.Metrics)
 }
 
 func onLocalConfigLoad(cfg *conf.Configuration) {
