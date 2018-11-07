@@ -18,6 +18,14 @@
   version = "v9"
 
 [[projects]]
+  digest = "1:4f9f291570034bc63d815c641a076c95b818096b304759e1874e4ac734f70ee0"
+  name = "github.com/d1slike/go-cmp"
+  packages = ["cmp"]
+  pruneopts = "UT"
+  revision = "3af367b6b30c263d47e8895973edcca9a49cf029"
+  version = "v0.2.0"
+
+[[projects]]
   digest = "1:abeb38ade3f32a92943e5be54f55ed6d6e3b6602761d74b4aab4c9dd45c18abd"
   name = "github.com/fsnotify/fsnotify"
   packages = ["."]
@@ -65,6 +73,18 @@
   pruneopts = "UT"
   revision = "aa810b61a9c79d51363740d207bb46cf8e620ed5"
   version = "v1.2.0"
+
+[[projects]]
+  digest = "1:c5537c07ad75054fca0e55c4cddc0066ac153649f5533555a305d910451adbbb"
+  name = "github.com/google/go-cmp"
+  packages = [
+    "cmp/internal/diff",
+    "cmp/internal/function",
+    "cmp/internal/value",
+  ]
+  pruneopts = "UT"
+  revision = "3af367b6b30c263d47e8895973edcca9a49cf029"
+  version = "v0.2.0"
 
 [[projects]]
   branch = "master"
@@ -125,9 +145,12 @@
   revision = "04140366298a54a039076d798123ffa108fff46c"
 
 [[projects]]
-  digest = "1:3e551bbb3a7c0ab2a2bf4660e7fcad16db089fdcfbb44b0199e62838038623ea"
+  digest = "1:5d713dbcad44f3358fec51fd5573d4f733c02cac5a40dcb177787ad5ffe9272f"
   name = "github.com/json-iterator/go"
-  packages = ["."]
+  packages = [
+    ".",
+    "extra",
+  ]
   pruneopts = "UT"
   revision = "1624edc4454b8682399def8740d46db5e4362ba4"
   version = "v1.1.5"
@@ -367,7 +390,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:94a71b129a91da7599d056a8fb27bf988194768c3c59f6f8abed59aac6d472af"
+  digest = "1:05e55010c72ceb6a49781b50741bfb23fc35eee9d6997c1d3f6464cf112a7dde"
   name = "gitlab.alx/msp2.0/msp-lib"
   packages = [
     "backend",
@@ -387,7 +410,7 @@
     "validate",
   ]
   pruneopts = "UT"
-  revision = "2edca7b889cb66f4edb5360609202249d3ecf08a"
+  revision = "aab9056c870b036847c8dd0b51544cbcd165906e"
 
 [[projects]]
   branch = "master"
