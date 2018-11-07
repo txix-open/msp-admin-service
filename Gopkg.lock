@@ -18,12 +18,17 @@
   version = "v9"
 
 [[projects]]
-  digest = "1:4f9f291570034bc63d815c641a076c95b818096b304759e1874e4ac734f70ee0"
+  digest = "1:98bee0b420d6bb0a729c948eef17540459d1e8271f40b5ed98b740db0d52c077"
   name = "github.com/d1slike/go-cmp"
-  packages = ["cmp"]
+  packages = [
+    "cmp",
+    "cmp/internal/diff",
+    "cmp/internal/function",
+    "cmp/internal/value",
+  ]
   pruneopts = "UT"
-  revision = "3af367b6b30c263d47e8895973edcca9a49cf029"
-  version = "v0.2.0"
+  revision = "31671faacc2afcac467a6a253d07073ffa9d2d76"
+  version = "v0.3.0"
 
 [[projects]]
   digest = "1:abeb38ade3f32a92943e5be54f55ed6d6e3b6602761d74b4aab4c9dd45c18abd"
@@ -73,18 +78,6 @@
   pruneopts = "UT"
   revision = "aa810b61a9c79d51363740d207bb46cf8e620ed5"
   version = "v1.2.0"
-
-[[projects]]
-  digest = "1:c5537c07ad75054fca0e55c4cddc0066ac153649f5533555a305d910451adbbb"
-  name = "github.com/google/go-cmp"
-  packages = [
-    "cmp/internal/diff",
-    "cmp/internal/function",
-    "cmp/internal/value",
-  ]
-  pruneopts = "UT"
-  revision = "3af367b6b30c263d47e8895973edcca9a49cf029"
-  version = "v0.2.0"
 
 [[projects]]
   branch = "master"
