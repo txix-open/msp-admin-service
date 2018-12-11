@@ -18,19 +18,6 @@
   version = "v9"
 
 [[projects]]
-  digest = "1:98bee0b420d6bb0a729c948eef17540459d1e8271f40b5ed98b740db0d52c077"
-  name = "github.com/d1slike/go-cmp"
-  packages = [
-    "cmp",
-    "cmp/internal/diff",
-    "cmp/internal/function",
-    "cmp/internal/value",
-  ]
-  pruneopts = "UT"
-  revision = "31671faacc2afcac467a6a253d07073ffa9d2d76"
-  version = "v0.3.0"
-
-[[projects]]
   digest = "1:abeb38ade3f32a92943e5be54f55ed6d6e3b6602761d74b4aab4c9dd45c18abd"
   name = "github.com/fsnotify/fsnotify"
   packages = ["."]
@@ -382,8 +369,7 @@
   version = "v0.5.2"
 
 [[projects]]
-  branch = "master"
-  digest = "1:05e55010c72ceb6a49781b50741bfb23fc35eee9d6997c1d3f6464cf112a7dde"
+  digest = "1:6e394627b1d97112bc59d073874a05e8d19f81de3ae2c620a9b10be10ff27a33"
   name = "gitlab.alx/msp2.0/msp-lib"
   packages = [
     "backend",
@@ -403,7 +389,21 @@
     "validate",
   ]
   pruneopts = "UT"
-  revision = "aab9056c870b036847c8dd0b51544cbcd165906e"
+  revision = "c226e45a0b9fbc40b0694d3795f08d1e3477f81a"
+  version = "new_boot"
+
+[[projects]]
+  branch = "master"
+  digest = "1:77bf194235d7e0ec193ddc4fdaeb9408ded749819c7c8f539fa09128438d925e"
+  name = "gitlab.msp.mobi/go-lib/go-cmp"
+  packages = [
+    "cmp",
+    "cmp/internal/diff",
+    "cmp/internal/function",
+    "cmp/internal/value",
+  ]
+  pruneopts = "UT"
+  revision = "cc96371ce67a0308fd91ffab056c222a5222ca33"
 
 [[projects]]
   branch = "master"

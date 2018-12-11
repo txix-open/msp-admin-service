@@ -22,8 +22,7 @@ func main() {
 		ServiceBootstrap(&conf.Configuration{}, &conf.RemoteConfig{}).
 		OnLocalConfigLoad(onLocalConfigLoad).
 		SocketConfiguration(socketConfiguration).
-		SendRemoteConfigSchemaWithVersion(version).
-		SendRoutes(routesData).
+		DeclareMe(routesData).
 		OnRemoteConfigReceive(onRemoteConfigReceive).
 		OnShutdown(onShutdown).
 		Run()
@@ -58,11 +57,11 @@ func onLocalConfigLoad(cfg *conf.Configuration) {
 	backend.StartBackendGrpcServer(cfg.GrpcInnerAddress, service)
 }
 
-func routesData(localConfig interface{}) bootstrap.SendRoutesData {
+func routesData(localConfig interface{}) bootstrap.ModuleInfo {
 	cfg := localConfig.(*conf.Configuration)
-	return bootstrap.SendRoutesData{
+	return bootstrap.ModuleInfo{
 		ModuleName:       cfg.ModuleName,
-		Version:          version,
+		ModuleVersion:    version,
 		GrpcOuterAddress: cfg.GrpcOuterAddress,
 		Handlers:         helper.GetHandlers(),
 	}
