@@ -24,10 +24,6 @@
 #   go-tests = true
 #   unused-packages = true
 
-[[constraint]]
-   name = "gitlab.alx/msp2.0/msp-lib"
-   version = "new_boot"
-
 [prune]
   go-tests = true
   unused-packages = true
