@@ -370,7 +370,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:d24b82225b10d18b67b854f06a557ddfdd77145e745c50df71aa09117498cd0c"
+  digest = "1:b721dc8bb82544f77005040e531bef260f5e95ebadc0a23a3719d227d0f9aa5b"
   name = "gitlab.alx/msp2.0/msp-lib"
   packages = [
     "backend",
@@ -390,7 +390,7 @@
     "validate",
   ]
   pruneopts = "UT"
-  revision = "b80208e3c48ae995190bfed084ccca25259eaf44"
+  revision = "424fa0925066e958accb4bf9cc6409ad83a6623a"
 
 [[projects]]
   branch = "master"
@@ -416,6 +416,14 @@
   ]
   pruneopts = "UT"
   revision = "640e8e5de90dc9a744d687f8c8b220c39f5ab421"
+
+[[projects]]
+  branch = "master"
+  digest = "1:a992b3ab79433b828258f9fe99af29da5aeb2e48bf8076a41ba556ac90ac04d3"
+  name = "gitlab.msp.mobi/go-lib/jsonschema"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "25f14e773320077c48f3612e1174392b9e42c8d4"
 
 [[projects]]
   branch = "master"
