@@ -18,6 +18,14 @@
   version = "v9"
 
 [[projects]]
+  digest = "1:652880afc6b57ce0a67173f552cb35ccda816493a1da6ca20e5074a66bcd083f"
+  name = "github.com/buaazp/fasthttprouter"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "ade4e2031af3aed7fffd241084aad80a58faf421"
+  version = "v0.1.1"
+
+[[projects]]
   digest = "1:abeb38ade3f32a92943e5be54f55ed6d6e3b6602761d74b4aab4c9dd45c18abd"
   name = "github.com/fsnotify/fsnotify"
   packages = ["."]
@@ -370,7 +378,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:e65bb72e86fd444a352c63f036f25e4ad43029a4b69b38a01a3e04439f2492ff"
+  digest = "1:8418cf4c8132a3447fa8625dce35b55248e225cbe5546272e8311ccba8e28929"
   name = "gitlab.alx/msp2.0/msp-lib"
   packages = [
     "backend",
@@ -390,7 +398,7 @@
     "validate",
   ]
   pruneopts = "UT"
-  revision = "2c01ef6b66b9f4b0858e334717f9ed35d7c57e62"
+  revision = "906066857a40013fc169cff145c60e482a7dc1b1"
 
 [[projects]]
   branch = "master"
