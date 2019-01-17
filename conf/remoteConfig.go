@@ -1,8 +1,8 @@
 package conf
 
 import (
-	"gitlab.alx/msp2.0/msp-lib/database"
-	"gitlab.alx/msp2.0/msp-lib/structure"
+	"github.com/integration-system/isp-lib/database"
+	"github.com/integration-system/isp-lib/structure"
 )
 
 type RemoteConfig struct {

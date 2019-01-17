@@ -1,7 +1,7 @@
 package helper
 
 import (
-	libStr "gitlab.alx/msp2.0/msp-lib/structure"
+	libStr "github.com/integration-system/isp-lib/structure"
 	"google.golang.org/grpc/metadata"
 	"msp-admin-service/controller"
 	"msp-admin-service/structure"

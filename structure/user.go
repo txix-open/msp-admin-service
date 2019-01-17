@@ -1,7 +1,7 @@
 package structure
 
 import (
-	"gitlab.alx/msp2.0/msp-lib/structure"
+	"github.com/integration-system/isp-lib/structure"
 )
 
 type UsersResponse struct {

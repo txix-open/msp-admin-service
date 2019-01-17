@@ -1,9 +1,9 @@
 package model
 
 import (
-	"gitlab.alx/msp2.0/msp-lib/database"
-	libStr "gitlab.alx/msp2.0/msp-lib/structure"
-	"gitlab.alx/msp2.0/msp-lib/utils"
+	"github.com/integration-system/isp-lib/database"
+	libStr "github.com/integration-system/isp-lib/structure"
+	"github.com/integration-system/isp-lib/utils"
 	"time"
 )
 

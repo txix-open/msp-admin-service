@@ -1,6 +1,6 @@
 package conf
 
-import "gitlab.alx/msp2.0/msp-lib/structure"
+import "github.com/integration-system/isp-lib/structure"
 
 type Configuration struct {
 	ConfigServiceAddress structure.AddressConfiguration

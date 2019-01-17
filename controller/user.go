@@ -2,12 +2,12 @@ package controller
 
 import (
 	"fmt"
-	"gitlab.alx/msp2.0/msp-lib/logger"
-	libStr "gitlab.alx/msp2.0/msp-lib/structure"
-	"gitlab.alx/msp2.0/msp-lib/token-gen"
-	"gitlab.alx/msp2.0/msp-lib/utils"
-	libUtils "gitlab.alx/msp2.0/msp-lib/utils"
-	"gitlab.alx/msp2.0/msp-lib/validate"
+	"github.com/integration-system/isp-lib/logger"
+	libStr "github.com/integration-system/isp-lib/structure"
+	"github.com/integration-system/isp-lib/token-gen"
+	"github.com/integration-system/isp-lib/utils"
+	libUtils "github.com/integration-system/isp-lib/utils"
+	"github.com/integration-system/isp-lib/validate"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"

@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
-	"gitlab.alx/msp2.0/msp-lib/backend"
-	"gitlab.alx/msp2.0/msp-lib/bootstrap"
-	"gitlab.alx/msp2.0/msp-lib/database"
-	"gitlab.alx/msp2.0/msp-lib/metric"
-	"gitlab.alx/msp2.0/msp-lib/socket"
+	"github.com/integration-system/isp-lib/backend"
+	"github.com/integration-system/isp-lib/bootstrap"
+	"github.com/integration-system/isp-lib/database"
+	"github.com/integration-system/isp-lib/metric"
+	"github.com/integration-system/isp-lib/socket"
 	"msp-admin-service/conf"
 	"msp-admin-service/helper"
 	"os"
