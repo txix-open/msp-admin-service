@@ -6,7 +6,7 @@ import (
 	"github.com/integration-system/isp-lib/bootstrap"
 	"github.com/integration-system/isp-lib/database"
 	"github.com/integration-system/isp-lib/metric"
-	"github.com/integration-system/isp-lib/socket"
+	"github.com/integration-system/isp-lib/structure"
 	"msp-admin-service/conf"
 	"msp-admin-service/helper"
 	"os"
@@ -28,9 +28,9 @@ func main() {
 		Run()
 }
 
-func socketConfiguration(cfg interface{}) socket.SocketConfiguration {
+func socketConfiguration(cfg interface{}) structure.SocketConfiguration {
 	appConfig := cfg.(*conf.Configuration)
-	return socket.SocketConfiguration{
+	return structure.SocketConfiguration{
 		Host:   appConfig.ConfigServiceAddress.IP,
 		Port:   appConfig.ConfigServiceAddress.Port,
 		Secure: false,
