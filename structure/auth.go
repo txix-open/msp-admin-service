@@ -2,7 +2,7 @@ package structure
 
 type Auth struct {
 	Token      string `json:"token"`
-	Expired    string `json:"expired"`
+	Expired    string `json:"expired,omitempty"`
 	HeaderName string `json:"headerName"`
 }
 

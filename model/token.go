@@ -1,12 +1,6 @@
 package model
 
-import (
-	"github.com/integration-system/isp-lib/database"
-	libStr "github.com/integration-system/isp-lib/structure"
-	"github.com/integration-system/isp-lib/utils"
-	"time"
-)
-
+/*
 const DELETE_TOKENS = "DELETE FROM " + utils.DB_SCHEME + ".tokens WHERE user_id=?"
 const DELETE_TOKEN = "DELETE FROM " + utils.DB_SCHEME + ".tokens WHERE token=?"
 
@@ -32,3 +26,4 @@ func CreateNewToken(userId int64, tokenString string, expiredTime *time.Time) (*
 		Insert()
 	return &token, err
 }
+*/
