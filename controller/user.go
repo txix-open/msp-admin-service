@@ -25,7 +25,6 @@ func Logout(metadata metadata.MD) error {
 		st := status.New(codes.InvalidArgument, utils.ServiceError)
 		return st.Err()
 	}
-	//model.InvalidateOldToken(token[0])
 	return nil
 }
 
@@ -56,17 +55,6 @@ func Login(authRequest structure.AuthRequest) (*structure.Auth, error) {
 	if err != nil {
 		return nil, status.New(codes.Unauthenticated, "Email or password is incorrect").Err()
 	}
-
-	/*
-		_, err = model.InvalidateOldTokens(user.Id)
-		if err != nil {
-			return nil, validate.CreateUnknownError(err)
-		}
-		token, err := model.CreateNewToken(user.Id, tg.Default.NextDefault(), nil)
-		if err != nil {
-			return nil, validate.CreateUnknownError(err)
-		}
-	*/
 
 	tokenString, expired := token.GetToken(string(user.Id))
 	return &structure.Auth{
