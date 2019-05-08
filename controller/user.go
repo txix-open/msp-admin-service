@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"github.com/integration-system/isp-lib/logger"
 	libStr "github.com/integration-system/isp-lib/structure"
-	"github.com/integration-system/isp-lib/token-gen"
+	"msp-admin-service/token"
+	//"github.com/integration-system/isp-lib/token-gen"
 	"github.com/integration-system/isp-lib/utils"
 	libUtils "github.com/integration-system/isp-lib/utils"
 	"github.com/integration-system/isp-lib/validate"
@@ -24,7 +25,6 @@ func Logout(metadata metadata.MD) error {
 		st := status.New(codes.InvalidArgument, utils.ServiceError)
 		return st.Err()
 	}
-	model.InvalidateOldToken(token[0])
 	return nil
 }
 
@@ -56,18 +56,13 @@ func Login(authRequest structure.AuthRequest) (*structure.Auth, error) {
 		return nil, status.New(codes.Unauthenticated, "Email or password is incorrect").Err()
 	}
 
-	_, err = model.InvalidateOldTokens(user.Id)
+	tokenString, expired, err := token.GetToken(string(user.Id))
 	if err != nil {
-		return nil, validate.CreateUnknownError(err)
+		return nil, err
 	}
-	token, err := model.CreateNewToken(user.Id, tg.Default.NextDefault(), nil)
-	if err != nil {
-		return nil, validate.CreateUnknownError(err)
-	}
-
 	return &structure.Auth{
-		Token:      token.Token,
-		Expired:    token.ExpiredAt.Format(libUtils.FullDateFormat),
+		Token:      tokenString,
+		Expired:    expired,
 		HeaderName: utils.ADMIN_AUTH_HEADER_NAME,
 	}, nil
 }
