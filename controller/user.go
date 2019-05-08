@@ -56,7 +56,10 @@ func Login(authRequest structure.AuthRequest) (*structure.Auth, error) {
 		return nil, status.New(codes.Unauthenticated, "Email or password is incorrect").Err()
 	}
 
-	tokenString, expired := token.GetToken(string(user.Id))
+	tokenString, expired, err := token.GetToken(string(user.Id))
+	if err != nil {
+		return nil, err
+	}
 	return &structure.Auth{
 		Token:      tokenString,
 		Expired:    expired,

@@ -7,6 +7,6 @@ import (
 type RemoteConfig struct {
 	Database  structure.DBConfiguration     `valid:"required~Required" json:"database" schema:"Database"`
 	Metrics   structure.MetricConfiguration `schema:"Metrics"`
-	SecretKey string
-	ExpirySec int
+	SecretKey string                        `valid:"required~Required" schema:"JWT secret"`
+	ExpireSec int                           `schema:"Token expire time,in seconds"`
 }
