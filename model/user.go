@@ -10,7 +10,7 @@ import (
 
 const DELETE_USERS = "DELETE FROM " + utils.DB_SCHEME + ".users WHERE id IN (?)"
 
-func GetUserByToken(token string) (*structure.AdminUserShort, error) {
+/*func GetUserByToken(token string) (*structure.AdminUserShort, error) {
 	var user structure.AdminUserShort
 	_, err := database.GetDBManager().Db.Model(&user).
 		Query(&user, `SELECT
@@ -28,7 +28,7 @@ func GetUserByToken(token string) (*structure.AdminUserShort, error) {
 		return nil, nil
 	}
 	return &user, err
-}
+}*/
 
 func GetUserByEmail(email string) (*libStr.AdminUser, error) {
 	var user libStr.AdminUser

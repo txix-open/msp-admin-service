@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/integration-system/isp-lib/logger"
 	libStr "github.com/integration-system/isp-lib/structure"
-	"msp-admin-service/token"
+	"msp-admin-service/service"
 	//"github.com/integration-system/isp-lib/token-gen"
 	"github.com/integration-system/isp-lib/utils"
 	libUtils "github.com/integration-system/isp-lib/utils"
@@ -36,11 +36,23 @@ func GetProfile(metadata metadata.MD) (*structure.AdminUserShort, error) {
 		st := status.New(codes.InvalidArgument, utils.ServiceError)
 		return nil, st.Err()
 	}
-	user, err := model.GetUserByToken(token[0])
+
+	userId, err := service.GetUserId(token[0])
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, "Invalid auth token")
+	}
+
+	user, err := model.GetUserById(userId)
 	if err != nil {
 		return nil, validate.CreateUnknownError(err)
 	}
-	return user, nil
+	return &structure.AdminUserShort{
+		Image:     user.Image,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		Email:     user.Email,
+		Phone:     user.Phone,
+	}, nil
 }
 
 func Login(authRequest structure.AuthRequest) (*structure.Auth, error) {
@@ -56,7 +68,7 @@ func Login(authRequest structure.AuthRequest) (*structure.Auth, error) {
 		return nil, status.New(codes.Unauthenticated, "Email or password is incorrect").Err()
 	}
 
-	tokenString, expired, err := token.GetToken(string(user.Id))
+	tokenString, expired, err := service.GenerateToken(user.Id)
 	if err != nil {
 		return nil, err
 	}
