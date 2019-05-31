@@ -3,8 +3,8 @@ package model
 import (
 	"github.com/go-pg/pg"
 	"github.com/integration-system/isp-lib/database"
-	libStr "github.com/integration-system/isp-lib/structure"
 	"github.com/integration-system/isp-lib/utils"
+	"msp-admin-service/entity"
 	"msp-admin-service/structure"
 )
 
@@ -30,8 +30,8 @@ const DELETE_USERS = "DELETE FROM " + utils.DB_SCHEME + ".users WHERE id IN (?)"
 	return &user, err
 }*/
 
-func GetUserByEmail(email string) (*libStr.AdminUser, error) {
-	var user libStr.AdminUser
+func GetUserByEmail(email string) (*entity.AdminUser, error) {
+	var user entity.AdminUser
 	err := database.GetDBManager().Db.Model(&user).
 		Where("email = ?", email).
 		First()
@@ -41,8 +41,8 @@ func GetUserByEmail(email string) (*libStr.AdminUser, error) {
 	return &user, err
 }
 
-func GetUserById(identity int64) (*libStr.AdminUser, error) {
-	var user libStr.AdminUser
+func GetUserById(identity int64) (*entity.AdminUser, error) {
+	var user entity.AdminUser
 	err := database.GetDBManager().Db.Model(&user).
 		Where("id = ?", identity).
 		First()
@@ -52,8 +52,8 @@ func GetUserById(identity int64) (*libStr.AdminUser, error) {
 	return &user, err
 }
 
-func GetUsers(usersRequest structure.UsersRequest) (*[]libStr.AdminUser, error) {
-	var users []libStr.AdminUser
+func GetUsers(usersRequest structure.UsersRequest) (*[]entity.AdminUser, error) {
+	var users []entity.AdminUser
 	query := database.GetDBManager().Db.Model(&users)
 	if len(usersRequest.Ids) > 0 {
 		query.Where("id IN (?)", pg.In(usersRequest.Ids))
@@ -75,7 +75,7 @@ func GetUsers(usersRequest structure.UsersRequest) (*[]libStr.AdminUser, error) 
 	return &users, err
 }
 
-func CreateUser(user libStr.AdminUser) (libStr.AdminUser, error) {
+func CreateUser(user entity.AdminUser) (entity.AdminUser, error) {
 	_, err := database.GetDBManager().Db.Model(&user).
 		Returning("id").
 		Returning("created_at").
@@ -84,7 +84,7 @@ func CreateUser(user libStr.AdminUser) (libStr.AdminUser, error) {
 	return user, err
 }
 
-func UpdateUser(user libStr.AdminUser) (libStr.AdminUser, error) {
+func UpdateUser(user entity.AdminUser) (entity.AdminUser, error) {
 	_, err := database.GetDBManager().Db.Model(&user).
 		WherePK().
 		Returning("id").
@@ -95,7 +95,6 @@ func UpdateUser(user libStr.AdminUser) (libStr.AdminUser, error) {
 }
 
 func DeleteUser(identities structure.IdentitiesRequest) (int, error) {
-	result, err := database.GetDBManager().Db.
-		Exec(DELETE_USERS, pg.In(identities.Ids))
+	result, err := database.GetDBManager().Db.Exec(DELETE_USERS, pg.In(identities.Ids))
 	return result.RowsAffected(), err
 }

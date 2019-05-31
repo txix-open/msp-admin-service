@@ -3,7 +3,7 @@ package controller
 import (
 	"fmt"
 	"github.com/integration-system/isp-lib/logger"
-	libStr "github.com/integration-system/isp-lib/structure"
+	"msp-admin-service/entity"
 	"msp-admin-service/service"
 	//"github.com/integration-system/isp-lib/token-gen"
 	"github.com/integration-system/isp-lib/utils"
@@ -90,7 +90,7 @@ func GetUsers(identities structure.UsersRequest) (*structure.UsersResponse, erro
 	return &structure.UsersResponse{Items: users}, err
 }
 
-func CreateUpdateUser(user libStr.AdminUser) (*libStr.AdminUser, error) {
+func CreateUpdateUser(user entity.AdminUser) (*entity.AdminUser, error) {
 	var err error
 	if user.Id == 0 {
 		if user.Password == "" {
@@ -165,7 +165,7 @@ func DeleteUser(identities structure.IdentitiesRequest) (*structure.DeleteRespon
 	return &structure.DeleteResponse{Deleted: count}, err
 }
 
-func cryptPassword(user *libStr.AdminUser) error {
+func cryptPassword(user *entity.AdminUser) error {
 	passwordBytes, err := bcrypt.GenerateFromPassword([]byte(user.Password), 12)
 	if err != nil {
 		return validate.CreateUnknownError(err)

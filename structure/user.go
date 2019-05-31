@@ -1,11 +1,11 @@
 package structure
 
 import (
-	"github.com/integration-system/isp-lib/structure"
+	"msp-admin-service/entity"
 )
 
 type UsersResponse struct {
-	Items *[]structure.AdminUser `json:"items,omitempty"`
+	Items *[]entity.AdminUser `json:"items,omitempty"`
 }
 
 type UsersRequest struct {

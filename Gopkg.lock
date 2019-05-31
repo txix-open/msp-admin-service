@@ -577,6 +577,7 @@
     "github.com/integration-system/isp-lib/structure",
     "github.com/integration-system/isp-lib/utils",
     "github.com/integration-system/isp-lib/validate",
+    "github.com/pkg/errors",
     "golang.org/x/crypto/bcrypt",
     "google.golang.org/grpc/codes",
     "google.golang.org/grpc/metadata",
