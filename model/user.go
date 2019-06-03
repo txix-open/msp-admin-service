@@ -3,12 +3,11 @@ package model
 import (
 	"github.com/go-pg/pg"
 	"github.com/integration-system/isp-lib/database"
-	"github.com/integration-system/isp-lib/utils"
 	"msp-admin-service/entity"
 	"msp-admin-service/structure"
 )
 
-const DELETE_USERS = "DELETE FROM " + utils.DB_SCHEME + ".users WHERE id IN (?)"
+const DELETE_USERS = "DELETE FROM admin_service.users WHERE id IN (?)"
 
 /*func GetUserByToken(token string) (*structure.AdminUserShort, error) {
 	var user structure.AdminUserShort

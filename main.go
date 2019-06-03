@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/integration-system/isp-lib/backend"
 	"github.com/integration-system/isp-lib/bootstrap"
+	"github.com/integration-system/isp-lib/config/schema"
 	"github.com/integration-system/isp-lib/database"
 	"github.com/integration-system/isp-lib/metric"
 	"github.com/integration-system/isp-lib/structure"
@@ -21,6 +22,7 @@ func main() {
 	bootstrap.
 		ServiceBootstrap(&conf.Configuration{}, &conf.RemoteConfig{}).
 		OnLocalConfigLoad(onLocalConfigLoad).
+		DefaultRemoteConfigPath(schema.ResolveDefaultConfigPath("default_remote_config.json")).
 		SocketConfiguration(socketConfiguration).
 		DeclareMe(routesData).
 		OnRemoteConfigReceive(onRemoteConfigReceive).
