@@ -1,0 +1,21 @@
+{
+  "database": {
+    "database": "name",
+    "password": "password",
+    "username": "name",
+    "createSchema": true,
+    "port": "5432",
+    "schema": "admin_service",
+    "address": "127.0.0.1"
+  },
+  "metrics": {
+    "gc": true,
+    "memory": true,
+    "address": {
+      "path": "/metrics",
+      "port": "9557",
+      "ip": "0.0.0.0"
+    }
+  },
+  "secretKey": "secret"
+}

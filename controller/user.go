@@ -17,11 +17,13 @@ import (
 	"msp-admin-service/structure"
 )
 
+const adminAuthHeaderName = "x-auth-admin"
+
 func Logout(metadata metadata.MD) error {
-	token := metadata.Get(utils.ADMIN_AUTH_HEADER_NAME)
+	token := metadata.Get(adminAuthHeaderName)
 
 	if len(token) == 0 || token[0] == "" {
-		logger.Errorf("Admin AUTH header: %s, not found, received: %v", utils.ADMIN_AUTH_HEADER_NAME, metadata)
+		logger.Errorf("Admin AUTH header: %s, not found, received: %v", adminAuthHeaderName, metadata)
 		st := status.New(codes.InvalidArgument, utils.ServiceError)
 		return st.Err()
 	}
@@ -29,10 +31,10 @@ func Logout(metadata metadata.MD) error {
 }
 
 func GetProfile(metadata metadata.MD) (*structure.AdminUserShort, error) {
-	token := metadata.Get(utils.ADMIN_AUTH_HEADER_NAME)
+	token := metadata.Get(adminAuthHeaderName)
 
 	if len(token) == 0 || token[0] == "" {
-		logger.Errorf("Admin AUTH header: %s, not found, received: %v", utils.ADMIN_AUTH_HEADER_NAME, metadata)
+		logger.Errorf("Admin AUTH header: %s, not found, received: %v", adminAuthHeaderName, metadata)
 		st := status.New(codes.InvalidArgument, utils.ServiceError)
 		return nil, st.Err()
 	}
@@ -75,7 +77,7 @@ func Login(authRequest structure.AuthRequest) (*structure.Auth, error) {
 	return &structure.Auth{
 		Token:      tokenString,
 		Expired:    expired,
-		HeaderName: utils.ADMIN_AUTH_HEADER_NAME,
+		HeaderName: adminAuthHeaderName,
 	}, nil
 }
 
