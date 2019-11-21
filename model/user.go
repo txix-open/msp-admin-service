@@ -2,7 +2,6 @@ package model
 
 import (
 	"github.com/go-pg/pg"
-	"github.com/integration-system/isp-lib/database"
 	"msp-admin-service/entity"
 	"msp-admin-service/structure"
 )
@@ -31,7 +30,8 @@ const DELETE_USERS = "DELETE FROM admin_service.users WHERE id IN (?)"
 
 func GetUserByEmail(email string) (*entity.AdminUser, error) {
 	var user entity.AdminUser
-	err := database.GetDBManager().Db.Model(&user).
+	DbClient.Unsafe()
+	err := DbClient.Unsafe().Model(&user).
 		Where("email = ?", email).
 		First()
 	if err != nil && err == pg.ErrNoRows {
@@ -42,7 +42,7 @@ func GetUserByEmail(email string) (*entity.AdminUser, error) {
 
 func GetUserById(identity int64) (*entity.AdminUser, error) {
 	var user entity.AdminUser
-	err := database.GetDBManager().Db.Model(&user).
+	err := DbClient.Unsafe().Model(&user).
 		Where("id = ?", identity).
 		First()
 	if err != nil && err == pg.ErrNoRows {
@@ -53,7 +53,7 @@ func GetUserById(identity int64) (*entity.AdminUser, error) {
 
 func GetUsers(usersRequest structure.UsersRequest) (*[]entity.AdminUser, error) {
 	var users []entity.AdminUser
-	query := database.GetDBManager().Db.Model(&users)
+	query := DbClient.Unsafe().Model(&users)
 	if len(usersRequest.Ids) > 0 {
 		query.Where("id IN (?)", pg.In(usersRequest.Ids))
 	}
@@ -75,7 +75,7 @@ func GetUsers(usersRequest structure.UsersRequest) (*[]entity.AdminUser, error) 
 }
 
 func CreateUser(user entity.AdminUser) (entity.AdminUser, error) {
-	_, err := database.GetDBManager().Db.Model(&user).
+	_, err := DbClient.Unsafe().Model(&user).
 		Returning("id").
 		Returning("created_at").
 		Returning("updated_at").
@@ -84,7 +84,7 @@ func CreateUser(user entity.AdminUser) (entity.AdminUser, error) {
 }
 
 func UpdateUser(user entity.AdminUser) (entity.AdminUser, error) {
-	_, err := database.GetDBManager().Db.Model(&user).
+	_, err := DbClient.Unsafe().Model(&user).
 		WherePK().
 		Returning("id").
 		Returning("created_at").
@@ -94,6 +94,6 @@ func UpdateUser(user entity.AdminUser) (entity.AdminUser, error) {
 }
 
 func DeleteUser(identities structure.IdentitiesRequest) (int, error) {
-	result, err := database.GetDBManager().Db.Exec(DELETE_USERS, pg.In(identities.Ids))
+	result, err := DbClient.Unsafe().Exec(DELETE_USERS, pg.In(identities.Ids))
 	return result.RowsAffected(), err
 }

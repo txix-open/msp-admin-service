@@ -5,11 +5,11 @@ import (
 	"github.com/integration-system/isp-lib/backend"
 	"github.com/integration-system/isp-lib/bootstrap"
 	"github.com/integration-system/isp-lib/config/schema"
-	"github.com/integration-system/isp-lib/database"
 	"github.com/integration-system/isp-lib/metric"
 	"github.com/integration-system/isp-lib/structure"
 	"msp-admin-service/conf"
 	"msp-admin-service/helper"
+	"msp-admin-service/model"
 	"os"
 )
 
@@ -48,7 +48,7 @@ func onShutdown(_ context.Context, _ os.Signal) {
 }
 
 func onRemoteConfigReceive(remoteConfig, oldRemoteConfig *conf.RemoteConfig) {
-	database.InitDb(remoteConfig.Database)
+	model.DbClient.ReceiveConfiguration(remoteConfig.Database)
 	metric.InitCollectors(remoteConfig.Metrics, oldRemoteConfig.Metrics)
 	metric.InitHttpServer(remoteConfig.Metrics)
 }
