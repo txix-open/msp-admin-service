@@ -2,14 +2,6 @@
 
 
 [[projects]]
-  digest = "1:e92f5581902c345eb4ceffdcd4a854fb8f73cf436d47d837d1ec98ef1fe0a214"
-  name = "github.com/StackExchange/wmi"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "5d049714c4a64225c3c79a7cf7d02f7fb5b96338"
-  version = "1.0.0"
-
-[[projects]]
   digest = "1:320e7ead93de9fd2b0e59b50fd92a4d50c1f8ab455d96bc2eb083267453a9709"
   name = "github.com/asaskevich/govalidator"
   packages = ["."]
@@ -26,6 +18,14 @@
   version = "v0.1.1"
 
 [[projects]]
+  digest = "1:c1100fc71e23b6a32b2c68a5202a848fd13811d5a10b12edb8019c3667d1cd9a"
+  name = "github.com/cenkalti/backoff"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "4b4cebaf850ec58f1bb1fec5bdebdf8501c2bc3f"
+  version = "v3.0.0"
+
+[[projects]]
   digest = "1:76dc72490af7174349349838f2fe118996381b31ea83243812a97e5a0fd5ed55"
   name = "github.com/dgrijalva/jwt-go"
   packages = ["."]
@@ -40,17 +40,6 @@
   pruneopts = "UT"
   revision = "c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9"
   version = "v1.4.7"
-
-[[projects]]
-  digest = "1:440028f55cb322d8cb5b9d5ebec298a00b7d74690a658fe6b1c0c0b44341bfae"
-  name = "github.com/go-ole/go-ole"
-  packages = [
-    ".",
-    "oleutil",
-  ]
-  pruneopts = "UT"
-  revision = "97b6244175ae18ea6eef668034fd6565847501c9"
-  version = "v1.2.4"
 
 [[projects]]
   digest = "1:d02b94ed7089fc72fcd2e89c89df858c843470fe36788df39bf45e074293165e"
@@ -84,14 +73,6 @@
   pruneopts = "UT"
   revision = "b5d812f8a3706043e23a9cd5babf2e5423744d30"
   version = "v1.3.1"
-
-[[projects]]
-  digest = "1:7b5c6e2eeaa9ae5907c391a91c132abfd5c9e8a784a341b5625e750c67e6825d"
-  name = "github.com/gorilla/websocket"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "66b9c49e59c6c48f0ffce28c2d8b8a5678502c6d"
-  version = "v1.4.0"
 
 [[projects]]
   digest = "1:c0d19ab64b32ce9fe5cf4ddceba78d5bc9807f0016db6b1183599da3dcc24d10"
@@ -134,19 +115,21 @@
   revision = "ac5582987a2f25e8743e0ebb7259312adda05c23"
 
 [[projects]]
-  branch = "master"
-  digest = "1:9e2fd899fdb17e28e9d036fe7a604a1e04918aa4865d5a2150008fc12c6134be"
-  name = "github.com/integration-system/golang-socketio"
+  digest = "1:143c6b11b882aae2896e07caad401ec0be62c330a85526b954a2cc5bdb3f75d7"
+  name = "github.com/integration-system/isp-etp-go"
   packages = [
-    ".",
-    "protocol",
-    "transport",
+    "ack",
+    "bpool",
+    "client",
+    "gen",
+    "parser",
   ]
   pruneopts = "UT"
-  revision = "5959fcea049facd9441fff9de976191accd3cf9f"
+  revision = "6e92a3dda2cf7c6ec82fc1a1ae922248754e49d9"
+  version = "v2.0.0"
 
 [[projects]]
-  digest = "1:0ff6bbc0f75eb4d530ff1891d4b75c99106281c9e7d00ba29a4d583262012037"
+  digest = "1:f1fdea0b2d0b4c8a377884c592f637577d25caee339b7c6de471273e2a947426"
   name = "github.com/integration-system/isp-lib"
   packages = [
     "backend",
@@ -157,15 +140,24 @@
     "logger",
     "metric",
     "proto/stubs",
-    "socket",
     "streaming",
     "structure",
     "utils",
-    "validate",
   ]
   pruneopts = "UT"
-  revision = "e071e3581099669a751c830bdfbeaf07a211a9e2"
-  version = "v1.2.2"
+  revision = "9ecfa413468d829dce66fe95562b4366b0dfb2a0"
+  version = "v2.0.0"
+
+[[projects]]
+  branch = "master"
+  digest = "1:1789fb6e57949a6e4cacb74023cd30efb04b09dc6111d6ef3718241ebb23ebe9"
+  name = "github.com/integration-system/isp-log"
+  packages = [
+    ".",
+    "stdcodes",
+  ]
+  pruneopts = "UT"
+  revision = "a22bf2e0b56a9ef47db4a98756e39f700a99b688"
 
 [[projects]]
   branch = "master"
@@ -329,17 +321,6 @@
   packages = ["."]
   pruneopts = "UT"
   revision = "3113b8401b8a98917cde58f8bbd42a1b1c03b1fd"
-
-[[projects]]
-  digest = "1:864a264305405a7913daeecc5fef811da539c93ab151ffc5a8b68ab755e60f8e"
-  name = "github.com/shirou/gopsutil"
-  packages = [
-    "cpu",
-    "internal/common",
-  ]
-  pruneopts = "UT"
-  revision = "5335e3fd506df4cb63de0a8239c7461d23063be6"
-  version = "v2.19.05"
 
 [[projects]]
   digest = "1:04457f9f6f3ffc5fea48e71d62f2ca256637dee0a04d710288e27e05c8b41976"
@@ -562,6 +543,18 @@
   source = "https://github.com/mellium/sasl.git"
   version = "v0.2.1"
 
+[[projects]]
+  digest = "1:25ea8c84118bb09a6ea1fe5d8a2e72d7ead40af714b74d1e849af821f3502414"
+  name = "nhooyr.io/websocket"
+  packages = [
+    ".",
+    "internal/bpool",
+    "internal/wsjs",
+  ]
+  pruneopts = "UT"
+  revision = "edda9c633d5c78c7d38fcc952b4105dd4ccfb619"
+  version = "v1.7.4"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
@@ -577,7 +570,8 @@
     "github.com/integration-system/isp-lib/metric",
     "github.com/integration-system/isp-lib/structure",
     "github.com/integration-system/isp-lib/utils",
-    "github.com/integration-system/isp-lib/validate",
+    "github.com/integration-system/isp-log",
+    "github.com/integration-system/isp-log/stdcodes",
     "github.com/pkg/errors",
     "golang.org/x/crypto/bcrypt",
     "google.golang.org/grpc/codes",
