@@ -95,11 +95,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:7edb99b124d77ae909910e2ba563fbe652e9596f5798bd10f67fd66ba0fa9c82"
+  digest = "1:2cf4ff28b309c93a52b3329c7a22d5375b137249d4ed63c9d40707a1b253f7df"
   name = "github.com/integration-system/bellows"
   packages = ["."]
   pruneopts = "UT"
-  revision = "3f9681649fb950d5ccbb9e90843ef860696e78d0"
+  revision = "244325e8836c364c86f308e3aef7e979cb007114"
 
 [[projects]]
   branch = "master"
@@ -115,7 +115,7 @@
   revision = "ac5582987a2f25e8743e0ebb7259312adda05c23"
 
 [[projects]]
-  digest = "1:143c6b11b882aae2896e07caad401ec0be62c330a85526b954a2cc5bdb3f75d7"
+  digest = "1:0e89aed3581cac97a24fcbde2cc3dcc7bf7168401c56284c81213fa2cc273ed5"
   name = "github.com/integration-system/isp-etp-go"
   packages = [
     "ack",
@@ -125,11 +125,11 @@
     "parser",
   ]
   pruneopts = "UT"
-  revision = "6e92a3dda2cf7c6ec82fc1a1ae922248754e49d9"
-  version = "v2.0.0"
+  revision = "aab01a1b29ac06ebeb0216b9b43708491b8d5aee"
+  version = "v2.0.2"
 
 [[projects]]
-  digest = "1:f1fdea0b2d0b4c8a377884c592f637577d25caee339b7c6de471273e2a947426"
+  digest = "1:41403d529f96a9819a71f790ab71d89f55e4dd1f1262f05b5785ff33a758b444"
   name = "github.com/integration-system/isp-lib"
   packages = [
     "backend",
@@ -145,8 +145,8 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "9ecfa413468d829dce66fe95562b4366b0dfb2a0"
-  version = "v2.0.0"
+  revision = "abfa9a9776d64e6d04d495bfe00db8ca4dcbe7fc"
+  version = "v2.0.1"
 
 [[projects]]
   branch = "master"
