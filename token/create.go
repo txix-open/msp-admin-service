@@ -1,10 +1,11 @@
 package token
 
 import (
-	"github.com/dgrijalva/jwt-go"
-	"github.com/integration-system/isp-lib/config"
-	"msp-admin-service/conf"
 	"time"
+
+	"github.com/dgrijalva/jwt-go"
+	"github.com/integration-system/isp-lib/v2/config"
+	"msp-admin-service/conf"
 )
 
 type customClaims struct {

@@ -2,20 +2,20 @@ package main
 
 import (
 	"context"
-	"github.com/integration-system/isp-lib/backend"
-	"github.com/integration-system/isp-lib/bootstrap"
-	"github.com/integration-system/isp-lib/config/schema"
-	"github.com/integration-system/isp-lib/metric"
-	"github.com/integration-system/isp-lib/structure"
+	"os"
+
+	"github.com/integration-system/isp-lib/v2/backend"
+	"github.com/integration-system/isp-lib/v2/bootstrap"
+	"github.com/integration-system/isp-lib/v2/config/schema"
+	"github.com/integration-system/isp-lib/v2/metric"
+	"github.com/integration-system/isp-lib/v2/structure"
 	"msp-admin-service/conf"
 	"msp-admin-service/helper"
 	"msp-admin-service/model"
-	"os"
 )
 
 var (
 	version = "0.1.0"
-	date    = "undefined"
 )
 
 func main() {

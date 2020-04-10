@@ -1,6 +1,6 @@
 package conf
 
-import "github.com/integration-system/isp-lib/structure"
+import "github.com/integration-system/isp-lib/v2/structure"
 
 type Configuration struct {
 	ConfigServiceAddress structure.AddressConfiguration
