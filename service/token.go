@@ -2,11 +2,12 @@ package service
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/dgrijalva/jwt-go"
-	"github.com/integration-system/isp-lib/config"
+	"github.com/integration-system/isp-lib/v2/config"
 	"github.com/pkg/errors"
 	"msp-admin-service/conf"
-	"time"
 )
 
 type customClaims struct {

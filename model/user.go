@@ -1,7 +1,7 @@
 package model
 
 import (
-	"github.com/go-pg/pg"
+	"github.com/go-pg/pg/v9"
 	"msp-admin-service/entity"
 	"msp-admin-service/structure"
 )
