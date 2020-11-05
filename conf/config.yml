@@ -1,11 +1,14 @@
 configServiceAddress:
-  ip: 10.250.9.117
-  port: 9000
+  ip: 127.0.0.1
+  port: 9001
 grpcOuterAddress:
-  ip: 10.250.9.117
-  port: 9009
+  #ip: 127.0.0.1
+  port: 9007
 grpcInnerAddress:
   ip: 0.0.0.0
-  port: 5000
+  port: 9007
+webSocketAddress:
+  ip: 0.0.0.0
+  port: 9100
 moduleName: admin
 instanceUuid: bf482806-0c3d-4e0d-b9d4-12c037b12d70
