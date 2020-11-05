@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"net"
 	"os"
 
 	"github.com/integration-system/isp-lib/v2/backend"
@@ -9,13 +10,20 @@ import (
 	"github.com/integration-system/isp-lib/v2/config/schema"
 	"github.com/integration-system/isp-lib/v2/metric"
 	"github.com/integration-system/isp-lib/v2/structure"
+	log "github.com/integration-system/isp-log"
+	"github.com/integration-system/isp-log/stdcodes"
+	"github.com/soheilhy/cmux"
 	"msp-admin-service/conf"
 	"msp-admin-service/helper"
+	"msp-admin-service/invoker"
 	"msp-admin-service/model"
+	"msp-admin-service/service"
 )
 
 var (
 	version = "0.1.0"
+	grpcLn  net.Listener
+	wsLn    net.Listener
 )
 
 func main() {
@@ -25,6 +33,8 @@ func main() {
 		DefaultRemoteConfigPath(schema.ResolveDefaultConfigPath("default_remote_config.json")).
 		SocketConfiguration(socketConfiguration).
 		DeclareMe(routesData).
+		RequireModule("config", invoker.ConfigClient.ReceiveAddressList, true).
+		RequireRoutes(service.SessionManager.RoutesUpdateSessionCallback).
 		OnRemoteConfigReceive(onRemoteConfigReceive).
 		OnShutdown(onShutdown).
 		Run()
@@ -45,6 +55,8 @@ func socketConfiguration(cfg interface{}) structure.SocketConfiguration {
 
 func onShutdown(_ context.Context, _ os.Signal) {
 	backend.StopGrpcServer()
+	service.SessionManager.ShutdownSocket()
+	closeListeners(wsLn, grpcLn)
 }
 
 func onRemoteConfigReceive(remoteConfig, oldRemoteConfig *conf.RemoteConfig) {
@@ -55,8 +67,33 @@ func onRemoteConfigReceive(remoteConfig, oldRemoteConfig *conf.RemoteConfig) {
 
 func onLocalConfigLoad(cfg *conf.Configuration) {
 	handlers := helper.GetHandlers()
-	service := backend.GetDefaultService(cfg.ModuleName, handlers...)
-	backend.StartBackendGrpcServer(cfg.GrpcInnerAddress, service)
+	defaultService := backend.GetDefaultService(cfg.ModuleName, handlers...)
+
+	if err := serve(cfg.GrpcInnerAddress, defaultService); err != nil {
+		log.Fatal(stdcodes.ModuleInvalidLocalConfig, err)
+	}
+}
+
+func serve(addr structure.AddressConfiguration, grpcService *backend.DefaultService) error {
+	ln, err := net.Listen("tcp", addr.GetAddress())
+	if err != nil {
+		return err
+	}
+
+	m := cmux.New(ln)
+	grpcLn = m.MatchWithWriters(cmux.HTTP2MatchHeaderFieldSendSettings("content-type", "application/grpc"))
+	wsLn = m.Match(cmux.HTTP1HeaderField("Upgrade", "websocket"))
+
+	service.SessionManager.InitWebSocket(wsLn)
+
+	backend.StartBackendGrpcServerOn(addr, grpcLn, grpcService)
+	go func() {
+		if err := m.Serve(); err != nil {
+			log.Warn(stdcodes.ModuleGrpcServiceStartError, err)
+		}
+	}()
+
+	return nil
 }
 
 func routesData(localConfig interface{}) bootstrap.ModuleInfo {
@@ -66,5 +103,13 @@ func routesData(localConfig interface{}) bootstrap.ModuleInfo {
 		ModuleVersion:    version,
 		GrpcOuterAddress: cfg.GrpcOuterAddress,
 		Handlers:         helper.GetHandlers(),
+	}
+}
+
+func closeListeners(lns ...net.Listener) {
+	for _, ln := range lns {
+		if ln != nil {
+			_ = ln.Close()
+		}
 	}
 }

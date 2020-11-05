@@ -16,6 +16,7 @@ type Handlers struct {
 	GetUsers         func(structure.UsersRequest) (*structure.UsersResponse, error)                  `method:"get_users" group:"user" inner:"true"`
 	CreateUpdateUser func(user entity.AdminUser) (*entity.AdminUser, error)                          `method:"create_update_user" group:"user" inner:"true"`
 	DeleteUser       func(identities structure.IdentitiesRequest) (*structure.DeleteResponse, error) `method:"delete_user" group:"user" inner:"true"`
+	Notify           func()                                                                          `method:"notify" group:"" inner:"false"`
 }
 
 func GetHandlers() []interface{} {
@@ -27,6 +28,7 @@ func GetHandlers() []interface{} {
 			GetUsers:         controller.GetUsers,
 			CreateUpdateUser: controller.CreateUpdateUser,
 			DeleteUser:       controller.DeleteUser,
+			Notify:           nil,
 		},
 	}
 }
