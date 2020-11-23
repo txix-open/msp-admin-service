@@ -130,7 +130,6 @@ func (s *sessionManager) InitWebSocket(ln net.Listener) {
 
 	s.wsServer = etp.NewServer(context.TODO(), etpServerConfig).
 		OnDisconnect(func(conn etp.Conn, err error) {
-			log.Debugf(00, "%s %s", err.Error(), time.Now().String())
 			s.DropConfSession(conn.ID())
 		}).
 		OnError(func(conn etp.Conn, err error) {
