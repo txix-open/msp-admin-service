@@ -130,6 +130,7 @@ func (s *sessionManager) InitWebSocket(ln net.Listener) {
 
 	s.wsServer = etp.NewServer(context.TODO(), etpServerConfig).
 		OnDisconnect(func(conn etp.Conn, err error) {
+			log.Debugf(00, "%s %s", err.Error(), time.Now().String())
 			s.DropConfSession(conn.ID())
 		}).
 		OnError(func(conn etp.Conn, err error) {
@@ -161,11 +162,11 @@ func (s *sessionManager) InitWebSocket(ln net.Listener) {
 			}
 
 			send := struct {
-				ModuleId string          `json:"moduleId"`
-				Data     json.RawMessage `json:"data"`
+				ModuleId string `json:"moduleId"`
+				//Data     json.RawMessage `json:"data"`
 			}{
 				ModuleId: requestData.ModuleId,
-				Data:     responseData,
+				//Data:     responseData,
 			}
 
 			if err := s.wsServer.BroadcastToAll("force_update", jsoner(send)); err != nil {
