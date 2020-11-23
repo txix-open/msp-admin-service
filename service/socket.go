@@ -162,10 +162,8 @@ func (s *sessionManager) InitWebSocket(ln net.Listener) {
 
 			send := struct {
 				ModuleId string `json:"moduleId"`
-				//Data     json.RawMessage `json:"data"`
 			}{
 				ModuleId: requestData.ModuleId,
-				//Data:     responseData,
 			}
 
 			if err := s.wsServer.BroadcastToAll("force_update", jsoner(send)); err != nil {
