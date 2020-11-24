@@ -1,3 +1,6 @@
+### v3.2.1
+* updated isp-lib
+* updated isp-event-lib
 ### v3.2.0
 * Added config edit sessions
 * Added real-time feature with websockets
