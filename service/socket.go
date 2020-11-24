@@ -202,7 +202,7 @@ func (s *sessionManager) InitWebSocket(ln net.Listener) {
 	s.httpServer = &http.Server{Handler: mux}
 	go func() {
 		if err := s.httpServer.Serve(ln); err != nil && err != http.ErrServerClosed {
-			log.Fatalf(44, "Unable to start http server. err: %v", err)
+			log.Fatalf(0, "Unable to start http server. err: %v", err)
 		}
 	}()
 }
