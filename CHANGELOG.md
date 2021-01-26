@@ -1,3 +1,5 @@
+### v3.2.2
+* updated isp-lib
 ### v3.2.1
 * updated isp-lib
 * updated isp-event-lib
