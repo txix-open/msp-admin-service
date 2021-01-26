@@ -6,7 +6,7 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-pg/pg/v9 v9.1.7
 	github.com/integration-system/isp-etp-go/v2 v2.1.2
-	github.com/integration-system/isp-lib/v2 v2.7.0
+	github.com/integration-system/isp-lib/v2 v2.8.3
 	github.com/integration-system/isp-log v1.1.6
 	github.com/pkg/errors v0.9.1
 	github.com/soheilhy/cmux v0.1.4
