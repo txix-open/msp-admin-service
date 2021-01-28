@@ -1,3 +1,5 @@
+### v3.3.0
+* add `user/get_customization` method
 ### v3.2.2
 * updated isp-lib
 ### v3.2.1
