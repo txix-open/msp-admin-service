@@ -14,5 +14,5 @@ type RemoteConfig struct {
 
 type UIConfig struct {
 	Name         string
-	PrimaryColor string `valid:"in(|#FF7373|#A5EF00)"`
+	PrimaryColor string `schema:"Цвет в HEX, примеры: #ff4d4f #fa8c16 #a0d911 #1890ff #722ed1 #d4b106 #e91e63 #ff5722 #795548 #abb8c3 #525252 #689f38"`
 }
