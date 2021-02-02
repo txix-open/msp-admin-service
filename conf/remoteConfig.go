@@ -9,4 +9,10 @@ type RemoteConfig struct {
 	Metrics   structure.MetricConfiguration `schema:"Metrics"`
 	SecretKey string                        `valid:"required~Required" schema:"JWT secret"`
 	ExpireSec int                           `schema:"Token expire time,in seconds"`
+	UiDesign  UIDesign                      `schema:"Кастомизация интерфейса"`
+}
+
+type UIDesign struct {
+	Name         string `schema:"Название стенда"`
+	PrimaryColor string `schema:"Цвет в HEX, примеры: #ff4d4f #fa8c16 #a0d911 #1890ff #722ed1 #d4b106 #e91e63 #ff5722 #795548 #abb8c3 #525252 #689f38"`
 }

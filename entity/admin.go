@@ -3,7 +3,7 @@ package entity
 import "time"
 
 type AdminToken struct {
-	TableName string     `sql:"admin_service.tokens" json:"-"`
+	tableName string     `pg:"?db_schema.tokens" json:"-"`
 	Id        int64      `json:"id"`
 	UserId    int64      `json:"userId"`
 	Token     string     `json:"token"`
@@ -12,7 +12,7 @@ type AdminToken struct {
 }
 
 type AdminUser struct {
-	TableName string    `sql:"admin_service.users" json:"-"`
+	tableName string    `pg:"?db_schema.users" json:"-"`
 	Id        int64     `json:"id"`
 	Image     string    `json:"image"`
 	FirstName string    `json:"firstName"`
