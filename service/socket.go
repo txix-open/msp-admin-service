@@ -6,7 +6,6 @@ import (
 	"net"
 	"net/http"
 	"sync"
-	"time"
 
 	etp "github.com/integration-system/isp-etp-go/v2"
 	"github.com/integration-system/isp-lib/v2/structure"
@@ -207,10 +206,7 @@ func (s *sessionManager) InitWebSocket(ln net.Listener) {
 	}()
 }
 
-func (s *sessionManager) ShutdownSocket() {
-	ctx, cancel := context.WithTimeout(context.TODO(), 5*time.Second)
-	defer cancel()
-
+func (s *sessionManager) ShutdownSocket(ctx context.Context) {
 	if err := s.httpServer.Shutdown(ctx); err != nil {
 		log.Errorf(44, "Unable to shutdown http server. err: %v", err)
 	}
