@@ -53,9 +53,9 @@ func socketConfiguration(cfg interface{}) structure.SocketConfiguration {
 	}
 }
 
-func onShutdown(_ context.Context, _ os.Signal) {
+func onShutdown(ctx context.Context, _ os.Signal) {
+	service.SessionManager.ShutdownSocket(ctx)
 	backend.StopGrpcServer()
-	service.SessionManager.ShutdownSocket()
 	closeListeners(wsLn, grpcLn)
 }
 
