@@ -1,0 +1,348 @@
+basePath: /api/admin
+definitions:
+  conf.UIDesign:
+    properties:
+      name:
+        type: string
+      primaryColor:
+        type: string
+    type: object
+  entity.AdminUser:
+    properties:
+      createdAt:
+        type: string
+      email:
+        type: string
+      firstName:
+        type: string
+      id:
+        type: integer
+      image:
+        type: string
+      lastName:
+        type: string
+      password:
+        type: string
+      phone:
+        type: string
+      updatedAt:
+        type: string
+    required:
+    - email
+    type: object
+  structure.AdminUserShort:
+    properties:
+      email:
+        type: string
+      firstName:
+        type: string
+      image:
+        type: string
+      lastName:
+        type: string
+      phone:
+        type: string
+    required:
+    - email
+    type: object
+  structure.Auth:
+    properties:
+      expired:
+        type: string
+      headerName:
+        type: string
+      token:
+        type: string
+    type: object
+  structure.AuthRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  structure.DeleteResponse:
+    properties:
+      deleted:
+        type: integer
+    type: object
+  structure.GrpcError:
+    properties:
+      details:
+        items:
+          type: object
+        type: array
+      errorCode:
+        type: string
+      errorMessage:
+        type: string
+    type: object
+  structure.IdentitiesRequest:
+    properties:
+      ids:
+        items:
+          type: integer
+        type: array
+    type: object
+  structure.UsersRequest:
+    properties:
+      email:
+        type: string
+      ids:
+        items:
+          type: integer
+        type: array
+      limit:
+        type: integer
+      offset:
+        type: integer
+      phone:
+        type: string
+    type: object
+  structure.UsersResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/entity.AdminUser'
+        type: array
+    type: object
+host: localhost:9000
+info:
+  contact: {}
+  description: сервис администрирования
+  license:
+    name: GNU GPL v3.0
+  title: msp-admin-service
+  version: 1.0.0
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Авторизация с получением токена администратора
+      parameters:
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/structure.AuthRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/structure.Auth'
+        "400":
+          description: Данные для авторизации не верны
+          schema:
+            $ref: '#/definitions/structure.GrpcError'
+        "404":
+          description: Пользователь не найден
+          schema:
+            $ref: '#/definitions/structure.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/structure.GrpcError'
+      summary: Авторизация
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Выход из авторизованной сессии администрирования
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200": {}
+        "400":
+          description: Невалидный токен
+          schema:
+            $ref: '#/definitions/structure.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/structure.GrpcError'
+      summary: Выход из авторизованной сессии
+      tags:
+      - auth
+  /user/create_update_user:
+    post:
+      consumes:
+      - application/json
+      description: Создать пользователя или обновить данные существующего
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/entity.AdminUser'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.AdminUser'
+        "400":
+          description: Невалидное тело запроса
+          schema:
+            $ref: '#/definitions/structure.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/structure.GrpcError'
+      summary: Создать/Обновить пользователя
+      tags:
+      - user
+  /user/delete_user:
+    post:
+      consumes:
+      - application/json
+      description: Удалить существующего пользователя
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/structure.IdentitiesRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/structure.DeleteResponse'
+        "400":
+          description: Невалидное тело запроса
+          schema:
+            $ref: '#/definitions/structure.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/structure.GrpcError'
+      summary: Удалить пользователя
+      tags:
+      - user
+  /user/get_design:
+    post:
+      consumes:
+      - application/json
+      description: Получение внешнего вида (палитра и наименование) админ-интерфейса
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/conf.UIDesign'
+        "400":
+          description: Невалидный токен
+          schema:
+            $ref: '#/definitions/structure.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/structure.GrpcError'
+      summary: Получение внешнего вида
+      tags:
+      - user
+  /user/get_profile:
+    post:
+      consumes:
+      - application/json
+      description: Получить данные профиля
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/structure.AdminUserShort'
+        "400":
+          description: Невалидный токен
+          schema:
+            $ref: '#/definitions/structure.GrpcError'
+        "401":
+          description: Токен не соответствует ни одному пользователю
+          schema:
+            $ref: '#/definitions/structure.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/structure.GrpcError'
+      summary: Получить профиль
+      tags:
+      - user
+  /user/get_users:
+    post:
+      consumes:
+      - application/json
+      description: Получить список пользователей
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/structure.UsersRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/structure.UsersResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/structure.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/structure.GrpcError'
+      summary: Список пользователей
+      tags:
+      - user
+swagger: "2.0"
