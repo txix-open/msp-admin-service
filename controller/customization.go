@@ -2,20 +2,20 @@ package controller
 
 import (
 	"github.com/integration-system/isp-lib/v2/config"
-	log "github.com/integration-system/isp-log"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
 	"msp-admin-service/conf"
 )
 
-func GetUIDesign(metadata metadata.MD) (conf.UIDesign, error) {
-	token := metadata.Get(adminAuthHeaderName)
-
-	if len(token) == 0 || token[0] == "" {
-		log.Errorf(0, "Admin AUTH header: %s, not found, received: %v", adminAuthHeaderName, metadata)
-		return conf.UIDesign{}, status.Error(codes.InvalidArgument, ServiceError)
-	}
-
+// @Tags user
+// @Summary Получение внешнего вида
+// @Description Получение внешнего вида (палитра и наименование) админ-интерфейса
+// @Accept json
+// @Produce json
+// @Param X-AUTH-ADMIN header string true "Токен администратора"
+// @Success 200 {object} conf.UIDesign
+// @Failure 400 {object} structure.GrpcError "Невалидный токен"
+// @Failure 500 {object} structure.GrpcError
+// @Router /user/get_design [POST]
+func GetUIDesign(_ metadata.MD) (conf.UIDesign, error) {
 	return config.GetRemote().(*conf.RemoteConfig).UiDesign, nil
 }

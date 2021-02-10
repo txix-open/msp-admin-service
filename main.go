@@ -14,6 +14,7 @@ import (
 	"github.com/integration-system/isp-log/stdcodes"
 	"github.com/soheilhy/cmux"
 	"msp-admin-service/conf"
+	_ "msp-admin-service/docs"
 	"msp-admin-service/helper"
 	"msp-admin-service/invoker"
 	"msp-admin-service/model"
@@ -25,6 +26,18 @@ var (
 	grpcLn  net.Listener
 	wsLn    net.Listener
 )
+
+// @title msp-admin-service
+// @version 1.0.0
+// @description сервис администрирования
+
+// @license.name GNU GPL v3.0
+
+// @host localhost:9000
+// @BasePath /api/admin
+
+//go:generate swag init --parseDependency
+//go:generate rm -f docs/swagger.json
 
 func main() {
 	bootstrap.

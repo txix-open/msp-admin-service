@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/integration-system/isp-lib/v2/utils"
-	log "github.com/integration-system/isp-log"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -22,24 +21,33 @@ const (
 	ValidationError = "Validation errors"
 )
 
-func Logout(metadata metadata.MD) error {
-	token := metadata.Get(adminAuthHeaderName)
-
-	if len(token) == 0 || token[0] == "" {
-		log.Errorf(0, "Admin AUTH header: %s, not found, received: %v", adminAuthHeaderName, metadata)
-		return status.Error(codes.InvalidArgument, ServiceError)
-	}
+// @Tags auth
+// @Summary Выход из авторизованной сессии
+// @Description Выход из авторизованной сессии администрирования
+// @Accept json
+// @Produce json
+// @Param X-AUTH-ADMIN header string true "Токен администратора"
+// @Success 200
+// @Failure 400 {object} structure.GrpcError "Невалидный токен"
+// @Failure 500 {object} structure.GrpcError
+// @Router /auth/logout [POST]
+func Logout(_ metadata.MD) error {
 	return nil
 }
 
+// @Tags user
+// @Summary Получить профиль
+// @Description Получить данные профиля
+// @Accept json
+// @Produce json
+// @Param X-AUTH-ADMIN header string true "Токен администратора"
+// @Success 200 {object} structure.AdminUserShort
+// @Failure 400 {object} structure.GrpcError "Невалидный токен"
+// @Failure 401 {object} structure.GrpcError "Токен не соответствует ни одному пользователю"
+// @Failure 500 {object} structure.GrpcError
+// @Router /user/get_profile [POST]
 func GetProfile(metadata metadata.MD) (*structure.AdminUserShort, error) {
 	token := metadata.Get(adminAuthHeaderName)
-
-	if len(token) == 0 || token[0] == "" {
-		log.Errorf(0, "Admin AUTH header: %s, not found, received: %v", adminAuthHeaderName, metadata)
-		return nil, status.Error(codes.InvalidArgument, ServiceError)
-	}
-
 	userId, err := service.GetUserId(token[0])
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, "Invalid auth token")
@@ -58,6 +66,17 @@ func GetProfile(metadata metadata.MD) (*structure.AdminUserShort, error) {
 	}, nil
 }
 
+// @Tags auth
+// @Summary Авторизация
+// @Description Авторизация с получением токена администратора
+// @Accept json
+// @Produce json
+// @Param body body structure.AuthRequest true "Тело запроса"
+// @Success 200 {object} structure.Auth
+// @Failure 400 {object} structure.GrpcError "Данные для авторизации не верны"
+// @Failure 404 {object} structure.GrpcError "Пользователь не найден"
+// @Failure 500 {object} structure.GrpcError
+// @Router /auth/login [POST]
 func Login(authRequest structure.AuthRequest) (*structure.Auth, error) {
 	user, err := model.GetUserByEmail(authRequest.Email)
 	if user == nil {
@@ -82,6 +101,17 @@ func Login(authRequest structure.AuthRequest) (*structure.Auth, error) {
 	}, nil
 }
 
+// @Tags user
+// @Summary Список пользователей
+// @Description Получить список пользователей
+// @Accept json
+// @Produce json
+// @Param X-AUTH-ADMIN header string true "Токен администратора"
+// @Param body body structure.UsersRequest true "Тело запроса"
+// @Success 200 {object} structure.UsersResponse
+// @Failure 400 {object} structure.GrpcError
+// @Failure 500 {object} structure.GrpcError
+// @Router /user/get_users [POST]
 func GetUsers(identities structure.UsersRequest) (*structure.UsersResponse, error) {
 	users, err := model.GetUsers(identities)
 	if err != nil {
@@ -93,6 +123,17 @@ func GetUsers(identities structure.UsersRequest) (*structure.UsersResponse, erro
 	return &structure.UsersResponse{Items: users}, err
 }
 
+// @Tags user
+// @Summary Создать/Обновить пользователя
+// @Description Создать пользователя или обновить данные существующего
+// @Accept json
+// @Produce json
+// @Param X-AUTH-ADMIN header string true "Токен администратора"
+// @Param body body entity.AdminUser true "Тело запроса"
+// @Success 200 {object} entity.AdminUser
+// @Failure 400 {object} structure.GrpcError "Невалидное тело запроса"
+// @Failure 500 {object} structure.GrpcError
+// @Router /user/create_update_user [POST]
 func CreateUpdateUser(user entity.AdminUser) (*entity.AdminUser, error) {
 	var err error
 	if user.Id == 0 {
@@ -154,6 +195,17 @@ func CreateUpdateUser(user entity.AdminUser) (*entity.AdminUser, error) {
 	return &user, err
 }
 
+// @Tags user
+// @Summary Удалить пользователя
+// @Description Удалить существующего пользователя
+// @Accept json
+// @Produce json
+// @Param X-AUTH-ADMIN header string true "Токен администратора"
+// @Param body body structure.IdentitiesRequest true "Тело запроса"
+// @Success 200 {object} structure.DeleteResponse
+// @Failure 400 {object} structure.GrpcError "Невалидное тело запроса"
+// @Failure 500 {object} structure.GrpcError
+// @Router /user/delete_user [POST]
 func DeleteUser(identities structure.IdentitiesRequest) (*structure.DeleteResponse, error) {
 	if len(identities.Ids) == 0 {
 		validationErrors := map[string]string{
