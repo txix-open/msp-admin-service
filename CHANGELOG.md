@@ -1,3 +1,5 @@
+### v3.3.1
+* updated dependencies
 ### v3.3.0
 * add `user/get_design` method
 ### v3.2.2
