@@ -10,8 +10,9 @@ import (
 
 type Handlers struct {
 	// ===== AUTH =====
-	Login  func(structure.AuthRequest) (*structure.Auth, error) `method:"login" group:"auth" inner:"false"`
-	Logout func(metadata.MD) error                              `method:"logout" group:"auth" inner:"true"`
+	Login          func(structure.AuthRequest) (*structure.Auth, error)      `method:"login" group:"auth" inner:"false"`
+	LoginWithSudir func(structure.SudirAuthRequest) (*structure.Auth, error) `method:"login_with_sudir" group:"auth" inner:"false"`
+	Logout         func(metadata.MD) error                                   `method:"logout" group:"auth" inner:"true"`
 
 	// ===== USER =====
 	GetProfile       func(metadata.MD) (*structure.AdminUserShort, error)                            `method:"get_profile" group:"user" inner:"true"`
@@ -27,6 +28,7 @@ func GetHandlers() []interface{} {
 	return []interface{}{
 		&Handlers{
 			Login:            controller.Login,
+			LoginWithSudir:   controller.LoginWithSudir,
 			Logout:           controller.Logout,
 			GetProfile:       controller.GetProfile,
 			GetUIDesign:      controller.GetUIDesign,

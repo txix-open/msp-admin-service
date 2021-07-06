@@ -1,3 +1,5 @@
+### v3.4.0
+* add method /auth/login_with_sudir
 ### v3.3.1
 * updated dependencies
 ### v3.3.0

@@ -10,3 +10,7 @@ type AuthRequest struct {
 	Email    string `json:"email" valid:"required~Required"`
 	Password string `json:"password" valid:"required~Required"`
 }
+
+type SudirAuthRequest struct {
+	AuthCode string `json:"authCode" valid:"required~Required"`
+}
