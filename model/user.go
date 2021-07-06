@@ -51,6 +51,17 @@ func GetUserById(identity int64) (*entity.AdminUser, error) {
 	return &user, err
 }
 
+func GetUserBySudirUserId(id string) (*entity.AdminUser, error) {
+	var user entity.AdminUser
+	err := DbClient.Unsafe().Model(&user).
+		Where("sudir_user_id = ?", id).
+		First()
+	if err != nil && err == pg.ErrNoRows {
+		return nil, nil
+	}
+	return &user, err
+}
+
 func GetUsers(usersRequest structure.UsersRequest) (*[]entity.AdminUser, error) {
 	var users []entity.AdminUser
 	query := DbClient.Unsafe().Model(&users)

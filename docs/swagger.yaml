@@ -25,6 +25,8 @@ definitions:
         type: string
       phone:
         type: string
+      sudirUserId:
+        type: string
       updatedAt:
         type: string
     required:
@@ -87,6 +89,13 @@ definitions:
           type: integer
         type: array
     type: object
+  structure.SudirAuthRequest:
+    properties:
+      authCode:
+        type: string
+    required:
+    - authCode
+    type: object
   structure.UsersRequest:
     properties:
       email:
@@ -138,6 +147,10 @@ paths:
           schema:
             $ref: '#/definitions/structure.Auth'
         "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/structure.GrpcError'
+        "401":
           description: Данные для авторизации не верны
           schema:
             $ref: '#/definitions/structure.GrpcError'
@@ -149,7 +162,41 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/structure.GrpcError'
-      summary: Авторизация
+      summary: Авторизация по логину и паролю
+      tags:
+      - auth
+  /auth/login_with_sudir:
+    post:
+      consumes:
+      - application/json
+      description: Авторизация с получением токена администратора
+      parameters:
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/structure.SudirAuthRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/structure.Auth'
+        "401":
+          description: Некорректный код для авторизации
+          schema:
+            $ref: '#/definitions/structure.GrpcError'
+        "412":
+          description: Авторизация СУДИР не настроена на сервере
+          schema:
+            $ref: '#/definitions/structure.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/structure.GrpcError'
+      summary: Авторизация по авторизационному коду от СУДИР
       tags:
       - auth
   /auth/logout:
@@ -166,7 +213,8 @@ paths:
       produces:
       - application/json
       responses:
-        "200": {}
+        "200":
+          description: ""
         "400":
           description: Невалидный токен
           schema:

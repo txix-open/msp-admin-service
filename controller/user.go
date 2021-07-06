@@ -1,13 +1,16 @@
 package controller
 
 import (
+	"errors"
 	"fmt"
 
+	"github.com/integration-system/isp-lib/v2/config"
 	"github.com/integration-system/isp-lib/v2/utils"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"msp-admin-service/conf"
 	"msp-admin-service/entity"
 	"msp-admin-service/model"
 	"msp-admin-service/service"
@@ -17,7 +20,6 @@ import (
 const adminAuthHeaderName = "x-auth-admin"
 
 const (
-	ServiceError    = "Service is not available now, please try later"
 	ValidationError = "Validation errors"
 )
 
@@ -67,23 +69,25 @@ func GetProfile(metadata metadata.MD) (*structure.AdminUserShort, error) {
 }
 
 // @Tags auth
-// @Summary Авторизация
+// @Summary Авторизация по логину и паролю
 // @Description Авторизация с получением токена администратора
 // @Accept json
 // @Produce json
 // @Param body body structure.AuthRequest true "Тело запроса"
 // @Success 200 {object} structure.Auth
-// @Failure 400 {object} structure.GrpcError "Данные для авторизации не верны"
+// @Failure 400 {object} structure.GrpcError
+// @Failure 401 {object} structure.GrpcError "Данные для авторизации не верны"
 // @Failure 404 {object} structure.GrpcError "Пользователь не найден"
 // @Failure 500 {object} structure.GrpcError
 // @Router /auth/login [POST]
 func Login(authRequest structure.AuthRequest) (*structure.Auth, error) {
 	user, err := model.GetUserByEmail(authRequest.Email)
-	if user == nil {
-		return nil, status.Error(codes.NotFound, "User not found")
-	}
 	if err != nil {
 		return nil, err
+	} else if user == nil {
+		return nil, status.Error(codes.NotFound, "User not found")
+	} else if user.SudirUserId != "" {
+		return nil, status.Error(codes.InvalidArgument, "User is authorized only with SUDIR")
 	}
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(authRequest.Password))
 	if err != nil {
@@ -91,6 +95,59 @@ func Login(authRequest structure.AuthRequest) (*structure.Auth, error) {
 	}
 
 	tokenString, expired, err := service.GenerateToken(user.Id)
+	if err != nil {
+		return nil, err
+	}
+	return &structure.Auth{
+		Token:      tokenString,
+		Expired:    expired,
+		HeaderName: adminAuthHeaderName,
+	}, nil
+}
+
+// @Tags auth
+// @Summary Авторизация по авторизационному коду от СУДИР
+// @Description Авторизация с получением токена администратора
+// @Accept json
+// @Produce json
+// @Param body body structure.SudirAuthRequest true "Тело запроса"
+// @Success 200 {object} structure.Auth
+// @Failure 401 {object} structure.GrpcError "Некорректный код для авторизации"
+// @Failure 412 {object} structure.GrpcError "Авторизация СУДИР не настроена на сервере"
+// @Failure 500 {object} structure.GrpcError
+// @Router /auth/login_with_sudir [POST]
+func LoginWithSudir(request structure.SudirAuthRequest) (*structure.Auth, error) {
+	remoteConfig := config.GetRemote().(*conf.RemoteConfig)
+	if remoteConfig.SudirAuth == nil {
+		return nil, status.Error(codes.FailedPrecondition, "SUDIR authorization is not configured on the server")
+	}
+
+	sudirUser, err := service.AuthSudir(*remoteConfig.SudirAuth, request.AuthCode)
+	var authErr *service.SudirAuthError
+	if errors.As(err, &authErr) {
+		return nil, status.Error(codes.Unauthenticated, err.Error())
+	} else if err != nil {
+		return nil, err
+	}
+
+	if sudirUser.SudirUserId == "" || sudirUser.Email == "" {
+		return nil, status.Errorf(codes.Unauthenticated, "missing sudirUserId '%s' or email '%s'", sudirUser.SudirUserId, sudirUser.Email)
+	}
+
+	existedUser, err := model.GetUserBySudirUserId(sudirUser.SudirUserId)
+	if err != nil {
+		return nil, err
+	}
+	if existedUser != nil {
+		sudirUser = *existedUser
+	} else {
+		sudirUser, err = model.CreateUser(sudirUser)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	tokenString, expired, err := service.GenerateToken(sudirUser.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -135,10 +192,13 @@ func GetUsers(identities structure.UsersRequest) (*structure.UsersResponse, erro
 // @Failure 500 {object} structure.GrpcError
 // @Router /user/create_update_user [POST]
 func CreateUpdateUser(user entity.AdminUser) (*entity.AdminUser, error) {
-	var err error
 	if user.Id == 0 {
 		if user.Password == "" {
-			validationErrors := map[string]string{"password": "Requered"}
+			validationErrors := map[string]string{"password": "Required"}
+			return nil, utils.CreateValidationErrorDetails(codes.InvalidArgument,
+				ValidationError, validationErrors)
+		} else if user.SudirUserId != "" {
+			validationErrors := map[string]string{"sudirUserId": "Could not create user with sudirUserId"}
 			return nil, utils.CreateValidationErrorDetails(codes.InvalidArgument,
 				ValidationError, validationErrors)
 		}
@@ -161,9 +221,11 @@ func CreateUpdateUser(user entity.AdminUser) (*entity.AdminUser, error) {
 		}
 
 		user, err = model.CreateUser(user)
+		if err != nil {
+			return nil, err
+		}
 	} else {
-		var userExists *entity.AdminUser
-		userExists, err = model.GetUserById(user.Id)
+		userExists, err := model.GetUserById(user.Id)
 		if err != nil {
 			return nil, err
 		}
@@ -172,6 +234,14 @@ func CreateUpdateUser(user entity.AdminUser) (*entity.AdminUser, error) {
 				"id": fmt.Sprintf("User with id: %d not found", user.Id),
 			}
 			return nil, utils.CreateValidationErrorDetails(codes.NotFound,
+				ValidationError, validationErrors)
+		} else if userExists.SudirUserId != user.SudirUserId {
+			validationErrors := map[string]string{"sudirUserId": "Could not change sudirUserId of an existing user"}
+			return nil, utils.CreateValidationErrorDetails(codes.InvalidArgument,
+				ValidationError, validationErrors)
+		} else if user.Password != "" && user.SudirUserId != "" {
+			validationErrors := map[string]string{"password": "Could not set password of a user logged in with SUDIR"}
+			return nil, utils.CreateValidationErrorDetails(codes.InvalidArgument,
 				ValidationError, validationErrors)
 		}
 
@@ -183,16 +253,17 @@ func CreateUpdateUser(user entity.AdminUser) (*entity.AdminUser, error) {
 		}
 
 		user, err = model.UpdateUser(user)
+		if err != nil {
+			return nil, err
+		}
+
 		user.CreatedAt = userExists.CreatedAt
 		user.UpdatedAt = userExists.UpdatedAt
-	}
-	if err != nil {
-		return nil, err
 	}
 
 	user.Password = ""
 
-	return &user, err
+	return &user, nil
 }
 
 // @Tags user
