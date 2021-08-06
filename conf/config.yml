@@ -11,4 +11,3 @@ webSocketAddress:
   ip: 0.0.0.0
   port: 9100
 moduleName: admin
-instanceUuid: bf482806-0c3d-4e0d-b9d4-12c037b12d70
