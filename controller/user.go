@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc/status"
 	"msp-admin-service/conf"
 	"msp-admin-service/entity"
+	"msp-admin-service/invoker"
 	"msp-admin-service/model"
 	"msp-admin-service/service"
 	"msp-admin-service/structure"
@@ -123,7 +124,7 @@ func LoginWithSudir(request structure.SudirAuthRequest) (*structure.Auth, error)
 	}
 
 	sudirUser, err := service.AuthSudir(*remoteConfig.SudirAuth, request.AuthCode)
-	var authErr *service.SudirAuthError
+	var authErr *invoker.SudirAuthError
 	if errors.As(err, &authErr) {
 		return nil, status.Error(codes.Unauthenticated, err.Error())
 	} else if err != nil {
