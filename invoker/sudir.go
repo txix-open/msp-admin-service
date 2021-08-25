@@ -1,63 +1,44 @@
 package invoker
 
 import (
-	"encoding/json"
-	"net/http"
-	"net/url"
-	"strings"
+	"encoding/base64"
+	"fmt"
 
+	"github.com/integration-system/isp-lib/v2/http"
 	"msp-admin-service/conf"
 	"msp-admin-service/invoker/sudir"
 )
 
-func GetSudirTokens(cfg conf.SudirAuth, authCode string) (sudir.TokenResponse, error) {
-	method := cfg.Host + "/blitz/oauth/te"
-	payload := url.Values{
-		"grant_type":   []string{"authorization_code"},
-		"code":         []string{authCode},
-		"redirect_uri": []string{cfg.RedirectURI},
+var sudirCli = http.NewJsonRestClient()
+
+func GetSudirTokens(cfg conf.SudirAuth, authCode string) (*sudir.TokenResponse, error) {
+	method := fmt.Sprintf("%s/blitz/oauth/te?grant_type=authorization_code&code=%s&redirect_uri=%s",
+		cfg.Host, authCode, cfg.RedirectURI,
+	)
+	basicAuth := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", cfg.ClientId, cfg.ClientSecret)))
+	headers := map[string]string{
+		"Content-Type":  "application/x-www-form-urlencoded",
+		"Authorization": fmt.Sprintf("Basic %s", basicAuth),
+	}
+	response := new(sudir.TokenResponse)
+	err := sudirCli.Invoke(http.POST, method, headers, nil, response)
+	if err != nil {
+		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", method, strings.NewReader(payload.Encode()))
-	if err != nil {
-		return sudir.TokenResponse{}, err
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.SetBasicAuth(cfg.ClientId, cfg.ClientSecret)
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return sudir.TokenResponse{}, err
-	}
-	defer resp.Body.Close()
-	var tokenResponse sudir.TokenResponse
-	err = json.NewDecoder(resp.Body).Decode(&tokenResponse)
-	if err != nil {
-		return sudir.TokenResponse{}, err
-	}
-
-	return tokenResponse, nil
+	return response, nil
 }
 
-func GetSudirUser(host, accessToken string) (sudir.UserResponse, error) {
-	method := host + "/blitz/oauth/me"
-
-	req, err := http.NewRequest("GET", method, nil)
-	if err != nil {
-		return sudir.UserResponse{}, err
+func GetSudirUser(host, accessToken string) (*sudir.UserResponse, error) {
+	method := fmt.Sprintf("%s/blitz/oauth/me", host)
+	headers := map[string]string{
+		"Authorization": fmt.Sprintf("Bearer %s", accessToken),
 	}
-	req.Header.Set("Authorization", "Bearer "+accessToken)
-
-	resp, err := http.DefaultClient.Do(req)
+	response := new(sudir.UserResponse)
+	err := sudirCli.Invoke(http.GET, method, headers, nil, response)
 	if err != nil {
-		return sudir.UserResponse{}, err
-	}
-	defer resp.Body.Close()
-	var user sudir.UserResponse
-	err = json.NewDecoder(resp.Body).Decode(&user)
-	if err != nil {
-		return sudir.UserResponse{}, err
+		return nil, err
 	}
 
-	return user, nil
+	return response, nil
 }
