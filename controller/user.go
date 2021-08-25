@@ -1,11 +1,11 @@
 package controller
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/integration-system/isp-lib/v2/config"
 	"github.com/integration-system/isp-lib/v2/utils"
+	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -58,8 +58,17 @@ func GetProfile(metadata metadata.MD) (*structure.AdminUserShort, error) {
 
 	user, err := model.GetUserById(userId)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessagef(err, "get user by id %d", userId)
 	}
+
+	role, err := model.RoleRep.GetRoleById(user.RoleId)
+	if err != nil {
+		return nil, errors.WithMessagef(err, "get role by id %d", user.RoleId)
+	}
+	if role == nil {
+		return nil, errors.Errorf("unexpected role id %d", user.RoleId)
+	}
+
 	return &structure.AdminUserShort{
 		Image:     user.Image,
 		FirstName: user.FirstName,
