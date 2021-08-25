@@ -15,4 +15,5 @@ var (
 			log.Fatal(stdcodes.InitializingDbError, err.Error())
 		}),
 	)
+	RoleRep = RoleRepository{client: DbClient}
 )
