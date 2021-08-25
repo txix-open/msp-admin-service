@@ -9,9 +9,15 @@ import (
 	"msp-admin-service/invoker/sudir"
 )
 
-var sudirCli = http.NewJsonRestClient()
+var Sudir = sudirCli{
+	cli: http.NewJsonRestClient(),
+}
 
-func GetSudirTokens(cfg conf.SudirAuth, authCode string) (*sudir.TokenResponse, error) {
+type sudirCli struct {
+	cli http.RestClient
+}
+
+func (c sudirCli) GetToken(cfg conf.SudirAuth, authCode string) (*sudir.TokenResponse, error) {
 	method := fmt.Sprintf("%s/blitz/oauth/te?grant_type=authorization_code&code=%s&redirect_uri=%s",
 		cfg.Host, authCode, cfg.RedirectURI,
 	)
@@ -21,7 +27,7 @@ func GetSudirTokens(cfg conf.SudirAuth, authCode string) (*sudir.TokenResponse, 
 		"Authorization": fmt.Sprintf("Basic %s", basicAuth),
 	}
 	response := new(sudir.TokenResponse)
-	err := sudirCli.Invoke(http.POST, method, headers, nil, response)
+	err := c.cli.Invoke(http.POST, method, headers, nil, response)
 	if err != nil {
 		return nil, err
 	}
@@ -29,13 +35,13 @@ func GetSudirTokens(cfg conf.SudirAuth, authCode string) (*sudir.TokenResponse, 
 	return response, nil
 }
 
-func GetSudirUser(host, accessToken string) (*sudir.UserResponse, error) {
+func (c sudirCli) GetUser(host, accessToken string) (*sudir.UserResponse, error) {
 	method := fmt.Sprintf("%s/blitz/oauth/me", host)
 	headers := map[string]string{
 		"Authorization": fmt.Sprintf("Bearer %s", accessToken),
 	}
 	response := new(sudir.UserResponse)
-	err := sudirCli.Invoke(http.GET, method, headers, nil, response)
+	err := c.cli.Invoke(http.GET, method, headers, nil, response)
 	if err != nil {
 		return nil, err
 	}
