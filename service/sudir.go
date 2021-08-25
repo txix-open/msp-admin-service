@@ -22,9 +22,9 @@ func AuthSudir(cfg conf.SudirAuth, authCode string) (entity.AdminUser, error) {
 	}
 
 	return entity.AdminUser{
-		SudirUserId: user.UserId,
-		FirstName:   user.Firstname,
-		LastName:    user.Surname,
+		SudirUserId: user.Sub,
+		FirstName:   user.GivenName,
+		LastName:    user.FamilyName,
 		Email:       user.Email,
 		Password:    "",
 	}, nil

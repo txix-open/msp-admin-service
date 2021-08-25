@@ -3,12 +3,11 @@ package sudir
 type UserResponse struct {
 	*SudirAuthError
 
-	UserId     string `json:"uid"`
-	Logonname  string `json:"logonname"`
-	Firstname  string `json:"firstname"`
-	Surname    string `json:"surname"`
-	Middlename string `json:"middlename"`
-	Email      string `json:"email"`
+	Email      string   `json:"email"`
+	Groups     []string `json:"groups"`
+	Sub        string   `json:"sub"`
+	GivenName  string   `json:"given_name"`
+	FamilyName string   `json:"family_name"`
 }
 
 type TokenResponse struct {
