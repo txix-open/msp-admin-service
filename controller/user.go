@@ -75,6 +75,7 @@ func GetProfile(metadata metadata.MD) (*structure.AdminUserShort, error) {
 		LastName:  user.LastName,
 		Email:     user.Email,
 		Phone:     user.Phone,
+		Role:      role.Name,
 	}, nil
 }
 

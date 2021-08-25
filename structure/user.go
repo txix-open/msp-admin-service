@@ -23,4 +23,5 @@ type AdminUserShort struct {
 	LastName  string `json:"lastName"`
 	Email     string `json:"email" valid:"required~Required"`
 	Phone     string `json:"phone"`
+	Role      string `json:"role"`
 }
