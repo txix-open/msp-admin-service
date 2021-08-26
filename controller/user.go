@@ -1,17 +1,18 @@
 package controller
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/integration-system/isp-lib/v2/config"
 	"github.com/integration-system/isp-lib/v2/utils"
+	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"msp-admin-service/conf"
 	"msp-admin-service/entity"
+	"msp-admin-service/invoker/sudir"
 	"msp-admin-service/model"
 	"msp-admin-service/service"
 	"msp-admin-service/structure"
@@ -57,14 +58,24 @@ func GetProfile(metadata metadata.MD) (*structure.AdminUserShort, error) {
 
 	user, err := model.GetUserById(userId)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessagef(err, "get user by id %d", userId)
 	}
+
+	role, err := model.RoleRep.GetRoleById(user.RoleId)
+	if err != nil {
+		return nil, errors.WithMessagef(err, "get role by id %d", user.RoleId)
+	}
+	if role == nil {
+		return nil, errors.Errorf("unexpected role id %d", user.RoleId)
+	}
+
 	return &structure.AdminUserShort{
 		Image:     user.Image,
 		FirstName: user.FirstName,
 		LastName:  user.LastName,
 		Email:     user.Email,
 		Phone:     user.Phone,
+		Role:      role.Name,
 	}, nil
 }
 
@@ -123,7 +134,7 @@ func LoginWithSudir(request structure.SudirAuthRequest) (*structure.Auth, error)
 	}
 
 	sudirUser, err := service.AuthSudir(*remoteConfig.SudirAuth, request.AuthCode)
-	var authErr *service.SudirAuthError
+	var authErr *sudir.SudirAuthError
 	if errors.As(err, &authErr) {
 		return nil, status.Error(codes.Unauthenticated, err.Error())
 	} else if err != nil {

@@ -15,6 +15,7 @@ type AdminUser struct {
 	tableName   string    `pg:"?db_schema.users" json:"-"`
 	SudirUserId string    `json:"sudirUserId"`
 	Id          int64     `json:"id"`
+	RoleId      int       `json:"roleId"`
 	Image       string    `json:"image"`
 	FirstName   string    `json:"firstName"`
 	LastName    string    `json:"lastName"`

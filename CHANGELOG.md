@@ -1,3 +1,8 @@
+### v3.5.0
+* add role to response /user/get_profile
+* add read_only_admin role
+* add role link for sudir user
+* fix sudir user response
 ### v3.4.1
 * updated dependencies
 * migrated to common local config

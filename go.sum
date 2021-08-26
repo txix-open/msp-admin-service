@@ -384,6 +384,7 @@ github.com/integration-system/go-amqp v0.12.8/go.mod h1:ALB2VeQh/HXN/2Nk0XClCbsL
 github.com/integration-system/go-amqp v0.13.61/go.mod h1:8zftwPfjfeIw2XncclRoV4MuQb4v0xs30jpnpcwCiuw=
 github.com/integration-system/go-cmp v0.0.0-20190131081942-ac5582987a2f h1:52UOJguw5yqe1y2JjmyVxGcZf3kv2BQeUodR363MkiQ=
 github.com/integration-system/go-cmp v0.0.0-20190131081942-ac5582987a2f/go.mod h1:w+dmaWojuIwNujSYg6qt1wKHhSdorLOivCEl/XuLzbM=
+github.com/integration-system/gowsdl v1.0.0 h1:rDv5HrzNUs6aWTj9roSDS9ZdIf58FzF0YVP2nusvbto=
 github.com/integration-system/gowsdl v1.0.0/go.mod h1:ZwTCE+Av5aQLnPj2/3PIop6mzCs1FY7jXrcWDvSjrBA=
 github.com/integration-system/isp-etp-go/v2 v2.1.1/go.mod h1:Ndq5DMM3sDJjZn4cyKKvZrVED0FMeoXMRWHZTq+2Z1o=
 github.com/integration-system/isp-etp-go/v2 v2.1.2/go.mod h1:fSkS09/engepaDDqaDAEeXUpzmtcMpSLjilZ35BfNcc=
