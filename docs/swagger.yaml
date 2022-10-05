@@ -7,47 +7,20 @@ definitions:
       primaryColor:
         type: string
     type: object
-  entity.AdminUser:
-    properties:
-      createdAt:
-        type: string
-      email:
-        type: string
-      firstName:
-        type: string
-      id:
-        type: integer
-      image:
-        type: string
-      lastName:
-        type: string
-      password:
-        type: string
-      phone:
-        type: string
-      sudirUserId:
-        type: string
-      updatedAt:
-        type: string
-    required:
-    - email
-    type: object
-  structure.AdminUserShort:
+  domain.AdminUserShort:
     properties:
       email:
         type: string
       firstName:
         type: string
-      image:
-        type: string
       lastName:
         type: string
-      phone:
+      role:
         type: string
     required:
     - email
     type: object
-  structure.Auth:
+  domain.Auth:
     properties:
       expired:
         type: string
@@ -56,7 +29,7 @@ definitions:
       token:
         type: string
     type: object
-  structure.AuthRequest:
+  domain.AuthRequest:
     properties:
       email:
         type: string
@@ -66,12 +39,28 @@ definitions:
     - email
     - password
     type: object
-  structure.DeleteResponse:
+  domain.CreateUserRequest:
+    properties:
+      email:
+        type: string
+      firstName:
+        type: string
+      lastName:
+        type: string
+      password:
+        type: string
+      roleId:
+        type: integer
+    required:
+    - email
+    - password
+    type: object
+  domain.DeleteResponse:
     properties:
       deleted:
         type: integer
     type: object
-  structure.GrpcError:
+  domain.GrpcError:
     properties:
       details:
         items:
@@ -82,21 +71,61 @@ definitions:
       errorMessage:
         type: string
     type: object
-  structure.IdentitiesRequest:
+  domain.IdentitiesRequest:
     properties:
       ids:
         items:
           type: integer
         type: array
+    required:
+    - ids
     type: object
-  structure.SudirAuthRequest:
+  domain.SudirAuthRequest:
     properties:
       authCode:
         type: string
     required:
     - authCode
     type: object
-  structure.UsersRequest:
+  domain.UpdateUserRequest:
+    properties:
+      email:
+        type: string
+      firstName:
+        type: string
+      id:
+        type: integer
+      lastName:
+        type: string
+      password:
+        type: string
+      roleId:
+        type: integer
+    required:
+    - id
+    type: object
+  domain.User:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      first_name:
+        type: string
+      id:
+        type: integer
+      last_name:
+        type: string
+      password:
+        type: string
+      role_id:
+        type: integer
+      sudir_user_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  domain.UsersRequest:
     properties:
       email:
         type: string
@@ -108,14 +137,12 @@ definitions:
         type: integer
       offset:
         type: integer
-      phone:
-        type: string
     type: object
-  structure.UsersResponse:
+  domain.UsersResponse:
     properties:
       items:
         items:
-          $ref: '#/definitions/entity.AdminUser'
+          $ref: '#/definitions/domain.User'
         type: array
     type: object
 host: localhost:9000
@@ -138,30 +165,26 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/structure.AuthRequest'
+          $ref: '#/definitions/domain.AuthRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/structure.Auth'
+            $ref: '#/definitions/domain.Auth'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/structure.GrpcError'
+            $ref: '#/definitions/domain.GrpcError'
         "401":
           description: Данные для авторизации не верны
           schema:
-            $ref: '#/definitions/structure.GrpcError'
-        "404":
-          description: Пользователь не найден
-          schema:
-            $ref: '#/definitions/structure.GrpcError'
+            $ref: '#/definitions/domain.GrpcError'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/structure.GrpcError'
+            $ref: '#/definitions/domain.GrpcError'
       summary: Авторизация по логину и паролю
       tags:
       - auth
@@ -176,26 +199,26 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/structure.SudirAuthRequest'
+          $ref: '#/definitions/domain.SudirAuthRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/structure.Auth'
+            $ref: '#/definitions/domain.Auth'
         "401":
           description: Некорректный код для авторизации
           schema:
-            $ref: '#/definitions/structure.GrpcError'
+            $ref: '#/definitions/domain.GrpcError'
         "412":
           description: Авторизация СУДИР не настроена на сервере
           schema:
-            $ref: '#/definitions/structure.GrpcError'
+            $ref: '#/definitions/domain.GrpcError'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/structure.GrpcError'
+            $ref: '#/definitions/domain.GrpcError'
       summary: Авторизация по авторизационному коду от СУДИР
       tags:
       - auth
@@ -218,19 +241,19 @@ paths:
         "400":
           description: Невалидный токен
           schema:
-            $ref: '#/definitions/structure.GrpcError'
+            $ref: '#/definitions/domain.GrpcError'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/structure.GrpcError'
+            $ref: '#/definitions/domain.GrpcError'
       summary: Выход из авторизованной сессии
       tags:
       - auth
-  /user/create_update_user:
+  /user/create_user:
     post:
       consumes:
       - application/json
-      description: Создать пользователя или обновить данные существующего
+      description: Создать пользователя
       parameters:
       - description: Токен администратора
         in: header
@@ -242,23 +265,27 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/entity.AdminUser'
+          $ref: '#/definitions/domain.CreateUserRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/entity.AdminUser'
+            $ref: '#/definitions/domain.User'
         "400":
           description: Невалидное тело запроса
           schema:
-            $ref: '#/definitions/structure.GrpcError'
+            $ref: '#/definitions/domain.GrpcError'
+        "409":
+          description: Пользователь с указанным email уже существует
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/structure.GrpcError'
-      summary: Создать/Обновить пользователя
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Создать пользователя
       tags:
       - user
   /user/delete_user:
@@ -277,22 +304,22 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/structure.IdentitiesRequest'
+          $ref: '#/definitions/domain.IdentitiesRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/structure.DeleteResponse'
+            $ref: '#/definitions/domain.DeleteResponse'
         "400":
           description: Невалидное тело запроса
           schema:
-            $ref: '#/definitions/structure.GrpcError'
+            $ref: '#/definitions/domain.GrpcError'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/structure.GrpcError'
+            $ref: '#/definitions/domain.GrpcError'
       summary: Удалить пользователя
       tags:
       - user
@@ -317,11 +344,11 @@ paths:
         "400":
           description: Невалидный токен
           schema:
-            $ref: '#/definitions/structure.GrpcError'
+            $ref: '#/definitions/domain.GrpcError'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/structure.GrpcError'
+            $ref: '#/definitions/domain.GrpcError'
       summary: Получение внешнего вида
       tags:
       - user
@@ -342,19 +369,19 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/structure.AdminUserShort'
+            $ref: '#/definitions/domain.AdminUserShort'
         "400":
           description: Невалидный токен
           schema:
-            $ref: '#/definitions/structure.GrpcError'
+            $ref: '#/definitions/domain.GrpcError'
         "401":
           description: Токен не соответствует ни одному пользователю
           schema:
-            $ref: '#/definitions/structure.GrpcError'
+            $ref: '#/definitions/domain.GrpcError'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/structure.GrpcError'
+            $ref: '#/definitions/domain.GrpcError'
       summary: Получить профиль
       tags:
       - user
@@ -374,23 +401,66 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/structure.UsersRequest'
+          $ref: '#/definitions/domain.UsersRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/structure.UsersResponse'
+            $ref: '#/definitions/domain.UsersResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/structure.GrpcError'
+            $ref: '#/definitions/domain.GrpcError'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/structure.GrpcError'
+            $ref: '#/definitions/domain.GrpcError'
       summary: Список пользователей
+      tags:
+      - user
+  /user/update_user:
+    post:
+      consumes:
+      - application/json
+      description: Обновить данные существующего пользователя
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.User'
+        "400":
+          description: Невалидное тело запроса
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "404":
+          description: Пользователь с указанным id не существует
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "409":
+          description: Пользователь с указанным email уже существует
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Обновить пользователя
       tags:
       - user
 swagger: "2.0"

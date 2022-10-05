@@ -39,7 +39,7 @@ var doc = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/structure.AuthRequest"
+                            "$ref": "#/definitions/domain.AuthRequest"
                         }
                     }
                 ],
@@ -47,31 +47,25 @@ var doc = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/structure.Auth"
+                            "$ref": "#/definitions/domain.Auth"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/structure.GrpcError"
+                            "$ref": "#/definitions/domain.GrpcError"
                         }
                     },
                     "401": {
                         "description": "Данные для авторизации не верны",
                         "schema": {
-                            "$ref": "#/definitions/structure.GrpcError"
-                        }
-                    },
-                    "404": {
-                        "description": "Пользователь не найден",
-                        "schema": {
-                            "$ref": "#/definitions/structure.GrpcError"
+                            "$ref": "#/definitions/domain.GrpcError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/structure.GrpcError"
+                            "$ref": "#/definitions/domain.GrpcError"
                         }
                     }
                 }
@@ -97,7 +91,7 @@ var doc = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/structure.SudirAuthRequest"
+                            "$ref": "#/definitions/domain.SudirAuthRequest"
                         }
                     }
                 ],
@@ -105,25 +99,25 @@ var doc = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/structure.Auth"
+                            "$ref": "#/definitions/domain.Auth"
                         }
                     },
                     "401": {
                         "description": "Некорректный код для авторизации",
                         "schema": {
-                            "$ref": "#/definitions/structure.GrpcError"
+                            "$ref": "#/definitions/domain.GrpcError"
                         }
                     },
                     "412": {
                         "description": "Авторизация СУДИР не настроена на сервере",
                         "schema": {
-                            "$ref": "#/definitions/structure.GrpcError"
+                            "$ref": "#/definitions/domain.GrpcError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/structure.GrpcError"
+                            "$ref": "#/definitions/domain.GrpcError"
                         }
                     }
                 }
@@ -158,21 +152,21 @@ var doc = `{
                     "400": {
                         "description": "Невалидный токен",
                         "schema": {
-                            "$ref": "#/definitions/structure.GrpcError"
+                            "$ref": "#/definitions/domain.GrpcError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/structure.GrpcError"
+                            "$ref": "#/definitions/domain.GrpcError"
                         }
                     }
                 }
             }
         },
-        "/user/create_update_user": {
+        "/user/create_user": {
             "post": {
-                "description": "Создать пользователя или обновить данные существующего",
+                "description": "Создать пользователя",
                 "consumes": [
                     "application/json"
                 ],
@@ -182,7 +176,7 @@ var doc = `{
                 "tags": [
                     "user"
                 ],
-                "summary": "Создать/Обновить пользователя",
+                "summary": "Создать пользователя",
                 "parameters": [
                     {
                         "type": "string",
@@ -197,7 +191,7 @@ var doc = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/entity.AdminUser"
+                            "$ref": "#/definitions/domain.CreateUserRequest"
                         }
                     }
                 ],
@@ -205,19 +199,25 @@ var doc = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/entity.AdminUser"
+                            "$ref": "#/definitions/domain.User"
                         }
                     },
                     "400": {
                         "description": "Невалидное тело запроса",
                         "schema": {
-                            "$ref": "#/definitions/structure.GrpcError"
+                            "$ref": "#/definitions/domain.GrpcError"
+                        }
+                    },
+                    "409": {
+                        "description": "Пользователь с указанным email уже существует",
+                        "schema": {
+                            "$ref": "#/definitions/domain.GrpcError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/structure.GrpcError"
+                            "$ref": "#/definitions/domain.GrpcError"
                         }
                     }
                 }
@@ -250,7 +250,7 @@ var doc = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/structure.IdentitiesRequest"
+                            "$ref": "#/definitions/domain.IdentitiesRequest"
                         }
                     }
                 ],
@@ -258,19 +258,19 @@ var doc = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/structure.DeleteResponse"
+                            "$ref": "#/definitions/domain.DeleteResponse"
                         }
                     },
                     "400": {
                         "description": "Невалидное тело запроса",
                         "schema": {
-                            "$ref": "#/definitions/structure.GrpcError"
+                            "$ref": "#/definitions/domain.GrpcError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/structure.GrpcError"
+                            "$ref": "#/definitions/domain.GrpcError"
                         }
                     }
                 }
@@ -308,13 +308,13 @@ var doc = `{
                     "400": {
                         "description": "Невалидный токен",
                         "schema": {
-                            "$ref": "#/definitions/structure.GrpcError"
+                            "$ref": "#/definitions/domain.GrpcError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/structure.GrpcError"
+                            "$ref": "#/definitions/domain.GrpcError"
                         }
                     }
                 }
@@ -346,25 +346,25 @@ var doc = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/structure.AdminUserShort"
+                            "$ref": "#/definitions/domain.AdminUserShort"
                         }
                     },
                     "400": {
                         "description": "Невалидный токен",
                         "schema": {
-                            "$ref": "#/definitions/structure.GrpcError"
+                            "$ref": "#/definitions/domain.GrpcError"
                         }
                     },
                     "401": {
                         "description": "Токен не соответствует ни одному пользователю",
                         "schema": {
-                            "$ref": "#/definitions/structure.GrpcError"
+                            "$ref": "#/definitions/domain.GrpcError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/structure.GrpcError"
+                            "$ref": "#/definitions/domain.GrpcError"
                         }
                     }
                 }
@@ -397,7 +397,7 @@ var doc = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/structure.UsersRequest"
+                            "$ref": "#/definitions/domain.UsersRequest"
                         }
                     }
                 ],
@@ -405,19 +405,84 @@ var doc = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/structure.UsersResponse"
+                            "$ref": "#/definitions/domain.UsersResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/structure.GrpcError"
+                            "$ref": "#/definitions/domain.GrpcError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/structure.GrpcError"
+                            "$ref": "#/definitions/domain.GrpcError"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/update_user": {
+            "post": {
+                "description": "Обновить данные существующего пользователя",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "Обновить пользователя",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Токен администратора",
+                        "name": "X-AUTH-ADMIN",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Тело запроса",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.UpdateUserRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.User"
+                        }
+                    },
+                    "400": {
+                        "description": "Невалидное тело запроса",
+                        "schema": {
+                            "$ref": "#/definitions/domain.GrpcError"
+                        }
+                    },
+                    "404": {
+                        "description": "Пользователь с указанным id не существует",
+                        "schema": {
+                            "$ref": "#/definitions/domain.GrpcError"
+                        }
+                    },
+                    "409": {
+                        "description": "Пользователь с указанным email уже существует",
+                        "schema": {
+                            "$ref": "#/definitions/domain.GrpcError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/domain.GrpcError"
                         }
                     }
                 }
@@ -436,45 +501,7 @@ var doc = `{
                 }
             }
         },
-        "entity.AdminUser": {
-            "type": "object",
-            "required": [
-                "email"
-            ],
-            "properties": {
-                "createdAt": {
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string"
-                },
-                "firstName": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "image": {
-                    "type": "string"
-                },
-                "lastName": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string"
-                },
-                "phone": {
-                    "type": "string"
-                },
-                "sudirUserId": {
-                    "type": "string"
-                },
-                "updatedAt": {
-                    "type": "string"
-                }
-            }
-        },
-        "structure.AdminUserShort": {
+        "domain.AdminUserShort": {
             "type": "object",
             "required": [
                 "email"
@@ -486,18 +513,15 @@ var doc = `{
                 "firstName": {
                     "type": "string"
                 },
-                "image": {
-                    "type": "string"
-                },
                 "lastName": {
                     "type": "string"
                 },
-                "phone": {
+                "role": {
                     "type": "string"
                 }
             }
         },
-        "structure.Auth": {
+        "domain.Auth": {
             "type": "object",
             "properties": {
                 "expired": {
@@ -511,7 +535,7 @@ var doc = `{
                 }
             }
         },
-        "structure.AuthRequest": {
+        "domain.AuthRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -526,7 +550,31 @@ var doc = `{
                 }
             }
         },
-        "structure.DeleteResponse": {
+        "domain.CreateUserRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "firstName": {
+                    "type": "string"
+                },
+                "lastName": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "roleId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "domain.DeleteResponse": {
             "type": "object",
             "properties": {
                 "deleted": {
@@ -534,7 +582,7 @@ var doc = `{
                 }
             }
         },
-        "structure.GrpcError": {
+        "domain.GrpcError": {
             "type": "object",
             "properties": {
                 "details": {
@@ -551,8 +599,11 @@ var doc = `{
                 }
             }
         },
-        "structure.IdentitiesRequest": {
+        "domain.IdentitiesRequest": {
             "type": "object",
+            "required": [
+                "ids"
+            ],
             "properties": {
                 "ids": {
                     "type": "array",
@@ -562,7 +613,7 @@ var doc = `{
                 }
             }
         },
-        "structure.SudirAuthRequest": {
+        "domain.SudirAuthRequest": {
             "type": "object",
             "required": [
                 "authCode"
@@ -573,7 +624,65 @@ var doc = `{
                 }
             }
         },
-        "structure.UsersRequest": {
+        "domain.UpdateUserRequest": {
+            "type": "object",
+            "required": [
+                "id"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "firstName": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "lastName": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "roleId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "domain.User": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "role_id": {
+                    "type": "integer"
+                },
+                "sudir_user_id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.UsersRequest": {
             "type": "object",
             "properties": {
                 "email": {
@@ -590,19 +699,16 @@ var doc = `{
                 },
                 "offset": {
                     "type": "integer"
-                },
-                "phone": {
-                    "type": "string"
                 }
             }
         },
-        "structure.UsersResponse": {
+        "domain.UsersResponse": {
             "type": "object",
             "properties": {
                 "items": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/entity.AdminUser"
+                        "$ref": "#/definitions/domain.User"
                     }
                 }
             }
