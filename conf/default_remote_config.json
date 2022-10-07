@@ -1,12 +1,11 @@
 {
   "database": {
-    "database": "name",
-    "password": "password",
-    "username": "name",
-    "createSchema": true,
-    "port": "5432",
+    "host": "{{ msp_pgsql_address }}",
+    "port": 5432,
     "schema": "msp_admin_service",
-    "address": "127.0.0.1"
+    "database": "{{ msp_pgsql_name }}",
+    "username": "{{ msp_pgsql_user }}",
+    "password": "{{ msp_pgsql_password }}"
   },
   "logLevel": "debug",
   "secretKey": "secret"
