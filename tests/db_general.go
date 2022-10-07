@@ -34,3 +34,14 @@ func InsertSudirUser(db *dbt.TestDb, user entity.SudirUser) (int64, error) {
 	db.Must().SelectRow(&id, q, args...)
 	return id, nil
 }
+
+func SelectTokenEntityByToken(db *dbt.TestDb, token string) entity.Token {
+	tokenInfo := entity.Token{}
+	db.Must().SelectRow(&tokenInfo,
+		`SELECT token, user_id, status, expired_at, created_at, updated_at
+					FROM tokens
+					WHERE token = $1;`,
+		token,
+	)
+	return tokenInfo
+}

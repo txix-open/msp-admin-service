@@ -17,7 +17,7 @@ type userRepository interface {
 }
 
 type tokenService interface {
-	GenerateToken(id int64) (string, string, error)
+	GenerateToken(ctx context.Context, id int64) (string, string, error)
 }
 
 type sudirService interface {
@@ -56,7 +56,7 @@ func (a Auth) Login(ctx context.Context, request domain.LoginRequest) (*domain.L
 		return nil, errors.WithMessage(domain.ErrUnauthenticated, "wrong password")
 	}
 
-	tokenString, expired, err := a.tokenService.GenerateToken(user.Id)
+	tokenString, expired, err := a.tokenService.GenerateToken(ctx, user.Id)
 	if err != nil {
 		return nil, errors.WithMessage(err, "generate token")
 	}
@@ -97,7 +97,7 @@ func (a Auth) LoginWithSudir(ctx context.Context, request domain.LoginSudirReque
 		return nil, errors.WithMessage(err, "get user")
 	}
 
-	tokenString, expired, err := a.tokenService.GenerateToken(user.Id)
+	tokenString, expired, err := a.tokenService.GenerateToken(ctx, user.Id)
 	if err != nil {
 		return nil, errors.WithMessage(err, "generate token")
 	}

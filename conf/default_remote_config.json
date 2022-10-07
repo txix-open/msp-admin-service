@@ -8,5 +8,6 @@
     "password": "{{ msp_pgsql_password }}"
   },
   "logLevel": "debug",
-  "secretKey": "secret"
+  "secretKey": "secret",
+  "expireSec": 3600
 }

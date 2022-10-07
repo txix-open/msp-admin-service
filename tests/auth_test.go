@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/integration-system/isp-kit/dbx"
 	"github.com/integration-system/isp-kit/grpc/client"
 	"github.com/integration-system/isp-kit/http/httpcli"
@@ -51,7 +50,7 @@ func (s *AuthTestSuite) SetupTest() {
 			RedirectURI:  "http://localhost",
 		},
 		SecretKey: "admin",
-		ExpireSec: 0,
+		ExpireSec: 3600,
 	}
 
 	locator := assembly.NewLocator(testInstance.Logger(), s.httpCli, s.db)
@@ -64,11 +63,6 @@ func (s *AuthTestSuite) SetupTest() {
 		server.Shutdown()
 		mocksrv.Close()
 	})
-}
-
-type customClaims struct {
-	Id int64
-	jwt.StandardClaims
 }
 
 func (s *AuthTestSuite) TestLoginHappyPath() {
@@ -89,10 +83,9 @@ func (s *AuthTestSuite) TestLoginHappyPath() {
 		ReadJsonResponse(&response).
 		Do(context.Background())
 	s.Require().NoError(err)
-	claims := customClaims{Id: id}
-	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte("admin"))
-	s.Require().NoError(err)
-	s.Require().Equal(token, response.Token)
+
+	tokenInfo := SelectTokenEntityByToken(s.db, response.Token)
+	s.Require().Equal(tokenInfo.UserId, id)
 }
 
 func (s *AuthTestSuite) TestLoginNotFound() {
@@ -144,10 +137,8 @@ func (s *AuthTestSuite) TestSudirLoginHappyPath() {
 	s.Require().Equal(1, user.RoleId)
 	s.Require().Equal("sudir@email.ru", user.Email)
 
-	claims := customClaims{Id: user.Id}
-	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte("admin"))
-	s.Require().NoError(err)
-	s.Require().Equal(token, response.Token)
+	tokenInfo := SelectTokenEntityByToken(s.db, response.Token)
+	s.Require().Equal(tokenInfo.UserId, user.Id)
 }
 
 func (s *AuthTestSuite) initMockSudir() (*httptest.Server, string) {
