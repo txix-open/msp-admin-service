@@ -11,4 +11,6 @@ var (
 	ErrSudirAuthIsMissed  = errors.New("SUDIR authorization is not configured on the server")
 	ErrInvalid            = errors.New("entity is invalid")
 	ErrAlreadyExists      = errors.New("already exists")
+	ErrTokenExpired       = errors.New("token expired")
+	ErrTokenNotFound      = errors.New("token not found")
 )
