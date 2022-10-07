@@ -45,3 +45,14 @@ func SelectTokenEntityByToken(db *dbt.TestDb, token string) entity.Token {
 	)
 	return tokenInfo
 }
+
+func InsertTokenEntity(db *dbt.TestDb, token entity.Token) {
+	db.Must().ExecNamed(
+		`
+	INSERT INTO tokens
+		(token, user_id, status, expired_at, created_at, updated_at)
+		VALUES (:token, :user_id, :status, :expired_at, :created_at, :updated_at)
+	`,
+		token,
+	)
+}
