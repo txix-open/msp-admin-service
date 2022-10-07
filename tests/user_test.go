@@ -71,11 +71,10 @@ func (s *UserTestSuite) TestGetProfileHappyPath() {
 	token, _, err := s.tokenService.GenerateToken(id)
 	s.Require().NoError(err)
 
-	md := map[string][]string{domain.AdminAuthHeaderName: {token}}
 	response := domain.AdminUserShort{}
 	err = s.grpcCli.Invoke("admin/user/get_profile").
-		JsonRequestBody(md).
 		ReadJsonResponse(&response).
+		AppendMetadata(domain.AdminAuthHeaderName, token).
 		Do(context.Background())
 	s.Require().NoError(err)
 	expected := domain.AdminUserShort{
@@ -98,9 +97,8 @@ func (s *UserTestSuite) TestGetProfileUnauthorized() {
 	token, _, err := s.tokenService.GenerateToken(id + 1)
 	s.Require().NoError(err)
 
-	md := map[string][]string{domain.AdminAuthHeaderName: {token}}
 	err = s.grpcCli.Invoke("admin/user/get_profile").
-		JsonRequestBody(md).
+		AppendMetadata(domain.AdminAuthHeaderName, token).
 		Do(context.Background())
 	s.Require().Error(err)
 	st, ok := status.FromError(err)
@@ -121,10 +119,9 @@ func (s *UserTestSuite) TestGetProfileSudir() {
 	token, _, err := s.tokenService.GenerateToken(id)
 	s.Require().NoError(err)
 
-	md := map[string][]string{domain.AdminAuthHeaderName: {token}}
 	response := domain.AdminUserShort{}
 	err = s.grpcCli.Invoke("admin/user/get_profile").
-		JsonRequestBody(md).
+		AppendMetadata(domain.AdminAuthHeaderName, token).
 		ReadJsonResponse(&response).
 		Do(context.Background())
 	s.Require().NoError(err)
