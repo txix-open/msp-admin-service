@@ -7,7 +7,11 @@ grpcOuterAddress:
 grpcInnerAddress:
   ip: 0.0.0.0
   port: 9007
-webSocketAddress:
-  ip: 0.0.0.0
-  port: 9100
-moduleName: admin
+moduleName: msp-admin-service
+infraServerPort: 9557
+
+logfile:
+  path: /var/log/msp-admin-service/runtime.log
+  maxSizeMb: 512
+  maxBackups: 4
+  compress: true

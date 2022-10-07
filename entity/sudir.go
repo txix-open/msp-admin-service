@@ -1,6 +1,19 @@
-package sudir
+package entity
 
-type UserResponse struct {
+import (
+	"fmt"
+)
+
+type SudirAuthError struct {
+	ErrorName        string `json:"error"`
+	ErrorDescription string `json:"error_description"`
+}
+
+func (s *SudirAuthError) Error() string {
+	return fmt.Sprintf("error: %s; description: %s", s.ErrorName, s.ErrorDescription)
+}
+
+type SudirUserResponse struct {
 	*SudirAuthError
 
 	Email      string   `json:"email"`
@@ -10,7 +23,7 @@ type UserResponse struct {
 	FamilyName string   `json:"family_name"`
 }
 
-type TokenResponse struct {
+type SudirTokenResponse struct {
 	*SudirAuthError
 
 	IdToken      string `json:"id_token"`
