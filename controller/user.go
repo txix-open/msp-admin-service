@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 
+	"github.com/integration-system/isp-kit/grpc"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -40,13 +41,13 @@ func NewUser(userService userService) User {
 // @Failure 401 {object} domain.GrpcError "Токен не соответствует ни одному пользователю"
 // @Failure 500 {object} domain.GrpcError
 // @Router /user/get_profile [POST]
-func (u User) GetProfile(ctx context.Context, metadata metadata.MD) (*domain.AdminUserShort, error) {
-	token := metadata.Get(domain.AdminAuthHeaderName)
-	if len(token) == 0 {
+func (u User) GetProfile(ctx context.Context, authData grpc.AuthData) (*domain.AdminUserShort, error) {
+	token, err := grpc.StringFromMd(domain.AdminAuthHeaderName, metadata.MD(authData))
+	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "Невалидный токен")
 	}
 
-	profile, err := u.userService.GetProfileByToken(ctx, token[0])
+	profile, err := u.userService.GetProfileByToken(ctx, token)
 
 	switch {
 	case errors.Is(err, domain.ErrUnauthenticated):

@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/Masterminds/squirrel v1.5.3
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	github.com/integration-system/isp-kit v1.12.0
+	github.com/integration-system/isp-kit v1.12.1
 	github.com/integration-system/isp-lib/v2 v2.8.7
 	github.com/integration-system/jsonschema v1.0.1
 	github.com/pkg/errors v0.9.1
