@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/integration-system/isp-kit/dbx"
 	"github.com/integration-system/isp-kit/grpc/client"
@@ -169,4 +170,45 @@ func (s *AuthTestSuite) initMockSudir() (*httptest.Server, string) {
 	})
 	srv := httptest.NewServer(mux)
 	return srv, srv.URL
+}
+
+func (s *AuthTestSuite) Test_Logout_HappyPath() {
+	InsertTokenEntity(s.db, entity.Token{
+		Token:     "token-841297641213",
+		UserId:    841297641213,
+		Status:    entity.TokenStatusAllowed,
+		CreatedAt: time.Time{},
+		ExpiredAt: time.Time{},
+	})
+	err := s.grpcCli.Invoke("admin/auth/logout").
+		AppendMetadata(domain.AdminAuthIdHeader, "841297641213").
+		Do(context.Background())
+	s.Require().NoError(err)
+
+	tokenInfo := SelectTokenEntityByToken(s.db, "token-841297641213")
+	s.Require().Equal(entity.TokenStatusRevoked, tokenInfo.Status)
+}
+
+func (s *AuthTestSuite) Test_Logout_NotFound() {
+	err := s.grpcCli.Invoke("admin/auth/logout").
+		AppendMetadata(domain.AdminAuthIdHeader, "0143218411981").
+		Do(context.Background())
+	s.Require().NoError(err)
+}
+
+func (s *AuthTestSuite) Test_Logout_AlreadyRevoke() {
+	InsertTokenEntity(s.db, entity.Token{
+		Token:     "token-148623719462",
+		UserId:    148623719462,
+		Status:    entity.TokenStatusRevoked,
+		CreatedAt: time.Time{},
+		ExpiredAt: time.Time{},
+	})
+	err := s.grpcCli.Invoke("admin/auth/logout").
+		AppendMetadata(domain.AdminAuthIdHeader, "148623719462").
+		Do(context.Background())
+	s.Require().NoError(err)
+
+	tokenInfo := SelectTokenEntityByToken(s.db, "token-148623719462")
+	s.Require().Equal(entity.TokenStatusRevoked, tokenInfo.Status)
 }
