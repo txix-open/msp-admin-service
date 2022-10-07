@@ -80,9 +80,9 @@ func (s *AuthTestSuite) TestLoginHappyPath() {
 		Password:  "password",
 	})
 
-	response := domain.Auth{}
+	response := domain.LoginResponse{}
 	err := s.grpcCli.Invoke("admin/auth/login").
-		JsonRequestBody(domain.AuthRequest{
+		JsonRequestBody(domain.LoginRequest{
 			Email:    "a@a.ru",
 			Password: "password",
 		}).
@@ -97,7 +97,7 @@ func (s *AuthTestSuite) TestLoginHappyPath() {
 
 func (s *AuthTestSuite) TestLoginNotFound() {
 	err := s.grpcCli.Invoke("admin/auth/login").
-		JsonRequestBody(domain.AuthRequest{
+		JsonRequestBody(domain.LoginRequest{
 			Email:    "a1@a.ru",
 			Password: "password",
 		}).
@@ -118,7 +118,7 @@ func (s *AuthTestSuite) TestLoginWrongPassword() {
 	})
 
 	err := s.grpcCli.Invoke("admin/auth/login").
-		JsonRequestBody(domain.AuthRequest{
+		JsonRequestBody(domain.LoginRequest{
 			Email:    "a@a.ru",
 			Password: "WrongPassword",
 		}).
@@ -130,10 +130,10 @@ func (s *AuthTestSuite) TestLoginWrongPassword() {
 }
 
 func (s *AuthTestSuite) TestSudirLoginHappyPath() {
-	response := domain.Auth{}
+	response := domain.LoginResponse{}
 
 	err := s.grpcCli.Invoke("admin/auth/login_with_sudir").
-		JsonRequestBody(domain.SudirAuthRequest{
+		JsonRequestBody(domain.LoginSudirRequest{
 			AuthCode: "code",
 		}).
 		ReadJsonResponse(&response).

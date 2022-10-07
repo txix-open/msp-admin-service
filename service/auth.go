@@ -40,8 +40,8 @@ func NewAuth(userRepository userRepository, tokenService tokenService, sudirServ
 	}
 }
 
-func (a Auth) Login(ctx context.Context, authRequest domain.AuthRequest) (*domain.Auth, error) {
-	user, err := a.userRepository.GetUserByEmail(ctx, authRequest.Email)
+func (a Auth) Login(ctx context.Context, request domain.LoginRequest) (*domain.LoginResponse, error) {
+	user, err := a.userRepository.GetUserByEmail(ctx, request.Email)
 	switch {
 	case errors.Is(err, domain.ErrNotFound):
 		return nil, errors.WithMessage(domain.ErrUnauthenticated, "wrong email")
@@ -51,7 +51,7 @@ func (a Auth) Login(ctx context.Context, authRequest domain.AuthRequest) (*domai
 		return nil, domain.ErrSudirAuthorization
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(authRequest.Password))
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(request.Password))
 	if err != nil {
 		return nil, errors.WithMessage(domain.ErrUnauthenticated, "wrong password")
 	}
@@ -61,14 +61,14 @@ func (a Auth) Login(ctx context.Context, authRequest domain.AuthRequest) (*domai
 		return nil, errors.WithMessage(err, "generate token")
 	}
 
-	return &domain.Auth{
+	return &domain.LoginResponse{
 		Token:      tokenString,
 		Expired:    expired,
 		HeaderName: domain.AdminAuthHeaderName,
 	}, nil
 }
 
-func (a Auth) LoginWithSudir(ctx context.Context, request domain.SudirAuthRequest) (*domain.Auth, error) {
+func (a Auth) LoginWithSudir(ctx context.Context, request domain.LoginSudirRequest) (*domain.LoginResponse, error) {
 	sudirUser, err := a.sudirService.Authenticate(ctx, request.AuthCode)
 
 	var authErr *entity.SudirAuthError
@@ -102,7 +102,7 @@ func (a Auth) LoginWithSudir(ctx context.Context, request domain.SudirAuthReques
 		return nil, errors.WithMessage(err, "generate token")
 	}
 
-	return &domain.Auth{
+	return &domain.LoginResponse{
 		Token:      tokenString,
 		Expired:    expired,
 		HeaderName: domain.AdminAuthHeaderName,

@@ -2,17 +2,17 @@ package domain
 
 const AdminAuthHeaderName = "x-auth-admin"
 
-type Auth struct {
-	Token      string
-	Expired    string `json:",omitempty"`
-	HeaderName string
-}
-
-type AuthRequest struct {
+type LoginRequest struct {
 	Email    string `valid:"required"`
 	Password string ` valid:"required"`
 }
 
-type SudirAuthRequest struct {
+type LoginSudirRequest struct {
 	AuthCode string `valid:"required"`
+}
+
+type LoginResponse struct {
+	Token      string
+	Expired    string `json:",omitempty"`
+	HeaderName string
 }
