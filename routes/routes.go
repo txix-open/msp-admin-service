@@ -12,6 +12,7 @@ type Controllers struct {
 	Auth          controller.Auth
 	User          controller.User
 	Customization controller.Customization
+	Secure        controller.Secure
 }
 
 func EndpointDescriptors() []cluster.EndpointDescriptor {
@@ -81,6 +82,12 @@ func endpointDescriptors(c Controllers) []cluster.EndpointDescriptor {
 			Inner:            true,
 			UserAuthRequired: false,
 			Handler:          c.User.DeleteUser,
+		},
+		{
+			Path:             "admin/secure/authenticate",
+			Inner:            true,
+			UserAuthRequired: false,
+			Handler:          c.Secure.Authenticate,
 		},
 	}
 }

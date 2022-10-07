@@ -43,6 +43,7 @@ func (l Locator) Handler(cfg conf.Remote) isp.BackendServiceServer {
 	userController := controller.NewUser(userService)
 	customizationController := controller.NewCustomization(cfg.UiDesign)
 	authController := controller.NewAuth(authService, l.logger)
+	secureController := controller.NewSecure(tokenService)
 
 	handler := routes.Handler(
 		endpoint.DefaultWrapper(
@@ -53,6 +54,7 @@ func (l Locator) Handler(cfg conf.Remote) isp.BackendServiceServer {
 			User:          userController,
 			Customization: customizationController,
 			Auth:          authController,
+			Secure:        secureController,
 		},
 	)
 
