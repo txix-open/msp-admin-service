@@ -18,6 +18,7 @@ type userRepository interface {
 
 type tokenService interface {
 	GenerateToken(ctx context.Context, id int64) (string, string, error)
+	RevokeAllByUserId(ctx context.Context, userId int64) error
 }
 
 type sudirService interface {
@@ -107,4 +108,13 @@ func (a Auth) LoginWithSudir(ctx context.Context, request domain.LoginSudirReque
 		Expired:    expired,
 		HeaderName: domain.AdminAuthHeaderName,
 	}, nil
+}
+
+func (a Auth) Logout(ctx context.Context, adminId int64) error {
+	err := a.tokenService.RevokeAllByUserId(ctx, adminId)
+	if err != nil {
+		return errors.WithMessage(err, "revoke all tokens by user id")
+	}
+
+	return nil
 }

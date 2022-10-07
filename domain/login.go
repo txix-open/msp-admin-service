@@ -1,6 +1,9 @@
 package domain
 
-const AdminAuthHeaderName = "x-auth-admin"
+const (
+	AdminAuthHeaderName = "x-auth-admin"
+	AdminAuthIdHeader   = "x-admin-id"
+)
 
 type LoginRequest struct {
 	Email    string `valid:"required"`

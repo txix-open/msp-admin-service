@@ -14,6 +14,7 @@ import (
 type TokenRep interface {
 	Save(ctx context.Context, token entity.Token) error
 	GetEntity(ctx context.Context, token string) (*entity.Token, error)
+	RevokeByUserId(ctx context.Context, userId int64, updatedAt time.Time) error
 }
 
 type Token struct {
@@ -66,4 +67,14 @@ func (s Token) GetUserId(ctx context.Context, token string) (int64, error) {
 	}
 
 	return tokenInfo.UserId, nil
+}
+
+func (s Token) RevokeAllByUserId(ctx context.Context, userId int64) error {
+	updatedAt := time.Now().UTC()
+	err := s.tokenRep.RevokeByUserId(ctx, userId, updatedAt)
+	if err != nil {
+		return errors.WithMessage(err, "set revoked status")
+	}
+
+	return nil
 }

@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/integration-system/isp-kit/db"
 	"github.com/pkg/errors"
@@ -50,4 +51,18 @@ func (r Token) GetEntity(ctx context.Context, token string) (*entity.Token, erro
 	}
 
 	return &result, nil
+}
+
+func (r Token) RevokeByUserId(ctx context.Context, userId int64, updatedAt time.Time) error {
+	q := `
+	UPDATE tokens
+		SET status = $1, updated_at = $2
+		WHERE user_id = $3 AND status = $4;
+	`
+	_, err := r.db.Exec(ctx, q, entity.TokenStatusRevoked, updatedAt, userId, entity.TokenStatusAllowed)
+	if err != nil {
+		return errors.WithMessage(err, "update token status")
+	}
+
+	return nil
 }

@@ -2,10 +2,13 @@ package controller
 
 import (
 	"context"
+	"strconv"
 
+	"github.com/integration-system/isp-kit/grpc"
 	"github.com/integration-system/isp-kit/log"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"msp-admin-service/domain"
 )
@@ -13,6 +16,7 @@ import (
 type authService interface {
 	Login(ctx context.Context, request domain.LoginRequest) (*domain.LoginResponse, error)
 	LoginWithSudir(ctx context.Context, request domain.LoginSudirRequest) (*domain.LoginResponse, error)
+	Logout(ctx context.Context, adminId int64) error
 }
 
 type Auth struct {
@@ -38,7 +42,22 @@ func NewAuth(authService authService, logger log.Logger) Auth {
 // @Failure 400 {object} domain.GrpcError "Невалидный токен"
 // @Failure 500 {object} domain.GrpcError
 // @Router /auth/logout [POST]
-func (a Auth) Logout() error {
+func (a Auth) Logout(ctx context.Context, authData grpc.AuthData) error {
+	token, err := grpc.StringFromMd(domain.AdminAuthIdHeader, metadata.MD(authData))
+	if err != nil {
+		return status.Error(codes.InvalidArgument, "Отсутствует идентификатор")
+	}
+
+	adminId, err := strconv.Atoi(token)
+	if err != nil {
+		return status.Error(codes.InvalidArgument, "Недействительный идентификатор")
+	}
+
+	err = a.authService.Logout(ctx, int64(adminId))
+	if err != nil {
+		return errors.WithMessage(err, "logout")
+	}
+
 	return nil
 }
 
