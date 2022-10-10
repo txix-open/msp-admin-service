@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"strconv"
 	"testing"
 
 	"github.com/integration-system/isp-kit/dbx"
@@ -69,13 +70,11 @@ func (s *UserTestSuite) TestGetProfileHappyPath() {
 		Email:     "a@a.ru",
 		Password:  "password",
 	})
-	token, _, err := s.tokenService.GenerateToken(context.Background(), id)
-	s.Require().NoError(err)
 
 	response := domain.AdminUserShort{}
-	err = s.grpcCli.Invoke("admin/user/get_profile").
+	err := s.grpcCli.Invoke("admin/user/get_profile").
 		ReadJsonResponse(&response).
-		AppendMetadata(domain.AdminAuthHeaderName, token).
+		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(id))).
 		Do(context.Background())
 	s.Require().NoError(err)
 	expected := domain.AdminUserShort{
@@ -87,7 +86,7 @@ func (s *UserTestSuite) TestGetProfileHappyPath() {
 	s.Require().Equal(expected, response)
 }
 
-func (s *UserTestSuite) TestGetProfileUnauthorized() {
+func (s *UserTestSuite) TestGetProfileNotFound() {
 	id := InsertUser(s.db, entity.CreateUser{
 		RoleId:    1,
 		FirstName: "name",
@@ -95,16 +94,14 @@ func (s *UserTestSuite) TestGetProfileUnauthorized() {
 		Email:     "a@a.ru",
 		Password:  "password",
 	})
-	token, _, err := s.tokenService.GenerateToken(context.Background(), id+1)
-	s.Require().NoError(err)
 
-	err = s.grpcCli.Invoke("admin/user/get_profile").
-		AppendMetadata(domain.AdminAuthHeaderName, token).
+	err := s.grpcCli.Invoke("admin/user/get_profile").
+		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(id+1))).
 		Do(context.Background())
 	s.Require().Error(err)
 	st, ok := status.FromError(err)
 	s.Require().True(ok)
-	s.Require().Equal(codes.Unauthenticated, st.Code())
+	s.Require().Equal(codes.NotFound, st.Code())
 }
 
 func (s *UserTestSuite) TestGetProfileSudir() {
@@ -117,12 +114,9 @@ func (s *UserTestSuite) TestGetProfileSudir() {
 	})
 	s.Require().NoError(err)
 
-	token, _, err := s.tokenService.GenerateToken(context.Background(), id)
-	s.Require().NoError(err)
-
 	response := domain.AdminUserShort{}
 	err = s.grpcCli.Invoke("admin/user/get_profile").
-		AppendMetadata(domain.AdminAuthHeaderName, token).
+		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(id))).
 		ReadJsonResponse(&response).
 		Do(context.Background())
 	s.Require().NoError(err)

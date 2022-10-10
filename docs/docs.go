@@ -402,8 +402,8 @@ var doc = `{
                             "$ref": "#/definitions/domain.GrpcError"
                         }
                     },
-                    "401": {
-                        "description": "Токен не соответствует ни одному пользователю",
+                    "404": {
+                        "description": "Пользователя не существует",
                         "schema": {
                             "$ref": "#/definitions/domain.GrpcError"
                         }

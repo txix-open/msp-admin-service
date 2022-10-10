@@ -37,7 +37,7 @@ func (l Locator) Handler(cfg conf.Remote) isp.BackendServiceServer {
 
 	tokenService := service.NewToken(tokenRepo, cfg.ExpireSec)
 	sudirService := service.NewSudir(cfg.SudirAuth, sudirRepo, roleRepo)
-	userService := service.NewUser(tokenService, userRepo, roleRepo, l.logger)
+	userService := service.NewUser(userRepo, roleRepo, l.logger)
 	authService := service.NewAuth(userRepo, tokenService, sudirService, l.logger)
 
 	userController := controller.NewUser(userService)

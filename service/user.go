@@ -10,10 +10,6 @@ import (
 	"msp-admin-service/entity"
 )
 
-type userTokenService interface {
-	GetUserId(ctx context.Context, token string) (int64, error)
-}
-
 type userRepo interface {
 	GetUserById(ctx context.Context, identity int64) (*entity.User, error)
 	GetUsers(ctx context.Context, ids []int64, offset, limit int, email string) ([]entity.User, error)
@@ -28,38 +24,23 @@ type userRoleRepo interface {
 }
 
 type User struct {
-	userTokenService userTokenService
-	userRepo         userRepo
-	userRoleRepo     userRoleRepo
-	logger           log.Logger
+	userRepo     userRepo
+	userRoleRepo userRoleRepo
+	logger       log.Logger
 }
 
-func NewUser(userTokenService userTokenService, userRepo userRepo, userRoleRepo userRoleRepo, logger log.Logger) User {
+func NewUser(userRepo userRepo, userRoleRepo userRoleRepo, logger log.Logger) User {
 	return User{
-		userTokenService: userTokenService,
-		userRepo:         userRepo,
-		userRoleRepo:     userRoleRepo,
-		logger:           logger,
+		userRepo:     userRepo,
+		userRoleRepo: userRoleRepo,
+		logger:       logger,
 	}
 }
 
-func (u User) GetProfileByToken(ctx context.Context, token string) (*domain.AdminUserShort, error) {
-	userId, err := u.userTokenService.GetUserId(ctx, token)
-	if err != nil {
-		if errors.Is(err, domain.ErrTokenExpired) ||
-			errors.Is(err, domain.ErrTokenNotFound) {
-			u.logger.Error(ctx, "get user id by token error", log.String("cause", err.Error()))
-			return nil, domain.ErrUnauthenticated
-		}
-		return nil, errors.WithMessage(err, "get user id by token")
-	}
-
+func (u User) GetProfileById(ctx context.Context, userId int64) (*domain.AdminUserShort, error) {
 	user, err := u.userRepo.GetUserById(ctx, userId)
-	switch {
-	case errors.Is(err, domain.ErrNotFound):
-		return nil, domain.ErrUnauthenticated
-	case err != nil:
-		return nil, errors.WithMessage(err, "get user by id")
+	if err != nil {
+		return nil, errors.WithMessagef(err, "get user by id: %d", userId)
 	}
 
 	role, err := u.userRoleRepo.GetRoleById(ctx, user.RoleId)
