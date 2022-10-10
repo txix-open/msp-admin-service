@@ -6,7 +6,6 @@ import (
 	"github.com/integration-system/isp-kit/log"
 	"msp-admin-service/conf"
 	"msp-admin-service/controller"
-	"msp-admin-service/middleware"
 	"msp-admin-service/repository"
 	"msp-admin-service/service"
 
@@ -46,10 +45,7 @@ func (l Locator) Handler(cfg conf.Remote) isp.BackendServiceServer {
 	secureController := controller.NewSecure(tokenService)
 
 	handler := routes.Handler(
-		endpoint.DefaultWrapper(
-			l.logger,
-			middleware.ErrorHandler(l.logger),
-		),
+		endpoint.DefaultWrapper(l.logger),
 		routes.Controllers{
 			User:          userController,
 			Customization: customizationController,
