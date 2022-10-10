@@ -1,61 +1,80 @@
 package service
 
 import (
+	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/pkg/errors"
+	"msp-admin-service/domain"
+	"msp-admin-service/entity"
 )
 
-type customClaims struct {
-	Id int64
-	jwt.StandardClaims
+type TokenRep interface {
+	Save(ctx context.Context, token entity.Token) error
+	GetEntity(ctx context.Context, token string) (*entity.Token, error)
+	RevokeByUserId(ctx context.Context, userId int64, updatedAt time.Time) error
 }
 
 type Token struct {
-	ttl       time.Duration
-	secretKey string
+	tokenRep TokenRep
+	lifeTime time.Duration
 }
 
-func NewToken(ttl time.Duration, secretKey string) Token {
+func NewToken(tokenRep TokenRep, lifeTimeInSec int) Token {
 	return Token{
-		ttl:       ttl,
-		secretKey: secretKey,
+		lifeTime: time.Second * time.Duration(lifeTimeInSec),
+		tokenRep: tokenRep,
 	}
 }
 
-func (t Token) GenerateToken(id int64) (string, string, error) {
-	expired := ""
-	claims := customClaims{Id: id}
-
-	if t.ttl != 0 {
-		exp := time.Now().Add(t.ttl)
-		expired = exp.String()
-		claims.ExpiresAt = exp.Unix()
-	}
-
-	tokenString, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(t.secretKey))
+func (s Token) GenerateToken(ctx context.Context, id int64) (string, string, error) {
+	cryptoRand := make([]byte, 128) //nolint:gomnd
+	_, err := rand.Read(cryptoRand)
 	if err != nil {
-		return "", "", errors.WithMessage(err, "generate jwt with claims")
+		return "", "", errors.WithMessage(err, "crypto/rand read")
 	}
+	random := hex.EncodeToString(cryptoRand)
 
-	return tokenString, expired, nil
-}
+	createdAt := time.Now().UTC()
+	expiredAt := createdAt.Add(s.lifeTime)
 
-func (t Token) GetUserId(token string) (int64, error) {
-	parsed, err := jwt.ParseWithClaims(token, &customClaims{}, func(token *jwt.Token) (i interface{}, e error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.Errorf("Unexpected signing method: %v", token.Header["alg"])
-		}
-		return []byte(t.secretKey), nil
+	err = s.tokenRep.Save(ctx, entity.Token{
+		Token:     random,
+		UserId:    id,
+		Status:    entity.TokenStatusAllowed,
+		ExpiredAt: expiredAt,
+		CreatedAt: createdAt,
+		UpdatedAt: createdAt,
 	})
 	if err != nil {
-		return 0, errors.WithMessage(err, "parse jwt with claims")
+		return "", "", errors.WithMessage(err, "save token")
 	}
 
-	if claims, ok := parsed.Claims.(*customClaims); ok && parsed.Valid {
-		return claims.Id, nil
+	return random, expiredAt.String(), nil
+}
+
+func (s Token) GetUserId(ctx context.Context, token string) (int64, error) {
+	tokenInfo, err := s.tokenRep.GetEntity(ctx, token)
+	if err != nil {
+		return 0, errors.WithMessage(err, "get token entity")
 	}
 
-	return 0, errors.New("token is invalid")
+	if time.Now().UTC().After(tokenInfo.ExpiredAt) ||
+		tokenInfo.Status != entity.TokenStatusAllowed {
+		return 0, domain.ErrTokenExpired
+	}
+
+	return tokenInfo.UserId, nil
+}
+
+func (s Token) RevokeAllByUserId(ctx context.Context, userId int64) error {
+	updatedAt := time.Now().UTC()
+	err := s.tokenRep.RevokeByUserId(ctx, userId, updatedAt)
+	if err != nil {
+		return errors.WithMessage(err, "set revoked status")
+	}
+
+	return nil
 }

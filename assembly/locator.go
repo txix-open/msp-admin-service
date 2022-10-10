@@ -1,8 +1,6 @@
 package assembly
 
 import (
-	"time"
-
 	"github.com/integration-system/isp-kit/db"
 	"github.com/integration-system/isp-kit/http/httpcli"
 	"github.com/integration-system/isp-kit/log"
@@ -35,8 +33,9 @@ func (l Locator) Handler(cfg conf.Remote) isp.BackendServiceServer {
 	sudirRepo := repository.NewSudir(l.httpCli, cfg.SudirAuth)
 	roleRepo := repository.NewRole(l.db)
 	userRepo := repository.NewUser(l.db)
+	tokenRepo := repository.NewToken(l.db)
 
-	tokenService := service.NewToken(time.Second*time.Duration(cfg.ExpireSec), cfg.SecretKey)
+	tokenService := service.NewToken(tokenRepo, cfg.ExpireSec)
 	sudirService := service.NewSudir(cfg.SudirAuth, sudirRepo, roleRepo)
 	userService := service.NewUser(tokenService, userRepo, roleRepo, l.logger)
 	authService := service.NewAuth(userRepo, tokenService, sudirService, l.logger)
@@ -44,6 +43,7 @@ func (l Locator) Handler(cfg conf.Remote) isp.BackendServiceServer {
 	userController := controller.NewUser(userService)
 	customizationController := controller.NewCustomization(cfg.UiDesign)
 	authController := controller.NewAuth(authService, l.logger)
+	secureController := controller.NewSecure(tokenService)
 
 	handler := routes.Handler(
 		endpoint.DefaultWrapper(
@@ -54,6 +54,7 @@ func (l Locator) Handler(cfg conf.Remote) isp.BackendServiceServer {
 			User:          userController,
 			Customization: customizationController,
 			Auth:          authController,
+			Secure:        secureController,
 		},
 	)
 

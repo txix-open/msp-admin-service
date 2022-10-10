@@ -11,7 +11,7 @@ import (
 )
 
 type userTokenService interface {
-	GetUserId(token string) (int64, error)
+	GetUserId(ctx context.Context, token string) (int64, error)
 }
 
 type userRepo interface {
@@ -44,10 +44,14 @@ func NewUser(userTokenService userTokenService, userRepo userRepo, userRoleRepo 
 }
 
 func (u User) GetProfileByToken(ctx context.Context, token string) (*domain.AdminUserShort, error) {
-	userId, err := u.userTokenService.GetUserId(token)
+	userId, err := u.userTokenService.GetUserId(ctx, token)
 	if err != nil {
-		u.logger.Error(ctx, "get user id by token error", log.String("cause", err.Error()))
-		return nil, domain.ErrUnauthenticated
+		if errors.Is(err, domain.ErrTokenExpired) ||
+			errors.Is(err, domain.ErrTokenNotFound) {
+			u.logger.Error(ctx, "get user id by token error", log.String("cause", err.Error()))
+			return nil, domain.ErrUnauthenticated
+		}
+		return nil, errors.WithMessage(err, "get user id by token")
 	}
 
 	user, err := u.userRepo.GetUserById(ctx, userId)

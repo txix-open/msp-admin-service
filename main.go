@@ -19,7 +19,7 @@ var version = "1.0.0"
 // @host localhost:9000
 // @BasePath /api/admin
 
-//go:generate swag init --parseDependency
+//go:generate swag init
 //go:generate rm -f docs/swagger.json
 
 func main() {

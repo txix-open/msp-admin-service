@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/integration-system/isp-kit/dbx"
 	"github.com/integration-system/isp-kit/grpc/client"
 	"github.com/integration-system/isp-kit/http/httpcli"
@@ -50,8 +50,7 @@ func (s *AuthTestSuite) SetupTest() {
 			Host:         host,
 			RedirectURI:  "http://localhost",
 		},
-		SecretKey: "admin",
-		ExpireSec: 0,
+		ExpireSec: 3600,
 	}
 
 	locator := assembly.NewLocator(testInstance.Logger(), s.httpCli, s.db)
@@ -66,11 +65,6 @@ func (s *AuthTestSuite) SetupTest() {
 	})
 }
 
-type customClaims struct {
-	Id int64
-	jwt.StandardClaims
-}
-
 func (s *AuthTestSuite) TestLoginHappyPath() {
 	id := InsertUser(s.db, entity.CreateUser{
 		RoleId:    1,
@@ -80,24 +74,23 @@ func (s *AuthTestSuite) TestLoginHappyPath() {
 		Password:  "password",
 	})
 
-	response := domain.Auth{}
+	response := domain.LoginResponse{}
 	err := s.grpcCli.Invoke("admin/auth/login").
-		JsonRequestBody(domain.AuthRequest{
+		JsonRequestBody(domain.LoginRequest{
 			Email:    "a@a.ru",
 			Password: "password",
 		}).
 		ReadJsonResponse(&response).
 		Do(context.Background())
 	s.Require().NoError(err)
-	claims := customClaims{Id: id}
-	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte("admin"))
-	s.Require().NoError(err)
-	s.Require().Equal(token, response.Token)
+
+	tokenInfo := SelectTokenEntityByToken(s.db, response.Token)
+	s.Require().Equal(tokenInfo.UserId, id)
 }
 
 func (s *AuthTestSuite) TestLoginNotFound() {
 	err := s.grpcCli.Invoke("admin/auth/login").
-		JsonRequestBody(domain.AuthRequest{
+		JsonRequestBody(domain.LoginRequest{
 			Email:    "a1@a.ru",
 			Password: "password",
 		}).
@@ -118,7 +111,7 @@ func (s *AuthTestSuite) TestLoginWrongPassword() {
 	})
 
 	err := s.grpcCli.Invoke("admin/auth/login").
-		JsonRequestBody(domain.AuthRequest{
+		JsonRequestBody(domain.LoginRequest{
 			Email:    "a@a.ru",
 			Password: "WrongPassword",
 		}).
@@ -130,10 +123,10 @@ func (s *AuthTestSuite) TestLoginWrongPassword() {
 }
 
 func (s *AuthTestSuite) TestSudirLoginHappyPath() {
-	response := domain.Auth{}
+	response := domain.LoginResponse{}
 
 	err := s.grpcCli.Invoke("admin/auth/login_with_sudir").
-		JsonRequestBody(domain.SudirAuthRequest{
+		JsonRequestBody(domain.LoginSudirRequest{
 			AuthCode: "code",
 		}).
 		ReadJsonResponse(&response).
@@ -144,10 +137,8 @@ func (s *AuthTestSuite) TestSudirLoginHappyPath() {
 	s.Require().Equal(1, user.RoleId)
 	s.Require().Equal("sudir@email.ru", user.Email)
 
-	claims := customClaims{Id: user.Id}
-	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte("admin"))
-	s.Require().NoError(err)
-	s.Require().Equal(token, response.Token)
+	tokenInfo := SelectTokenEntityByToken(s.db, response.Token)
+	s.Require().Equal(tokenInfo.UserId, user.Id)
 }
 
 func (s *AuthTestSuite) initMockSudir() (*httptest.Server, string) {
@@ -179,4 +170,45 @@ func (s *AuthTestSuite) initMockSudir() (*httptest.Server, string) {
 	})
 	srv := httptest.NewServer(mux)
 	return srv, srv.URL
+}
+
+func (s *AuthTestSuite) Test_Logout_HappyPath() {
+	InsertTokenEntity(s.db, entity.Token{
+		Token:     "token-841297641213",
+		UserId:    841297641213,
+		Status:    entity.TokenStatusAllowed,
+		CreatedAt: time.Time{},
+		ExpiredAt: time.Time{},
+	})
+	err := s.grpcCli.Invoke("admin/auth/logout").
+		AppendMetadata(domain.AdminAuthIdHeader, "841297641213").
+		Do(context.Background())
+	s.Require().NoError(err)
+
+	tokenInfo := SelectTokenEntityByToken(s.db, "token-841297641213")
+	s.Require().Equal(entity.TokenStatusRevoked, tokenInfo.Status)
+}
+
+func (s *AuthTestSuite) Test_Logout_NotFound() {
+	err := s.grpcCli.Invoke("admin/auth/logout").
+		AppendMetadata(domain.AdminAuthIdHeader, "0143218411981").
+		Do(context.Background())
+	s.Require().NoError(err)
+}
+
+func (s *AuthTestSuite) Test_Logout_AlreadyRevoke() {
+	InsertTokenEntity(s.db, entity.Token{
+		Token:     "token-148623719462",
+		UserId:    148623719462,
+		Status:    entity.TokenStatusRevoked,
+		CreatedAt: time.Time{},
+		ExpiredAt: time.Time{},
+	})
+	err := s.grpcCli.Invoke("admin/auth/logout").
+		AppendMetadata(domain.AdminAuthIdHeader, "148623719462").
+		Do(context.Background())
+	s.Require().NoError(err)
+
+	tokenInfo := SelectTokenEntityByToken(s.db, "token-148623719462")
+	s.Require().Equal(entity.TokenStatusRevoked, tokenInfo.Status)
 }

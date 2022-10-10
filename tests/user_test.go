@@ -17,11 +17,12 @@ import (
 	"msp-admin-service/conf"
 	"msp-admin-service/domain"
 	"msp-admin-service/entity"
+	"msp-admin-service/repository"
 	"msp-admin-service/service"
 )
 
 type tokenService interface {
-	GenerateToken(id int64) (string, string, error)
+	GenerateToken(ctx context.Context, id int64) (string, string, error)
 }
 
 func TestUserTestSuite(t *testing.T) {
@@ -44,7 +45,6 @@ func (s *UserTestSuite) SetupTest() {
 	s.httpCli = httpcli.New()
 
 	cfg := conf.Remote{
-		SecretKey: "secret",
 		ExpireSec: 0,
 	}
 	locator := assembly.NewLocator(testInstance.Logger(), s.httpCli, s.db)
@@ -57,7 +57,8 @@ func (s *UserTestSuite) SetupTest() {
 		server.Shutdown()
 	})
 
-	s.tokenService = service.NewToken(0, "secret")
+	tokenRep := repository.NewToken(s.db)
+	s.tokenService = service.NewToken(tokenRep, 3600)
 }
 
 func (s *UserTestSuite) TestGetProfileHappyPath() {
@@ -68,7 +69,7 @@ func (s *UserTestSuite) TestGetProfileHappyPath() {
 		Email:     "a@a.ru",
 		Password:  "password",
 	})
-	token, _, err := s.tokenService.GenerateToken(id)
+	token, _, err := s.tokenService.GenerateToken(context.Background(), id)
 	s.Require().NoError(err)
 
 	response := domain.AdminUserShort{}
@@ -94,7 +95,7 @@ func (s *UserTestSuite) TestGetProfileUnauthorized() {
 		Email:     "a@a.ru",
 		Password:  "password",
 	})
-	token, _, err := s.tokenService.GenerateToken(id + 1)
+	token, _, err := s.tokenService.GenerateToken(context.Background(), id+1)
 	s.Require().NoError(err)
 
 	err = s.grpcCli.Invoke("admin/user/get_profile").
@@ -116,7 +117,7 @@ func (s *UserTestSuite) TestGetProfileSudir() {
 	})
 	s.Require().NoError(err)
 
-	token, _, err := s.tokenService.GenerateToken(id)
+	token, _, err := s.tokenService.GenerateToken(context.Background(), id)
 	s.Require().NoError(err)
 
 	response := domain.AdminUserShort{}
