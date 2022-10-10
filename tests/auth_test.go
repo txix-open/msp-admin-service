@@ -49,7 +49,6 @@ func (s *AuthTestSuite) SetupTest() {
 			Host:         host,
 			RedirectURI:  "http://localhost",
 		},
-		SecretKey: "admin",
 		ExpireSec: 3600,
 	}
 

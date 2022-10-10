@@ -18,7 +18,6 @@ func init() {
 
 type Remote struct {
 	Database  dbx.Config
-	SecretKey string     `valid:"required~Required" schema:"JWT secret"`
 	ExpireSec int        `valid:"required" schema:"Время жизни токена в секундах,in seconds"`
 	UiDesign  UIDesign   `schema:"Кастомизация интерфейса"`
 	SudirAuth *SudirAuth `schema:"СУДИР авторизация"`

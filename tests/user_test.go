@@ -45,7 +45,6 @@ func (s *UserTestSuite) SetupTest() {
 	s.httpCli = httpcli.New()
 
 	cfg := conf.Remote{
-		SecretKey: "secret",
 		ExpireSec: 0,
 	}
 	locator := assembly.NewLocator(testInstance.Logger(), s.httpCli, s.db)

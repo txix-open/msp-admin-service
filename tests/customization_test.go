@@ -35,7 +35,6 @@ func (s *CustomizationTestSuite) SetupTest() {
 			Name:         "test",
 			PrimaryColor: "#ff4d4f",
 		},
-		SecretKey: "admin",
 		ExpireSec: 0,
 	}
 
