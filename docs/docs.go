@@ -39,7 +39,7 @@ var doc = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/domain.AuthRequest"
+                            "$ref": "#/definitions/domain.LoginRequest"
                         }
                     }
                 ],
@@ -47,7 +47,7 @@ var doc = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/domain.Auth"
+                            "$ref": "#/definitions/domain.LoginResponse"
                         }
                     },
                     "400": {
@@ -91,7 +91,7 @@ var doc = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/domain.SudirAuthRequest"
+                            "$ref": "#/definitions/domain.LoginSudirRequest"
                         }
                     }
                 ],
@@ -99,7 +99,7 @@ var doc = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/domain.Auth"
+                            "$ref": "#/definitions/domain.LoginResponse"
                         }
                     },
                     "401": {
@@ -153,6 +153,53 @@ var doc = `{
                         "description": "Невалидный токен",
                         "schema": {
                             "$ref": "#/definitions/domain.GrpcError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/domain.GrpcError"
+                        }
+                    }
+                }
+            }
+        },
+        "/secure/authenticate": {
+            "post": {
+                "description": "Проверяет токен и возвращает идентификатор администратора",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "secure"
+                ],
+                "summary": "Метод аутентификации токена",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Токен администратора",
+                        "name": "X-AUTH-ADMIN",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Тело запроса",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.SecureAuthRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.SecureAuthResponse"
                         }
                     },
                     "500": {
@@ -521,35 +568,6 @@ var doc = `{
                 }
             }
         },
-        "domain.Auth": {
-            "type": "object",
-            "properties": {
-                "expired": {
-                    "type": "string"
-                },
-                "headerName": {
-                    "type": "string"
-                },
-                "token": {
-                    "type": "string"
-                }
-            }
-        },
-        "domain.AuthRequest": {
-            "type": "object",
-            "required": [
-                "email",
-                "password"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string"
-                }
-            }
-        },
         "domain.CreateUserRequest": {
             "type": "object",
             "required": [
@@ -613,13 +631,64 @@ var doc = `{
                 }
             }
         },
-        "domain.SudirAuthRequest": {
+        "domain.LoginRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.LoginResponse": {
+            "type": "object",
+            "properties": {
+                "expired": {
+                    "type": "string"
+                },
+                "headerName": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.LoginSudirRequest": {
             "type": "object",
             "required": [
                 "authCode"
             ],
             "properties": {
                 "authCode": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.SecureAuthRequest": {
+            "type": "object",
+            "properties": {
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.SecureAuthResponse": {
+            "type": "object",
+            "properties": {
+                "adminId": {
+                    "type": "integer"
+                },
+                "authenticated": {
+                    "type": "boolean"
+                },
+                "errorReason": {
                     "type": "string"
                 }
             }
@@ -653,31 +722,31 @@ var doc = `{
         "domain.User": {
             "type": "object",
             "properties": {
-                "created_at": {
+                "createdAt": {
                     "type": "string"
                 },
                 "email": {
                     "type": "string"
                 },
-                "first_name": {
+                "firstName": {
                     "type": "string"
                 },
                 "id": {
                     "type": "integer"
                 },
-                "last_name": {
+                "lastName": {
                     "type": "string"
                 },
                 "password": {
                     "type": "string"
                 },
-                "role_id": {
+                "roleId": {
                     "type": "integer"
                 },
-                "sudir_user_id": {
+                "sudirUserId": {
                     "type": "string"
                 },
-                "updated_at": {
+                "updatedAt": {
                     "type": "string"
                 }
             }

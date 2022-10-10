@@ -20,25 +20,6 @@ definitions:
     required:
     - email
     type: object
-  domain.Auth:
-    properties:
-      expired:
-        type: string
-      headerName:
-        type: string
-      token:
-        type: string
-    type: object
-  domain.AuthRequest:
-    properties:
-      email:
-        type: string
-      password:
-        type: string
-    required:
-    - email
-    - password
-    type: object
   domain.CreateUserRequest:
     properties:
       email:
@@ -80,12 +61,45 @@ definitions:
     required:
     - ids
     type: object
-  domain.SudirAuthRequest:
+  domain.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  domain.LoginResponse:
+    properties:
+      expired:
+        type: string
+      headerName:
+        type: string
+      token:
+        type: string
+    type: object
+  domain.LoginSudirRequest:
     properties:
       authCode:
         type: string
     required:
     - authCode
+    type: object
+  domain.SecureAuthRequest:
+    properties:
+      token:
+        type: string
+    type: object
+  domain.SecureAuthResponse:
+    properties:
+      adminId:
+        type: integer
+      authenticated:
+        type: boolean
+      errorReason:
+        type: string
     type: object
   domain.UpdateUserRequest:
     properties:
@@ -106,23 +120,23 @@ definitions:
     type: object
   domain.User:
     properties:
-      created_at:
+      createdAt:
         type: string
       email:
         type: string
-      first_name:
+      firstName:
         type: string
       id:
         type: integer
-      last_name:
+      lastName:
         type: string
       password:
         type: string
-      role_id:
+      roleId:
         type: integer
-      sudir_user_id:
+      sudirUserId:
         type: string
-      updated_at:
+      updatedAt:
         type: string
     type: object
   domain.UsersRequest:
@@ -165,14 +179,14 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/domain.AuthRequest'
+          $ref: '#/definitions/domain.LoginRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/domain.Auth'
+            $ref: '#/definitions/domain.LoginResponse'
         "400":
           description: Bad Request
           schema:
@@ -199,14 +213,14 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/domain.SudirAuthRequest'
+          $ref: '#/definitions/domain.LoginSudirRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/domain.Auth'
+            $ref: '#/definitions/domain.LoginResponse'
         "401":
           description: Некорректный код для авторизации
           schema:
@@ -249,6 +263,37 @@ paths:
       summary: Выход из авторизованной сессии
       tags:
       - auth
+  /secure/authenticate:
+    post:
+      consumes:
+      - application/json
+      description: Проверяет токен и возвращает идентификатор администратора
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.SecureAuthRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.SecureAuthResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Метод аутентификации токена
+      tags:
+      - secure
   /user/create_user:
     post:
       consumes:
