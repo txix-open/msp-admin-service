@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/integration-system/isp-kit/grpc"
 	"github.com/pkg/errors"
@@ -12,7 +13,7 @@ import (
 )
 
 type userService interface {
-	GetProfileByToken(ctx context.Context, token string) (*domain.AdminUserShort, error)
+	GetProfileById(ctx context.Context, userId int64) (*domain.AdminUserShort, error)
 	GetUsers(ctx context.Context, identities domain.UsersRequest) (*domain.UsersResponse, error)
 	CreateUser(ctx context.Context, req domain.CreateUserRequest) (*domain.User, error)
 	UpdateUser(ctx context.Context, req domain.UpdateUserRequest) (*domain.User, error)
@@ -38,20 +39,24 @@ func NewUser(userService userService) User {
 // @Param X-AUTH-ADMIN header string true "Токен администратора"
 // @Success 200 {object} domain.AdminUserShort
 // @Failure 400 {object} domain.GrpcError "Невалидный токен"
-// @Failure 401 {object} domain.GrpcError "Токен не соответствует ни одному пользователю"
+// @Failure 404 {object} domain.GrpcError "Пользователя не существует"
 // @Failure 500 {object} domain.GrpcError
 // @Router /user/get_profile [POST]
 func (u User) GetProfile(ctx context.Context, authData grpc.AuthData) (*domain.AdminUserShort, error) {
-	token, err := grpc.StringFromMd(domain.AdminAuthHeaderName, metadata.MD(authData))
+	adminIdInString, err := grpc.StringFromMd(domain.AdminAuthIdHeader, metadata.MD(authData))
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "Невалидный токен")
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+	adminId, err := strconv.Atoi(adminIdInString)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "admin id is not a number")
 	}
 
-	profile, err := u.userService.GetProfileByToken(ctx, token)
+	profile, err := u.userService.GetProfileById(ctx, int64(adminId))
 
 	switch {
-	case errors.Is(err, domain.ErrUnauthenticated):
-		return nil, status.Error(codes.Unauthenticated, "Токен не соответствует ни одному пользователю")
+	case errors.Is(err, domain.ErrNotFound):
+		return nil, status.Error(codes.NotFound, "user not found")
 	case err != nil:
 		return nil, errors.WithMessage(err, "get profile")
 	default:
@@ -98,7 +103,7 @@ func (u User) CreateUser(ctx context.Context, req domain.CreateUserRequest) (*do
 
 	switch {
 	case errors.Is(err, domain.ErrAlreadyExists):
-		return nil, status.Error(codes.AlreadyExists, "Пользователь с указанным email уже существует")
+		return nil, status.Error(codes.AlreadyExists, "user with the same email already exists")
 	case err != nil:
 		return nil, errors.WithMessage(err, "create user")
 	default:
@@ -125,11 +130,11 @@ func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest) (*do
 
 	switch {
 	case errors.Is(err, domain.ErrNotFound):
-		return nil, status.Error(codes.NotFound, "Пользователь с указанным id не существует")
+		return nil, status.Error(codes.NotFound, "user not found")
 	case errors.Is(err, domain.ErrInvalid):
-		return nil, status.Error(codes.InvalidArgument, "Пользователь авторизован через СУДИР, смена пароля для него запрещена")
+		return nil, status.Error(codes.InvalidArgument, "user modification is not available")
 	case errors.Is(err, domain.ErrAlreadyExists):
-		return nil, status.Error(codes.AlreadyExists, "Пользователь с указанным email уже существует")
+		return nil, status.Error(codes.AlreadyExists, "user with the same email already exists")
 	case err != nil:
 		return nil, errors.WithMessage(err, "update user")
 	default:
