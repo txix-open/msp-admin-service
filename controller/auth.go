@@ -45,12 +45,12 @@ func NewAuth(authService authService, logger log.Logger) Auth {
 func (a Auth) Logout(ctx context.Context, authData grpc.AuthData) error {
 	token, err := grpc.StringFromMd(domain.AdminAuthIdHeader, metadata.MD(authData))
 	if err != nil {
-		return status.Error(codes.InvalidArgument, "Отсутствует идентификатор")
+		return status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	adminId, err := strconv.Atoi(token)
 	if err != nil {
-		return status.Error(codes.InvalidArgument, "Недействительный идентификатор")
+		return status.Error(codes.InvalidArgument, "admin id is not a number")
 	}
 
 	err = a.authService.Logout(ctx, int64(adminId))
@@ -78,10 +78,10 @@ func (a Auth) Login(ctx context.Context, authRequest domain.LoginRequest) (*doma
 
 	switch {
 	case errors.Is(err, domain.ErrSudirAuthorization):
-		return nil, status.Error(codes.InvalidArgument, "Пользователь имеет только авторизацию СУДИР")
+		return nil, status.Error(codes.InvalidArgument, "plain auth is not available")
 	case errors.Is(err, domain.ErrUnauthenticated):
 		a.logger.Error(ctx, err.Error())
-		return nil, status.Error(codes.Unauthenticated, "Данные для авторизации не верны")
+		return nil, status.Error(codes.Unauthenticated, "invalid credential")
 	case err != nil:
 		return nil, errors.WithMessage(err, "login")
 	default:
@@ -106,9 +106,9 @@ func (a Auth) LoginWithSudir(ctx context.Context, request domain.LoginSudirReque
 
 	switch {
 	case errors.Is(err, domain.ErrSudirAuthIsMissed):
-		return nil, status.Error(codes.FailedPrecondition, "Авторизация СУДИР не настроена на сервере")
+		return nil, status.Error(codes.FailedPrecondition, "sudir auth is not configured")
 	case errors.Is(err, domain.ErrUnauthenticated):
-		return nil, status.Error(codes.Unauthenticated, "Некорректный код для авторизации")
+		return nil, status.Error(codes.Unauthenticated, "invalid code")
 	case err != nil:
 		return nil, errors.WithMessage(err, "login with sudir")
 	default:

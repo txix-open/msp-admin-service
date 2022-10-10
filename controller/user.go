@@ -103,7 +103,7 @@ func (u User) CreateUser(ctx context.Context, req domain.CreateUserRequest) (*do
 
 	switch {
 	case errors.Is(err, domain.ErrAlreadyExists):
-		return nil, status.Error(codes.AlreadyExists, "Пользователь с указанным email уже существует")
+		return nil, status.Error(codes.AlreadyExists, "user with the same email already exists")
 	case err != nil:
 		return nil, errors.WithMessage(err, "create user")
 	default:
@@ -130,11 +130,11 @@ func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest) (*do
 
 	switch {
 	case errors.Is(err, domain.ErrNotFound):
-		return nil, status.Error(codes.NotFound, "Пользователь с указанным id не существует")
+		return nil, status.Error(codes.NotFound, "user not found")
 	case errors.Is(err, domain.ErrInvalid):
-		return nil, status.Error(codes.InvalidArgument, "Пользователь авторизован через СУДИР, смена пароля для него запрещена")
+		return nil, status.Error(codes.InvalidArgument, "user modification is not available")
 	case errors.Is(err, domain.ErrAlreadyExists):
-		return nil, status.Error(codes.AlreadyExists, "Пользователь с указанным email уже существует")
+		return nil, status.Error(codes.AlreadyExists, "user with the same email already exists")
 	case err != nil:
 		return nil, errors.WithMessage(err, "update user")
 	default:
