@@ -8,5 +8,9 @@
     "password": "{{ msp_pgsql_password }}"
   },
   "logLevel": "debug",
+  "antiBruteforce": {
+    "maxInFlightLoginRequests" : 3,
+    "delayLoginRequestInSec": 3
+  },
   "expireSec": 3600
 }

@@ -17,11 +17,12 @@ func init() {
 }
 
 type Remote struct {
-	Database  dbx.Config
-	ExpireSec int        `valid:"required" schema:"Время жизни токена в секундах,in seconds"`
-	UiDesign  UIDesign   `schema:"Кастомизация интерфейса"`
-	SudirAuth *SudirAuth `schema:"СУДИР авторизация"`
-	LogLevel  log.Level  `schemaGen:"logLevel" schema:"Уровень логирования"`
+	Database       dbx.Config
+	ExpireSec      int            `valid:"required" schema:"Время жизни токена в секундах,in seconds"`
+	UiDesign       UIDesign       `schema:"Кастомизация интерфейса"`
+	SudirAuth      *SudirAuth     `schema:"СУДИР авторизация"`
+	LogLevel       log.Level      `schemaGen:"logLevel" schema:"Уровень логирования"`
+	AntiBruteforce AntiBruteforce `schema:"Настройки антибрут для admin login"`
 }
 
 type UIDesign struct {
@@ -34,4 +35,9 @@ type SudirAuth struct {
 	ClientSecret string `valid:"required~Required"`
 	Host         string `valid:"required~Required" schema:"Хост, пример https://sudir.mos.ru"`
 	RedirectURI  string `valid:"required~Required"`
+}
+
+type AntiBruteforce struct {
+	MaxInFlightLoginRequests int `valid:"required~Required" schema:"Количество одновременных запросов /login"`
+	DelayLoginRequestInSec   int `valid:"required~Required" schema:"Задержка выполнения /login"`
 }
