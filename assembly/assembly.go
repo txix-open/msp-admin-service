@@ -3,18 +3,17 @@ package assembly
 import (
 	"context"
 
-	"github.com/integration-system/isp-kit/dbrx"
-	"github.com/integration-system/isp-kit/dbx"
-	"github.com/integration-system/isp-kit/http/httpcli"
-	"github.com/integration-system/isp-kit/http/httpclix"
-	"msp-admin-service/conf"
-
 	"github.com/integration-system/isp-kit/app"
 	"github.com/integration-system/isp-kit/bootstrap"
 	"github.com/integration-system/isp-kit/cluster"
+	"github.com/integration-system/isp-kit/dbrx"
+	"github.com/integration-system/isp-kit/dbx"
 	"github.com/integration-system/isp-kit/grpc"
+	"github.com/integration-system/isp-kit/http/httpcli"
+	"github.com/integration-system/isp-kit/http/httpclix"
 	"github.com/integration-system/isp-kit/log"
 	"github.com/pkg/errors"
+	"msp-admin-service/conf"
 )
 
 type Assembly struct {
