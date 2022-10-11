@@ -10,6 +10,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.8.0
 	golang.org/x/crypto v0.0.0-20221005025214-4161e89ecf1b
+	golang.org/x/sync v0.0.0-20220907140024-f12130a52804
 	google.golang.org/grpc v1.50.0
 )
 
