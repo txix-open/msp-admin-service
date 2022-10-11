@@ -2,10 +2,20 @@ package tests
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
+	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
+	"msp-admin-service/assembly"
+	"msp-admin-service/conf"
+	"msp-admin-service/domain"
+	"msp-admin-service/entity"
 
 	"github.com/integration-system/isp-kit/dbx"
 	"github.com/integration-system/isp-kit/grpc/client"
@@ -17,10 +27,6 @@ import (
 	"github.com/stretchr/testify/suite"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"msp-admin-service/assembly"
-	"msp-admin-service/conf"
-	"msp-admin-service/domain"
-	"msp-admin-service/entity"
 )
 
 func TestAuthTestSuite(t *testing.T) {
@@ -51,6 +57,10 @@ func (s *AuthTestSuite) SetupTest() {
 			RedirectURI:  "http://localhost",
 		},
 		ExpireSec: 3600,
+		AntiBruteforce: conf.AntiBruteforce{
+			MaxInFlightLoginRequests: 3,
+			DelayLoginRequestInSec:   1,
+		},
 	}
 
 	locator := assembly.NewLocator(testInstance.Logger(), s.httpCli, s.db)
@@ -211,4 +221,52 @@ func (s *AuthTestSuite) Test_Logout_AlreadyRevoke() {
 
 	tokenInfo := SelectTokenEntityByToken(s.db, "token-148623719462")
 	s.Require().Equal(entity.TokenStatusRevoked, tokenInfo.Status)
+}
+
+func (s *AuthTestSuite) TestBruteForceLogin() {
+	_ = InsertUser(s.db, entity.CreateUser{
+		RoleId:    1,
+		FirstName: "John",
+		LastName:  "Doe",
+		Email:     "a@a.ru",
+		Password:  "password",
+	})
+
+	tooManyRequestsErrorCount := &atomic.Int32{}
+	unauthorizedErrorCount := &atomic.Int32{}
+	group, ctx := errgroup.WithContext(context.Background())
+	for i := 0; i < 100; i++ {
+		index := i
+		group.Go(func() error {
+			start := time.Now()
+			response := domain.LoginResponse{}
+			err := s.grpcCli.Invoke("admin/auth/login").
+				JsonRequestBody(domain.LoginRequest{
+					Email:    "a@a.ru",
+					Password: fmt.Sprintf("password %s", strconv.Itoa(index)),
+				}).
+				ReadJsonResponse(&response).
+				Do(ctx)
+			s.Require().Error(err)
+
+			switch status.Code(err) {
+			case codes.ResourceExhausted:
+				tooManyRequestsErrorCount.Add(1)
+				s.Require().True(time.Since(start) < time.Second)
+			case codes.Unauthenticated:
+				unauthorizedErrorCount.Add(1)
+				s.Require().True(time.Since(start) > time.Second)
+			default:
+				s.Require().NoError(errors.New("never happen"))
+			}
+
+			return nil
+		})
+	}
+
+	err := group.Wait()
+	s.Require().NoError(err)
+
+	s.Require().EqualValues(97, tooManyRequestsErrorCount.Load())
+	s.Require().EqualValues(3, unauthorizedErrorCount.Load())
 }
