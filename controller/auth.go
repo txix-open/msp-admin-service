@@ -82,6 +82,8 @@ func (a Auth) Login(ctx context.Context, authRequest domain.LoginRequest) (*doma
 	case errors.Is(err, domain.ErrUnauthenticated):
 		a.logger.Error(ctx, err.Error())
 		return nil, status.Error(codes.Unauthenticated, "invalid credential")
+	case errors.Is(err, domain.ErrTooManyLoginRequests):
+		return nil, status.Error(codes.ResourceExhausted, "too many requests")
 	case err != nil:
 		return nil, errors.WithMessage(err, "login")
 	default:

@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"sync/atomic"
+	"time"
 
 	"github.com/integration-system/isp-kit/log"
 	"github.com/pkg/errors"
@@ -26,22 +28,36 @@ type sudirService interface {
 }
 
 type Auth struct {
-	userRepository userRepository
-	tokenService   tokenService
-	sudirService   sudirService
-	logger         log.Logger
+	userRepository           userRepository
+	tokenService             tokenService
+	sudirService             sudirService
+	logger                   log.Logger
+	maxInFlightLoginRequests int
+	delayLoginRequest        time.Duration
+	inFlight                 *atomic.Int32
 }
 
-func NewAuth(userRepository userRepository, tokenService tokenService, sudirService sudirService, logger log.Logger) Auth {
+func NewAuth(userRepository userRepository, tokenService tokenService, sudirService sudirService, logger log.Logger, delayLoginRequestInSec int, maxInFlightLoginRequests int) Auth {
 	return Auth{
-		userRepository: userRepository,
-		tokenService:   tokenService,
-		sudirService:   sudirService,
-		logger:         logger,
+		userRepository:           userRepository,
+		tokenService:             tokenService,
+		sudirService:             sudirService,
+		logger:                   logger,
+		delayLoginRequest:        time.Duration(delayLoginRequestInSec) * time.Second,
+		maxInFlightLoginRequests: maxInFlightLoginRequests,
+		inFlight:                 &atomic.Int32{},
 	}
 }
 
 func (a Auth) Login(ctx context.Context, request domain.LoginRequest) (*domain.LoginResponse, error) {
+	value := a.inFlight.Add(1)
+	defer a.inFlight.Add(-1)
+
+	if value > int32(a.maxInFlightLoginRequests) {
+		return nil, domain.ErrTooManyLoginRequests
+	}
+	time.Sleep(a.delayLoginRequest)
+
 	user, err := a.userRepository.GetUserByEmail(ctx, request.Email)
 	switch {
 	case errors.Is(err, domain.ErrNotFound):
