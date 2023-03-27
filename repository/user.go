@@ -22,8 +22,7 @@ func NewUser(db db.DB) User {
 
 func (u User) GetUserByEmail(ctx context.Context, email string) (*entity.User, error) {
 	q, args, err := query.New().
-		Select("id", "role_id", "first_name", "last_name", "password",
-			"email", "sudir_user_id", "created_at", "updated_at").
+		Select("*").
 		From("users").
 		Where(squirrel.Eq{"email": email}).
 		ToSql()
@@ -46,8 +45,7 @@ func (u User) GetUserByEmail(ctx context.Context, email string) (*entity.User, e
 
 func (u User) GetUserById(ctx context.Context, identity int64) (*entity.User, error) {
 	q, args, err := query.New().
-		Select("id", "role_id", "first_name", "last_name", "password",
-			"email", "sudir_user_id", "created_at", "updated_at").
+		Select("*").
 		From("users").
 		Where(squirrel.Eq{"id": identity}).
 		ToSql()
@@ -95,8 +93,7 @@ func (u User) GetUserBySudirUserId(ctx context.Context, id string) (*entity.User
 func (u User) GetUsers(ctx context.Context, ids []int64, offset, limit int, email string) ([]entity.User, error) {
 	// take every except password
 	q := query.New().
-		Select("id", "role_id", "first_name", "last_name",
-			"email", "sudir_user_id", "created_at", "updated_at").
+		Select("*").
 		From("users")
 
 	if len(ids) > 0 {
