@@ -13,6 +13,8 @@ type Controllers struct {
 	User          controller.User
 	Customization controller.Customization
 	Secure        controller.Secure
+	Session       controller.Session
+	Audit         controller.Audit
 }
 
 func EndpointDescriptors() []cluster.EndpointDescriptor {
@@ -27,6 +29,7 @@ func Handler(wrapper endpoint.Wrapper, c Controllers) isp.BackendServiceServer {
 	return muxer
 }
 
+//nolint:funlen
 func endpointDescriptors(c Controllers) []cluster.EndpointDescriptor {
 	return []cluster.EndpointDescriptor{
 		{
@@ -82,6 +85,42 @@ func endpointDescriptors(c Controllers) []cluster.EndpointDescriptor {
 			Inner:            true,
 			UserAuthRequired: false,
 			Handler:          c.User.DeleteUser,
+		},
+		{
+			Path:             "admin/user/block_user",
+			Inner:            true,
+			UserAuthRequired: false,
+			Handler:          c.User.Block,
+		},
+		{
+			Path:             "admin/user/get_roles",
+			Inner:            true,
+			UserAuthRequired: false,
+			Handler:          c.User.GetRoles,
+		},
+		{
+			Path:             "admin/user/get_by_id",
+			Inner:            true,
+			UserAuthRequired: false,
+			Handler:          c.User.GetById,
+		},
+		{
+			Path:             "admin/session/all",
+			Inner:            true,
+			UserAuthRequired: false,
+			Handler:          c.Session.All,
+		},
+		{
+			Path:             "admin/session/revoke",
+			Inner:            true,
+			UserAuthRequired: false,
+			Handler:          c.Session.Revoke,
+		},
+		{
+			Path:             "admin/log/all",
+			Inner:            true,
+			UserAuthRequired: false,
+			Handler:          c.Audit.All,
 		},
 		{
 			Path:             "admin/secure/authenticate",
