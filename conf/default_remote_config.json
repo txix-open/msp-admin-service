@@ -12,5 +12,9 @@
     "maxInFlightLoginRequests" : 3,
     "delayLoginRequestInSec": 3
   },
-  "expireSec": 3600
+  "expireSec": 3600,
+  "blockInactiveWorker" : {
+    "daysThreshold": 90,
+    "runIntervalInMinutes": 60
+  }
 }
