@@ -12,7 +12,7 @@ var version = "1.0.0"
 
 // @title msp-admin-service
 // @version 1.0.0
-// @description сервис администрирования
+// @description сервис управления администраторами
 
 // @license.name GNU GPL v3.0
 

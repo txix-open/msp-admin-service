@@ -20,6 +20,26 @@ definitions:
     required:
     - email
     type: object
+  domain.Audit:
+    properties:
+      createdAt:
+        type: string
+      id:
+        type: integer
+      message:
+        type: string
+      userId:
+        type: integer
+    type: object
+  domain.AuditResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/domain.Audit'
+        type: array
+      totalCount:
+        type: integer
+    type: object
   domain.CreateUserRequest:
     properties:
       email:
@@ -51,6 +71,13 @@ definitions:
         type: string
       errorMessage:
         type: string
+    type: object
+  domain.IdRequest:
+    properties:
+      userId:
+        type: integer
+    required:
+    - userId
     type: object
   domain.IdentitiesRequest:
     properties:
@@ -87,6 +114,35 @@ definitions:
     required:
     - authCode
     type: object
+  domain.PageRequest:
+    properties:
+      limit:
+        type: integer
+      offset:
+        type: integer
+    required:
+    - limit
+    type: object
+  domain.RevokeRequest:
+    properties:
+      id:
+        type: integer
+    required:
+    - id
+    type: object
+  domain.Role:
+    properties:
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      updatedAt:
+        type: string
+    type: object
   domain.SecureAuthRequest:
     properties:
       token:
@@ -100,6 +156,13 @@ definitions:
         type: boolean
       errorReason:
         type: string
+    type: object
+  domain.SessionRequest:
+    properties:
+      limit:
+        type: integer
+      offset:
+        type: integer
     type: object
   domain.UpdateUserRequest:
     properties:
@@ -120,6 +183,8 @@ definitions:
     type: object
   domain.User:
     properties:
+      blocked:
+        type: boolean
       createdAt:
         type: string
       email:
@@ -130,11 +195,9 @@ definitions:
         type: integer
       lastName:
         type: string
-      password:
-        type: string
       roleId:
         type: integer
-      sudirUserId:
+      roleName:
         type: string
       updatedAt:
         type: string
@@ -162,7 +225,7 @@ definitions:
 host: localhost:9000
 info:
   contact: {}
-  description: сервис администрирования
+  description: сервис управления администраторами
   license:
     name: GNU GPL v3.0
   title: msp-admin-service
@@ -263,6 +326,40 @@ paths:
       summary: Выход из авторизованной сессии
       tags:
       - auth
+  /log/all:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.AuditResponse'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.PageRequest'
+        "400":
+          description: Невалидное тело запроса
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Получение списка логов
+      tags:
+      - log
   /secure/authenticate:
     post:
       consumes:
@@ -294,6 +391,104 @@ paths:
       summary: Метод аутентификации токена
       tags:
       - secure
+  /session/all:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.SessionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.PageRequest'
+        "400":
+          description: Невалидное тело запроса
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Получение списка сессий
+      tags:
+      - session
+  /session/revoke:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.RevokeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ""
+        "400":
+          description: Невалидное тело запроса
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Отзыв сессии
+      tags:
+      - session
+  /user/block_user:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.IdRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ""
+        "400":
+          description: Невалидное тело запроса
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Метод блокировки/разблокировки пользователя
+      tags:
+      - user
   /user/create_user:
     post:
       consumes:
@@ -368,6 +563,35 @@ paths:
       summary: Удалить пользователя
       tags:
       - user
+  /user/get_by_id:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.IdRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.User'
+        "400":
+          description: Невалидное тело запроса
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Метод получения данных по пользователю
+      tags:
+      - user
   /user/get_design:
     post:
       consumes:
@@ -428,6 +652,36 @@ paths:
           schema:
             $ref: '#/definitions/domain.GrpcError'
       summary: Получить профиль
+      tags:
+      - user
+  /user/get_roles:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.Role'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Список доступных ролей
       tags:
       - user
   /user/get_users:
