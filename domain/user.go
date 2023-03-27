@@ -5,15 +5,15 @@ import (
 )
 
 type User struct {
-	SudirUserId *string `json:",omitempty"`
-	Id          int64
-	RoleId      int
-	FirstName   string
-	LastName    string
-	Email       string
-	Password    string `json:",omitempty"`
-	UpdatedAt   time.Time
-	CreatedAt   time.Time
+	Id        int64
+	RoleId    int
+	RoleName  string
+	FirstName string
+	LastName  string
+	Email     string
+	Blocked   bool
+	UpdatedAt time.Time
+	CreatedAt time.Time
 }
 
 type UsersResponse struct {
@@ -57,4 +57,16 @@ type DeleteResponse struct {
 
 type IdentitiesRequest struct {
 	Ids []int64 `valid:"required"`
+}
+
+type IdRequest struct {
+	UserId int `valid:"required"`
+}
+
+type Role struct {
+	Id          int
+	Name        string
+	Description string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }

@@ -4,7 +4,9 @@ import (
 	"context"
 	"strconv"
 	"testing"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/integration-system/isp-kit/dbx"
 	"github.com/integration-system/isp-kit/grpc/client"
 	"github.com/integration-system/isp-kit/http/httpcli"
@@ -63,7 +65,7 @@ func (s *UserTestSuite) SetupTest() {
 }
 
 func (s *UserTestSuite) TestGetProfileHappyPath() {
-	id := InsertUser(s.db, entity.CreateUser{
+	id := InsertUser(s.db, entity.User{
 		RoleId:    1,
 		FirstName: "name",
 		LastName:  "surname",
@@ -87,7 +89,7 @@ func (s *UserTestSuite) TestGetProfileHappyPath() {
 }
 
 func (s *UserTestSuite) TestGetProfileNotFound() {
-	id := InsertUser(s.db, entity.CreateUser{
+	id := InsertUser(s.db, entity.User{
 		RoleId:    1,
 		FirstName: "name",
 		LastName:  "surname",
@@ -130,10 +132,10 @@ func (s *UserTestSuite) TestGetProfileSudir() {
 }
 
 func (s *UserTestSuite) TestGetUsers() {
-	InsertUser(s.db, entity.CreateUser{RoleId: 1, Email: "a@a.ru"})
-	InsertUser(s.db, entity.CreateUser{RoleId: 1, Email: "b@a.ru"})
-	InsertUser(s.db, entity.CreateUser{RoleId: 1, Email: "a@b.ru"})
-	InsertUser(s.db, entity.CreateUser{RoleId: 1, Email: "a@c.ru"})
+	InsertUser(s.db, entity.User{RoleId: 1, Email: "a@a.ru"})
+	InsertUser(s.db, entity.User{RoleId: 1, Email: "b@a.ru"})
+	InsertUser(s.db, entity.User{RoleId: 1, Email: "a@b.ru"})
+	InsertUser(s.db, entity.User{RoleId: 1, Email: "a@c.ru"})
 
 	response := domain.UsersResponse{}
 	err := s.grpcCli.Invoke("admin/user/get_users").
@@ -147,6 +149,7 @@ func (s *UserTestSuite) TestGetUsers() {
 
 	s.Require().Equal(1, len(response.Items))
 	s.Require().Equal(int64(5), response.Items[0].Id)
+	s.Require().EqualValues("admin", response.Items[0].RoleName)
 }
 
 func (s *UserTestSuite) TestCreateUserHappyPath() {
@@ -174,7 +177,7 @@ func (s *UserTestSuite) TestCreateUserHappyPath() {
 }
 
 func (s *UserTestSuite) TestCreateUserAlreadyExist() {
-	InsertUser(s.db, entity.CreateUser{RoleId: 1, Email: "a@a.ru"})
+	InsertUser(s.db, entity.User{RoleId: 1, Email: "a@a.ru"})
 
 	err := s.grpcCli.
 		Invoke("admin/user/create_user").
@@ -193,7 +196,7 @@ func (s *UserTestSuite) TestCreateUserAlreadyExist() {
 }
 
 func (s *AuthTestSuite) TestUpdateUserHappyPath() {
-	id := InsertUser(s.db, entity.CreateUser{RoleId: 1, Email: "a@a.ru", Password: "password"})
+	id := InsertUser(s.db, entity.User{RoleId: 1, Email: "a@a.ru", Password: "password"})
 	req := domain.UpdateUserRequest{
 		Id:        id,
 		RoleId:    1,
@@ -269,8 +272,8 @@ func (s *AuthTestSuite) TestUpdateSudirUserInvalidRequest() {
 }
 
 func (s *AuthTestSuite) TestUpdateUserAlreadyExist() {
-	InsertUser(s.db, entity.CreateUser{RoleId: 1, Email: "a@a.ru", Password: "password"})
-	id := InsertUser(s.db, entity.CreateUser{RoleId: 1, Email: "b@b.ru", Password: "password"})
+	InsertUser(s.db, entity.User{RoleId: 1, Email: "a@a.ru", Password: "password"})
+	id := InsertUser(s.db, entity.User{RoleId: 1, Email: "b@b.ru", Password: "password"})
 	req := domain.UpdateUserRequest{
 		Id:        id,
 		RoleId:    1,
@@ -290,10 +293,10 @@ func (s *AuthTestSuite) TestUpdateUserAlreadyExist() {
 }
 
 func (s *UserTestSuite) TestDeleteUsers() {
-	InsertUser(s.db, entity.CreateUser{RoleId: 1, Email: "a@a.ru"})
-	InsertUser(s.db, entity.CreateUser{RoleId: 1, Email: "b@a.ru"})
-	InsertUser(s.db, entity.CreateUser{RoleId: 1, Email: "a@b.ru"})
-	InsertUser(s.db, entity.CreateUser{RoleId: 1, Email: "a@c.ru"})
+	InsertUser(s.db, entity.User{RoleId: 1, Email: "a@a.ru"})
+	InsertUser(s.db, entity.User{RoleId: 1, Email: "b@a.ru"})
+	InsertUser(s.db, entity.User{RoleId: 1, Email: "a@b.ru"})
+	InsertUser(s.db, entity.User{RoleId: 1, Email: "a@c.ru"})
 
 	response := domain.DeleteResponse{}
 	err := s.grpcCli.Invoke("admin/user/delete_user").
@@ -301,4 +304,37 @@ func (s *UserTestSuite) TestDeleteUsers() {
 	s.Require().NoError(err)
 
 	s.Require().Equal(2, response.Deleted)
+}
+
+func (s *UserTestSuite) TestBlockUser() {
+	id := InsertUser(s.db, entity.User{
+		RoleId:    1,
+		FirstName: "John",
+		LastName:  "Doe",
+		Email:     "a@a.ru",
+		Password:  "password",
+		Blocked:   false,
+	})
+	token := uuid.New().String()
+	InsertTokenEntity(s.db, entity.Token{
+		Token:     token,
+		UserId:    id,
+		Status:    entity.TokenStatusAllowed,
+		ExpiredAt: time.Now().Add(5 * time.Second),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	})
+
+	err := s.grpcCli.Invoke("admin/user/block_user").
+		JsonRequestBody(domain.IdRequest{UserId: int(id)}).
+		Do(context.Background())
+	s.Require().NoError(err)
+
+	user, err := repository.NewUser(s.db).GetUserById(context.Background(), id)
+	s.Require().NoError(err)
+	s.Require().True(user.Blocked)
+
+	t, err := repository.NewToken(s.db).GetEntity(context.Background(), token)
+	s.Require().NoError(err)
+	s.EqualValues(entity.TokenStatusRevoked, t.Status)
 }

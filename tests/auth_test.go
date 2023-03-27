@@ -76,7 +76,7 @@ func (s *AuthTestSuite) SetupTest() {
 }
 
 func (s *AuthTestSuite) TestLoginHappyPath() {
-	id := InsertUser(s.db, entity.CreateUser{
+	id := InsertUser(s.db, entity.User{
 		RoleId:    1,
 		FirstName: "John",
 		LastName:  "Doe",
@@ -111,8 +111,30 @@ func (s *AuthTestSuite) TestLoginNotFound() {
 	s.Require().Equal(codes.Unauthenticated, st.Code())
 }
 
+func (s *AuthTestSuite) TestBlockedUser() {
+	InsertUser(s.db, entity.User{
+		RoleId:    1,
+		FirstName: "John",
+		LastName:  "Doe",
+		Email:     "a@a.ru",
+		Password:  "password",
+		Blocked:   true,
+	})
+
+	err := s.grpcCli.Invoke("admin/auth/login").
+		JsonRequestBody(domain.LoginRequest{
+			Email:    "a@a.ru",
+			Password: "password",
+		}).
+		Do(context.Background())
+	s.Require().Error(err)
+	st, ok := status.FromError(err)
+	s.Require().True(ok)
+	s.Require().Equal(codes.Unauthenticated, st.Code())
+}
+
 func (s *AuthTestSuite) TestLoginWrongPassword() {
-	InsertUser(s.db, entity.CreateUser{
+	InsertUser(s.db, entity.User{
 		RoleId:    1,
 		FirstName: "John",
 		LastName:  "Doe",
@@ -144,7 +166,7 @@ func (s *AuthTestSuite) TestSudirLoginHappyPath() {
 	s.Require().NoError(err)
 	user := entity.User{}
 	s.db.Must().SelectRow(&user, "select id, role_id, email from users where sudir_user_id = $1", "sudirUser1")
-	s.Require().Equal(1, user.RoleId)
+	s.Require().Equal(3, user.RoleId)
 	s.Require().Equal("sudir@email.ru", user.Email)
 
 	tokenInfo := SelectTokenEntityByToken(s.db, response.Token)
@@ -183,15 +205,16 @@ func (s *AuthTestSuite) initMockSudir() (*httptest.Server, string) {
 }
 
 func (s *AuthTestSuite) Test_Logout_HappyPath() {
+	userId := InsertUser(s.db, entity.User{RoleId: 1})
 	InsertTokenEntity(s.db, entity.Token{
 		Token:     "token-841297641213",
-		UserId:    841297641213,
+		UserId:    userId,
 		Status:    entity.TokenStatusAllowed,
 		CreatedAt: time.Time{},
 		ExpiredAt: time.Time{},
 	})
 	err := s.grpcCli.Invoke("admin/auth/logout").
-		AppendMetadata(domain.AdminAuthIdHeader, "841297641213").
+		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(userId))).
 		Do(context.Background())
 	s.Require().NoError(err)
 
@@ -207,15 +230,16 @@ func (s *AuthTestSuite) Test_Logout_NotFound() {
 }
 
 func (s *AuthTestSuite) Test_Logout_AlreadyRevoke() {
+	userId := InsertUser(s.db, entity.User{RoleId: 1})
 	InsertTokenEntity(s.db, entity.Token{
 		Token:     "token-148623719462",
-		UserId:    148623719462,
+		UserId:    userId,
 		Status:    entity.TokenStatusRevoked,
 		CreatedAt: time.Time{},
 		ExpiredAt: time.Time{},
 	})
 	err := s.grpcCli.Invoke("admin/auth/logout").
-		AppendMetadata(domain.AdminAuthIdHeader, "148623719462").
+		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(userId))).
 		Do(context.Background())
 	s.Require().NoError(err)
 
@@ -224,7 +248,7 @@ func (s *AuthTestSuite) Test_Logout_AlreadyRevoke() {
 }
 
 func (s *AuthTestSuite) TestBruteForceLogin() {
-	_ = InsertUser(s.db, entity.CreateUser{
+	_ = InsertUser(s.db, entity.User{
 		RoleId:    1,
 		FirstName: "John",
 		LastName:  "Doe",

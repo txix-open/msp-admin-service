@@ -11,12 +11,7 @@ import (
 )
 
 const (
-	innerAdminRole         = "admin"
-	innerReadOnlyAdminRole = "read_only_admin"
-
-	sudirRolePrefix        = "CN="
-	sudirAdminRole         = "DIT-KKD-Admins"
-	sudirReadOnlyAdminRole = "DIT-KKD-Operators"
+	sudirRolePrefix = "CN="
 )
 
 type sudirRepo interface {
@@ -26,6 +21,7 @@ type sudirRepo interface {
 
 type roleRepo interface {
 	GetRoleByName(ctx context.Context, name string) (*entity.Role, error)
+	UpsertRoleByName(ctx context.Context, role entity.Role) (int, error)
 }
 
 type Sudir struct {
@@ -68,16 +64,16 @@ func (s Sudir) Authenticate(ctx context.Context, authCode string) (*entity.Sudir
 		return nil, errors.New("undefined role")
 	}
 
-	roleInfo, err := s.roleRepo.GetRoleByName(ctx, role)
-	switch {
-	case errors.Is(err, domain.ErrNotFound):
-		return nil, errors.WithMessagef(err, "get unknown role '%s'", role)
-	case err != nil:
-		return nil, errors.WithMessage(err, "get role")
+	roleId, err := s.roleRepo.UpsertRoleByName(ctx, entity.Role{
+		Name:   role,
+		Rights: map[string]string{},
+	})
+	if err != nil {
+		return nil, errors.WithMessage(err, "upsert role")
 	}
 
 	return &entity.SudirUser{
-		RoleId:      roleInfo.Id,
+		RoleId:      roleId,
 		SudirUserId: user.Sub,
 		FirstName:   user.GivenName,
 		LastName:    user.FamilyName,
@@ -86,18 +82,12 @@ func (s Sudir) Authenticate(ctx context.Context, authCode string) (*entity.Sudir
 }
 
 func getRole(groups []string) string {
-	var role string
 	for _, group := range groups {
 		part := strings.Split(group, ",")
 		for _, p := range part {
 			sudirRole := strings.TrimPrefix(p, sudirRolePrefix)
-			switch sudirRole {
-			case sudirAdminRole:
-				return innerAdminRole
-			case sudirReadOnlyAdminRole:
-				role = innerReadOnlyAdminRole
-			}
+			return sudirRole
 		}
 	}
-	return role
+	return ""
 }
