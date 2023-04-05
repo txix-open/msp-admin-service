@@ -59,17 +59,23 @@ func (s Sudir) Authenticate(ctx context.Context, authCode string) (*entity.Sudir
 		return nil, errors.WithMessage(user.SudirAuthError, "get user")
 	}
 
-	role := getRole(user.Groups)
+	//nolint
+	/*role := getRole(user.Groups)
 	if role == "" {
 		return nil, errors.New("undefined role")
-	}
+	}*/
 
 	roleId, err := s.roleRepo.UpsertRoleByName(ctx, entity.Role{
-		Name:   role,
+		Name:   user.GivenName,
 		Rights: map[string]string{},
 	})
 	if err != nil {
 		return nil, errors.WithMessage(err, "upsert role")
+	}
+
+	email := user.Email
+	if email == "" {
+		email = user.Sub
 	}
 
 	return &entity.SudirUser{
@@ -77,10 +83,11 @@ func (s Sudir) Authenticate(ctx context.Context, authCode string) (*entity.Sudir
 		SudirUserId: user.Sub,
 		FirstName:   user.GivenName,
 		LastName:    user.FamilyName,
-		Email:       user.Email,
+		Email:       email,
 	}, nil
 }
 
+// nolint
 func getRole(groups []string) string {
 	for _, group := range groups {
 		part := strings.Split(group, ",")
