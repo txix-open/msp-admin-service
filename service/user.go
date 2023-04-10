@@ -52,7 +52,7 @@ func (u User) GetProfileById(ctx context.Context, userId int64) (*domain.AdminUs
 		return nil, errors.WithMessagef(err, "get user by id: %d", userId)
 	}
 	if user.Blocked {
-		return nil, errors.Errorf("user is blocked")
+		return nil, errors.WithMessagef(domain.ErrUnauthenticated, "user '%d' is blocked", user.Id)
 	}
 
 	role, err := u.userRoleRepo.GetRoleById(ctx, user.RoleId)

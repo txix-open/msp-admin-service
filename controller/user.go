@@ -58,6 +58,8 @@ func (u User) GetProfile(ctx context.Context, authData grpc.AuthData) (*domain.A
 	profile, err := u.userService.GetProfileById(ctx, int64(adminId))
 
 	switch {
+	case errors.Is(err, domain.ErrUnauthenticated):
+		return nil, status.Error(codes.Unauthenticated, "user is blocked")
 	case errors.Is(err, domain.ErrNotFound):
 		return nil, status.Error(codes.NotFound, "user not found")
 	case err != nil:
