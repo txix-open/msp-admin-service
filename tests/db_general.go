@@ -8,15 +8,15 @@ import (
 )
 
 //nolint:gomnd
-func InsertUser(db *dbt.TestDb, user entity.CreateUser) int64 {
+func InsertUser(db *dbt.TestDb, user entity.User) int64 {
 	if user.Password != "" {
 		passwordBytes, _ := bcrypt.GenerateFromPassword([]byte(user.Password), 12)
 		user.Password = string(passwordBytes)
 	}
 	var id int64
-	db.Must().SelectRow(&id, `insert into users (role_id, first_name, last_name, email, password)
-	values($1,$2,$3,$4,$5) returning id`,
-		user.RoleId, user.FirstName, user.LastName, user.Email, user.Password)
+	db.Must().SelectRow(&id, `insert into users (role_id, first_name, last_name, email, password, blocked)
+	values($1,$2,$3,$4,$5, $6) returning id`,
+		user.RoleId, user.FirstName, user.LastName, user.Email, user.Password, user.Blocked)
 	return id
 }
 

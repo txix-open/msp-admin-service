@@ -18,6 +18,9 @@ type userService interface {
 	CreateUser(ctx context.Context, req domain.CreateUserRequest) (*domain.User, error)
 	UpdateUser(ctx context.Context, req domain.UpdateUserRequest) (*domain.User, error)
 	DeleteUsers(ctx context.Context, ids []int64) (int, error)
+	Block(ctx context.Context, userId int) error
+	Roles(ctx context.Context) ([]domain.Role, error)
+	GetById(ctx context.Context, userId int) (*domain.User, error)
 }
 
 type User struct {
@@ -55,6 +58,8 @@ func (u User) GetProfile(ctx context.Context, authData grpc.AuthData) (*domain.A
 	profile, err := u.userService.GetProfileById(ctx, int64(adminId))
 
 	switch {
+	case errors.Is(err, domain.ErrUnauthenticated):
+		return nil, status.Error(codes.Unauthenticated, "user is blocked")
 	case errors.Is(err, domain.ErrNotFound):
 		return nil, status.Error(codes.NotFound, "user not found")
 	case err != nil:
@@ -161,4 +166,56 @@ func (u User) DeleteUser(ctx context.Context, identities domain.IdentitiesReques
 	}
 
 	return &domain.DeleteResponse{Deleted: deletedCount}, nil
+}
+
+// Block
+// @Tags user
+// @Summary Метод блокировки/разблокировки пользователя
+// @Accept json
+// @Produce json
+// @Param X-AUTH-ADMIN header string true "Токен администратора"
+// @Param body body domain.IdRequest true "Тело запроса"
+// @Success 200
+// @Failure 400 {object} domain.GrpcError "Невалидное тело запроса"
+// @Failure 500 {object} domain.GrpcError
+// @Router /user/block_user [POST]
+func (u User) Block(ctx context.Context, identities domain.IdRequest) error {
+	err := u.userService.Block(ctx, identities.UserId)
+	if err != nil {
+		return errors.WithMessage(err, "block")
+	}
+	return nil
+}
+
+// GetRoles
+// @Tags user
+// @Summary Список доступных ролей
+// @Accept json
+// @Produce json
+// @Param X-AUTH-ADMIN header string true "Токен администратора"
+// @Success 200 {array} domain.Role
+// @Failure 400 {object} domain.GrpcError
+// @Failure 500 {object} domain.GrpcError
+// @Router /user/get_roles [POST]
+func (u User) GetRoles(ctx context.Context) ([]domain.Role, error) {
+	users, err := u.userService.Roles(ctx)
+	if err != nil {
+		return nil, errors.WithMessage(err, "get roles")
+	}
+
+	return users, nil
+}
+
+// GetById
+// @Tags user
+// @Summary Метод получения данных по пользователю
+// @Accept json
+// @Produce json
+// @Param body body domain.IdRequest true "Тело запроса"
+// @Success 200 {object} domain.User
+// @Failure 400 {object} domain.GrpcError "Невалидное тело запроса"
+// @Failure 500 {object} domain.GrpcError
+// @Router /user/get_by_id [POST]
+func (u User) GetById(ctx context.Context, identities domain.IdRequest) (*domain.User, error) {
+	return u.userService.GetById(ctx, identities.UserId)
 }

@@ -10,6 +10,7 @@ type User struct {
 	LastName    string
 	Email       string
 	Password    string
+	Blocked     bool
 	UpdatedAt   time.Time
 	CreatedAt   time.Time
 }
@@ -20,14 +21,6 @@ type SudirUser struct {
 	FirstName   string
 	LastName    string
 	Email       string
-}
-
-type CreateUser struct {
-	RoleId    int
-	FirstName string
-	LastName  string
-	Email     string
-	Password  string
 }
 
 type UpdateUser struct {

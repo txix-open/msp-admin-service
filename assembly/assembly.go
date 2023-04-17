@@ -2,6 +2,7 @@ package assembly
 
 import (
 	"context"
+	"time"
 
 	"github.com/integration-system/isp-kit/app"
 	"github.com/integration-system/isp-kit/bootstrap"
@@ -12,6 +13,7 @@ import (
 	"github.com/integration-system/isp-kit/http/httpcli"
 	"github.com/integration-system/isp-kit/http/httpclix"
 	"github.com/integration-system/isp-kit/log"
+	"github.com/integration-system/isp-kit/worker"
 	"github.com/pkg/errors"
 	"msp-admin-service/conf"
 )
@@ -21,6 +23,7 @@ type Assembly struct {
 	db      *dbrx.Client
 	server  *grpc.Server
 	httpCli *httpcli.Client
+	worker  *worker.Worker
 	logger  *log.Adapter
 }
 
@@ -55,9 +58,18 @@ func (a *Assembly) ReceiveConfig(ctx context.Context, remoteConfig []byte) error
 	}
 
 	locator := NewLocator(a.logger, a.httpCli, a.db)
-	handler := locator.Handler(newCfg)
+	config := locator.Config(newCfg)
 
-	a.server.Upgrade(handler)
+	a.server.Upgrade(config.Handler)
+
+	if a.worker != nil {
+		a.worker.Shutdown()
+	}
+	a.worker = worker.New(
+		config.InactiveBlocker,
+		worker.WithInterval(time.Duration(newCfg.BlockInactiveWorker.RunIntervalInMinutes)*time.Minute),
+	)
+	a.worker.Run(a.boot.App.Context())
 
 	return nil
 }

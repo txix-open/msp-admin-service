@@ -11,6 +11,7 @@ import (
 	"msp-admin-service/repository"
 	"msp-admin-service/routes"
 	"msp-admin-service/service"
+	"msp-admin-service/service/worker"
 )
 
 type Locator struct {
@@ -27,26 +28,42 @@ func NewLocator(logger log.Logger, httpCli *httpcli.Client, db db.DB) Locator {
 	}
 }
 
+type Config struct {
+	Handler         isp.BackendServiceServer
+	InactiveBlocker worker.InactiveBlocker
+}
+
 func (l Locator) Handler(cfg conf.Remote) isp.BackendServiceServer {
+	return l.Config(cfg).Handler
+}
+
+func (l Locator) Config(cfg conf.Remote) Config {
 	sudirRepo := repository.NewSudir(l.httpCli, cfg.SudirAuth)
 	roleRepo := repository.NewRole(l.db)
 	userRepo := repository.NewUser(l.db)
 	tokenRepo := repository.NewToken(l.db)
+	auditRepo := repository.NewAudit(l.db)
 
+	auditService := service.NewAudit(auditRepo, l.logger)
 	tokenService := service.NewToken(tokenRepo, cfg.ExpireSec)
 	sudirService := service.NewSudir(cfg.SudirAuth, sudirRepo, roleRepo)
-	userService := service.NewUser(userRepo, roleRepo, l.logger)
-	authService := service.NewAuth(userRepo,
+	userService := service.NewUser(userRepo, roleRepo, tokenRepo, l.logger)
+	authService := service.NewAuth(
+		userRepo,
 		tokenService,
 		sudirService,
+		auditService,
 		l.logger,
 		cfg.AntiBruteforce.DelayLoginRequestInSec,
 		cfg.AntiBruteforce.MaxInFlightLoginRequests,
 	)
+
 	userController := controller.NewUser(userService)
 	customizationController := controller.NewCustomization(cfg.UiDesign)
 	authController := controller.NewAuth(authService, l.logger)
 	secureController := controller.NewSecure(tokenService)
+	sessionController := controller.NewSession(tokenService)
+	auditController := controller.NewAudit(auditService)
 
 	handler := routes.Handler(
 		endpoint.DefaultWrapper(l.logger),
@@ -55,8 +72,21 @@ func (l Locator) Handler(cfg conf.Remote) isp.BackendServiceServer {
 			Customization: customizationController,
 			Auth:          authController,
 			Secure:        secureController,
+			Session:       sessionController,
+			Audit:         auditController,
 		},
 	)
 
-	return handler
+	inactiveBlocker := worker.NewInactiveBlocker(
+		tokenRepo,
+		userRepo,
+		auditService,
+		cfg.BlockInactiveWorker.DaysThreshold,
+		l.logger,
+	)
+
+	return Config{
+		Handler:         handler,
+		InactiveBlocker: inactiveBlocker,
+	}
 }
