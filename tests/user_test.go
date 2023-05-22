@@ -66,34 +66,45 @@ func (s *UserTestSuite) SetupTest() {
 
 func (s *UserTestSuite) TestGetProfileHappyPath() {
 	id := InsertUser(s.db, entity.User{
-		RoleId:    1,
 		FirstName: "name",
 		LastName:  "surname",
 		Email:     "a@a.ru",
 		Password:  "password",
 	})
 
+	roleId, err := InsertRole(s.db, entity.Role{
+		Name: "admin",
+	})
+	s.Require().NoError(err)
+
+	err = InsertUserRole(s.db, entity.UserRole{
+		UserId: int(id),
+		RoleId: int(roleId),
+	})
+	s.Require().NoError(err)
+
 	response := domain.AdminUserShort{}
-	err := s.grpcCli.Invoke("admin/user/get_profile").
+	err = s.grpcCli.Invoke("admin/user/get_profile").
 		ReadJsonResponse(&response).
 		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(id))).
 		Do(context.Background())
 	s.Require().NoError(err)
 	expected := domain.AdminUserShort{
-		FirstName: "name",
-		LastName:  "surname",
-		Email:     "a@a.ru",
-		Role:      "admin",
+		FirstName:   "name",
+		LastName:    "surname",
+		Email:       "a@a.ru",
+		Role:        "admin",
+		Roles:       []int{1},
+		Permissions: []string{},
 	}
 	s.Require().Equal(expected, response)
 }
 
 func (s *UserTestSuite) TestGetProfileNotFound() {
 	id := InsertUser(s.db, entity.User{
-		RoleId:    1,
 		FirstName: "name",
 		LastName:  "surname",
-		Email:     "a@a.ru",
+		Email:     "a@b.ru",
 		Password:  "password",
 	})
 
@@ -108,11 +119,21 @@ func (s *UserTestSuite) TestGetProfileNotFound() {
 
 func (s *UserTestSuite) TestGetProfileSudir() {
 	id, err := InsertSudirUser(s.db, entity.SudirUser{
-		RoleId:      1,
 		SudirUserId: "sudirUser1",
 		FirstName:   "name",
 		LastName:    "surname",
-		Email:       "a@a.ru",
+		Email:       "a@b.ru",
+	})
+	s.Require().NoError(err)
+
+	roleId, err := InsertRole(s.db, entity.Role{
+		Name: "admin",
+	})
+	s.Require().NoError(err)
+
+	err = InsertUserRole(s.db, entity.UserRole{
+		UserId: int(id),
+		RoleId: int(roleId),
 	})
 	s.Require().NoError(err)
 
@@ -123,19 +144,21 @@ func (s *UserTestSuite) TestGetProfileSudir() {
 		Do(context.Background())
 	s.Require().NoError(err)
 	expected := domain.AdminUserShort{
-		FirstName: "name",
-		LastName:  "surname",
-		Email:     "a@a.ru",
-		Role:      "admin",
+		FirstName:   "name",
+		LastName:    "surname",
+		Email:       "a@b.ru",
+		Role:        "admin",
+		Roles:       []int{1},
+		Permissions: []string{},
 	}
 	s.Require().Equal(expected, response)
 }
 
 func (s *UserTestSuite) TestGetUsers() {
-	InsertUser(s.db, entity.User{RoleId: 1, Email: "a@a.ru"})
-	InsertUser(s.db, entity.User{RoleId: 1, Email: "b@a.ru"})
-	InsertUser(s.db, entity.User{RoleId: 1, Email: "a@b.ru"})
-	InsertUser(s.db, entity.User{RoleId: 1, Email: "a@c.ru"})
+	InsertUser(s.db, entity.User{Email: "a1@a.ru"})
+	InsertUser(s.db, entity.User{Email: "b1@a.ru"})
+	InsertUser(s.db, entity.User{Email: "a1@b.ru"})
+	InsertUser(s.db, entity.User{Email: "a1@c.ru"})
 
 	response := domain.UsersResponse{}
 	err := s.grpcCli.Invoke("admin/user/get_users").
@@ -143,13 +166,12 @@ func (s *UserTestSuite) TestGetUsers() {
 			Ids:    []int64{3, 4, 5, 6},
 			Offset: 1,
 			Limit:  1,
-			Email:  "a@",
+			Email:  "a1@",
 		}).ReadJsonResponse(&response).Do(context.Background())
 	s.Require().NoError(err)
 
 	s.Require().Equal(1, len(response.Items))
 	s.Require().Equal(int64(5), response.Items[0].Id)
-	s.Require().EqualValues("admin", response.Items[0].RoleName)
 }
 
 func (s *UserTestSuite) TestCreateUserHappyPath() {
@@ -160,10 +182,9 @@ func (s *UserTestSuite) TestCreateUserHappyPath() {
 	err := s.grpcCli.
 		Invoke("admin/user/create_user").
 		JsonRequestBody(domain.CreateUserRequest{
-			RoleId:    1,
 			FirstName: "name",
 			LastName:  "surname",
-			Email:     "a@a.ru",
+			Email:     "a2@a.ru",
 			Password:  "password",
 		}).
 		ReadJsonResponse(&response).
@@ -177,15 +198,14 @@ func (s *UserTestSuite) TestCreateUserHappyPath() {
 }
 
 func (s *UserTestSuite) TestCreateUserAlreadyExist() {
-	InsertUser(s.db, entity.User{RoleId: 1, Email: "a@a.ru"})
+	InsertUser(s.db, entity.User{Email: "exists@a.ru"})
 
 	err := s.grpcCli.
 		Invoke("admin/user/create_user").
 		JsonRequestBody(domain.CreateUserRequest{
-			RoleId:    1,
 			FirstName: "name",
 			LastName:  "surname",
-			Email:     "a@a.ru",
+			Email:     "exists@a.ru",
 			Password:  "password",
 		}).
 		Do(context.Background())
@@ -196,14 +216,12 @@ func (s *UserTestSuite) TestCreateUserAlreadyExist() {
 }
 
 func (s *AuthTestSuite) TestUpdateUserHappyPath() {
-	id := InsertUser(s.db, entity.User{RoleId: 1, Email: "a@a.ru", Password: "password"})
+	id := InsertUser(s.db, entity.User{Email: "update@a.ru", Password: "password"})
 	req := domain.UpdateUserRequest{
 		Id:        id,
-		RoleId:    1,
 		FirstName: "name",
 		LastName:  "surname",
-		Email:     "a@a.ru",
-		Password:  "password",
+		Email:     "update@a.ru",
 	}
 	response := domain.User{}
 	err := s.grpcCli.
@@ -214,24 +232,21 @@ func (s *AuthTestSuite) TestUpdateUserHappyPath() {
 	s.Require().NoError(err)
 	expected := domain.UpdateUserRequest{
 		Id:        response.Id,
-		RoleId:    response.RoleId,
 		FirstName: response.FirstName,
 		LastName:  response.LastName,
 		Email:     response.Email,
-		Password:  req.Password,
 	}
 	s.Require().Equal(expected, req)
 }
 
 func (s *AuthTestSuite) TestUpdateSudirUserHappyPath() {
-	id, err := InsertSudirUser(s.db, entity.SudirUser{RoleId: 1, Email: "a@a.ru"})
+	id, err := InsertSudirUser(s.db, entity.SudirUser{Email: "sudir@a.ru"})
 	s.Require().NoError(err)
 	req := domain.UpdateUserRequest{
 		Id:        id,
-		RoleId:    1,
 		FirstName: "name",
 		LastName:  "surname",
-		Email:     "a@a.ru",
+		Email:     "sudir@a.ru",
 	}
 	response := domain.User{}
 	err = s.grpcCli.
@@ -242,7 +257,6 @@ func (s *AuthTestSuite) TestUpdateSudirUserHappyPath() {
 	s.Require().NoError(err)
 	expected := domain.UpdateUserRequest{
 		Id:        response.Id,
-		RoleId:    response.RoleId,
 		FirstName: response.FirstName,
 		LastName:  response.LastName,
 		Email:     response.Email,
@@ -250,37 +264,14 @@ func (s *AuthTestSuite) TestUpdateSudirUserHappyPath() {
 	s.Require().Equal(expected, req)
 }
 
-func (s *AuthTestSuite) TestUpdateSudirUserInvalidRequest() {
-	id, err := InsertSudirUser(s.db, entity.SudirUser{RoleId: 1, Email: "a@a.ru"})
-	s.Require().NoError(err)
-	req := domain.UpdateUserRequest{
-		Id:        id,
-		RoleId:    1,
-		FirstName: "name",
-		LastName:  "surname",
-		Email:     "a@a.ru",
-		Password:  "password",
-	}
-	err = s.grpcCli.
-		Invoke("admin/user/update_user").
-		JsonRequestBody(req).
-		Do(context.Background())
-	s.Require().Error(err)
-	st, ok := status.FromError(err)
-	s.Require().True(ok)
-	s.Require().Equal(codes.InvalidArgument, st.Code())
-}
-
 func (s *AuthTestSuite) TestUpdateUserAlreadyExist() {
-	InsertUser(s.db, entity.User{RoleId: 1, Email: "a@a.ru", Password: "password"})
-	id := InsertUser(s.db, entity.User{RoleId: 1, Email: "b@b.ru", Password: "password"})
+	InsertUser(s.db, entity.User{Email: "a_exists@a.ru", Password: "password"})
+	id := InsertUser(s.db, entity.User{Email: "b_exists@b.ru", Password: "password"})
 	req := domain.UpdateUserRequest{
 		Id:        id,
-		RoleId:    1,
 		FirstName: "name",
 		LastName:  "surname",
-		Email:     "a@a.ru",
-		Password:  "password",
+		Email:     "a_exists@a.ru",
 	}
 	err := s.grpcCli.
 		Invoke("admin/user/update_user").
@@ -293,10 +284,10 @@ func (s *AuthTestSuite) TestUpdateUserAlreadyExist() {
 }
 
 func (s *UserTestSuite) TestDeleteUsers() {
-	InsertUser(s.db, entity.User{RoleId: 1, Email: "a@a.ru"})
-	InsertUser(s.db, entity.User{RoleId: 1, Email: "b@a.ru"})
-	InsertUser(s.db, entity.User{RoleId: 1, Email: "a@b.ru"})
-	InsertUser(s.db, entity.User{RoleId: 1, Email: "a@c.ru"})
+	InsertUser(s.db, entity.User{Email: "a_del@a.ru"})
+	InsertUser(s.db, entity.User{Email: "b_del@a.ru"})
+	InsertUser(s.db, entity.User{Email: "a_del@b.ru"})
+	InsertUser(s.db, entity.User{Email: "a_del@c.ru"})
 
 	response := domain.DeleteResponse{}
 	err := s.grpcCli.Invoke("admin/user/delete_user").
@@ -308,10 +299,9 @@ func (s *UserTestSuite) TestDeleteUsers() {
 
 func (s *UserTestSuite) TestBlockUser() {
 	id := InsertUser(s.db, entity.User{
-		RoleId:    1,
 		FirstName: "John",
 		LastName:  "Doe",
-		Email:     "a@a.ru",
+		Email:     "a_block@a.ru",
 		Password:  "password",
 		Blocked:   false,
 	})

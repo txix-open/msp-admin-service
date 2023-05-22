@@ -77,7 +77,6 @@ func (s *AuthTestSuite) SetupTest() {
 
 func (s *AuthTestSuite) TestLoginHappyPath() {
 	id := InsertUser(s.db, entity.User{
-		RoleId:    1,
 		FirstName: "John",
 		LastName:  "Doe",
 		Email:     "a@a.ru",
@@ -113,7 +112,6 @@ func (s *AuthTestSuite) TestLoginNotFound() {
 
 func (s *AuthTestSuite) TestBlockedUser() {
 	InsertUser(s.db, entity.User{
-		RoleId:    1,
 		FirstName: "John",
 		LastName:  "Doe",
 		Email:     "a@a.ru",
@@ -135,7 +133,6 @@ func (s *AuthTestSuite) TestBlockedUser() {
 
 func (s *AuthTestSuite) TestLoginWrongPassword() {
 	InsertUser(s.db, entity.User{
-		RoleId:    1,
 		FirstName: "John",
 		LastName:  "Doe",
 		Email:     "a@a.ru",
@@ -165,8 +162,7 @@ func (s *AuthTestSuite) TestSudirLoginHappyPath() {
 		Do(context.Background())
 	s.Require().NoError(err)
 	user := entity.User{}
-	s.db.Must().SelectRow(&user, "select id, role_id, email from users where sudir_user_id = $1", "sudirUser1")
-	s.Require().Equal(3, user.RoleId)
+	s.db.Must().SelectRow(&user, "select id, email from users where sudir_user_id = $1", "sudirUser1")
 	s.Require().Equal("sudir@email.ru", user.Email)
 
 	tokenInfo := SelectTokenEntityByToken(s.db, response.Token)
@@ -205,7 +201,7 @@ func (s *AuthTestSuite) initMockSudir() (*httptest.Server, string) {
 }
 
 func (s *AuthTestSuite) Test_Logout_HappyPath() {
-	userId := InsertUser(s.db, entity.User{RoleId: 1})
+	userId := InsertUser(s.db, entity.User{Email: "suslik@mail.ru"})
 	InsertTokenEntity(s.db, entity.Token{
 		Token:     "token-841297641213",
 		UserId:    userId,
@@ -230,7 +226,7 @@ func (s *AuthTestSuite) Test_Logout_NotFound() {
 }
 
 func (s *AuthTestSuite) Test_Logout_AlreadyRevoke() {
-	userId := InsertUser(s.db, entity.User{RoleId: 1})
+	userId := InsertUser(s.db, entity.User{Email: "suslik@mail.ru"})
 	InsertTokenEntity(s.db, entity.Token{
 		Token:     "token-148623719462",
 		UserId:    userId,
@@ -249,7 +245,6 @@ func (s *AuthTestSuite) Test_Logout_AlreadyRevoke() {
 
 func (s *AuthTestSuite) TestBruteForceLogin() {
 	_ = InsertUser(s.db, entity.User{
-		RoleId:    1,
 		FirstName: "John",
 		LastName:  "Doe",
 		Email:     "a@a.ru",

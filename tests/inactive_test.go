@@ -20,8 +20,8 @@ func TestInactiveWorker(t *testing.T) {
 	test, require := test.New(t)
 	db := dbt.New(test, dbx.WithMigration("../migrations"))
 
-	userId := InsertUser(db, entity.User{RoleId: 1, Email: "a@test"})
-	InsertUser(db, entity.User{RoleId: 1, Email: "b@test"})
+	userId := InsertUser(db, entity.User{Email: "a@test"})
+	InsertUser(db, entity.User{Email: "b@test"})
 	InsertTokenEntity(db, entity.Token{
 		Id:        0,
 		Token:     "123",
