@@ -25,7 +25,7 @@ import (
 )
 
 type tokenService interface {
-	GenerateToken(ctx context.Context, id int64) (string, string, error)
+	GenerateToken(ctx context.Context, tokenRep service.TokenSaver, id int64) (string, string, error)
 }
 
 func TestUserTestSuite(t *testing.T) {
@@ -175,12 +175,15 @@ func (s *UserTestSuite) TestGetUsers() {
 }
 
 func (s *UserTestSuite) TestCreateUserHappyPath() {
+	admin := InsertUser(s.db, entity.User{Email: "admin@a.ru"})
+
 	preCount := 0
 	s.db.Must().SelectRow(&preCount, "select count(*) from users")
 
 	response := entity.User{}
 	err := s.grpcCli.
 		Invoke("admin/user/create_user").
+		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(admin))).
 		JsonRequestBody(domain.CreateUserRequest{
 			FirstName: "name",
 			LastName:  "surname",
@@ -198,10 +201,11 @@ func (s *UserTestSuite) TestCreateUserHappyPath() {
 }
 
 func (s *UserTestSuite) TestCreateUserAlreadyExist() {
-	InsertUser(s.db, entity.User{Email: "exists@a.ru"})
+	id := InsertUser(s.db, entity.User{Email: "exists@a.ru"})
 
 	err := s.grpcCli.
 		Invoke("admin/user/create_user").
+		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(id))).
 		JsonRequestBody(domain.CreateUserRequest{
 			FirstName: "name",
 			LastName:  "surname",
@@ -226,6 +230,7 @@ func (s *AuthTestSuite) TestUpdateUserHappyPath() {
 	response := domain.User{}
 	err := s.grpcCli.
 		Invoke("admin/user/update_user").
+		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(id))).
 		JsonRequestBody(req).
 		ReadJsonResponse(&response).
 		Do(context.Background())
@@ -251,6 +256,7 @@ func (s *AuthTestSuite) TestUpdateSudirUserHappyPath() {
 	response := domain.User{}
 	err = s.grpcCli.
 		Invoke("admin/user/update_user").
+		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(id))).
 		JsonRequestBody(req).
 		ReadJsonResponse(&response).
 		Do(context.Background())
@@ -265,7 +271,7 @@ func (s *AuthTestSuite) TestUpdateSudirUserHappyPath() {
 }
 
 func (s *AuthTestSuite) TestUpdateUserAlreadyExist() {
-	InsertUser(s.db, entity.User{Email: "a_exists@a.ru", Password: "password"})
+	admin := InsertUser(s.db, entity.User{Email: "a_exists@a.ru", Password: "password"})
 	id := InsertUser(s.db, entity.User{Email: "b_exists@b.ru", Password: "password"})
 	req := domain.UpdateUserRequest{
 		Id:        id,
@@ -275,6 +281,7 @@ func (s *AuthTestSuite) TestUpdateUserAlreadyExist() {
 	}
 	err := s.grpcCli.
 		Invoke("admin/user/update_user").
+		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(admin))).
 		JsonRequestBody(req).
 		Do(context.Background())
 	s.Require().Error(err)
@@ -284,13 +291,14 @@ func (s *AuthTestSuite) TestUpdateUserAlreadyExist() {
 }
 
 func (s *UserTestSuite) TestDeleteUsers() {
-	InsertUser(s.db, entity.User{Email: "a_del@a.ru"})
+	admin := InsertUser(s.db, entity.User{Email: "a_del@a.ru"})
 	InsertUser(s.db, entity.User{Email: "b_del@a.ru"})
 	InsertUser(s.db, entity.User{Email: "a_del@b.ru"})
 	InsertUser(s.db, entity.User{Email: "a_del@c.ru"})
 
 	response := domain.DeleteResponse{}
 	err := s.grpcCli.Invoke("admin/user/delete_user").
+		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(admin))).
 		JsonRequestBody(domain.IdentitiesRequest{Ids: []int64{3, 4}}).ReadJsonResponse(&response).Do(context.Background())
 	s.Require().NoError(err)
 
