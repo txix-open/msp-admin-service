@@ -19,7 +19,6 @@ type userService interface {
 	UpdateUser(ctx context.Context, req domain.UpdateUserRequest) (*domain.User, error)
 	DeleteUsers(ctx context.Context, ids []int64) (int, error)
 	Block(ctx context.Context, userId int) error
-	Roles(ctx context.Context) ([]domain.Role, error)
 	GetById(ctx context.Context, userId int) (*domain.User, error)
 }
 
@@ -185,25 +184,6 @@ func (u User) Block(ctx context.Context, identities domain.IdRequest) error {
 		return errors.WithMessage(err, "block")
 	}
 	return nil
-}
-
-// GetRoles
-// @Tags user
-// @Summary Список доступных ролей
-// @Accept json
-// @Produce json
-// @Param X-AUTH-ADMIN header string true "Токен администратора"
-// @Success 200 {array} domain.Role
-// @Failure 400 {object} domain.GrpcError
-// @Failure 500 {object} domain.GrpcError
-// @Router /user/get_roles [POST]
-func (u User) GetRoles(ctx context.Context) ([]domain.Role, error) {
-	users, err := u.userService.Roles(ctx)
-	if err != nil {
-		return nil, errors.WithMessage(err, "get roles")
-	}
-
-	return users, nil
 }
 
 // GetById

@@ -26,21 +26,29 @@ type tokenRepo interface {
 }
 
 type userRoleRepo interface {
+	GetRolesByUserId(ctx context.Context, identity int) ([]int, error)
+	GetRolesByUserIds(ctx context.Context, identity []int) ([]entity.UserRole, error)
+	Insert(ctx context.Context, id int, roleIds []int) error
+	ForceUpsert(ctx context.Context, id int, roleIds []int) error
+}
+
+type roleRepoUser interface {
 	GetRoleById(ctx context.Context, id int) (*entity.Role, error)
-	All(ctx context.Context) ([]entity.Role, error)
 }
 
 type User struct {
 	userRepo     userRepo
 	userRoleRepo userRoleRepo
+	roleRepoUser roleRepoUser
 	tokenRepo    tokenRepo
 	logger       log.Logger
 }
 
-func NewUser(userRepo userRepo, userRoleRepo userRoleRepo, tokenRepo tokenRepo, logger log.Logger) User {
+func NewUser(userRepo userRepo, userRoleRepo userRoleRepo, roleRepoUser roleRepoUser, tokenRepo tokenRepo, logger log.Logger) User {
 	return User{
 		userRepo:     userRepo,
 		userRoleRepo: userRoleRepo,
+		roleRepoUser: roleRepoUser,
 		tokenRepo:    tokenRepo,
 		logger:       logger,
 	}
@@ -55,19 +63,29 @@ func (u User) GetProfileById(ctx context.Context, userId int64) (*domain.AdminUs
 		return nil, errors.WithMessagef(domain.ErrUnauthenticated, "user '%d' is blocked", user.Id)
 	}
 
-	role, err := u.userRoleRepo.GetRoleById(ctx, user.RoleId)
+	roles, err := u.userRoleRepo.GetRolesByUserId(ctx, int(userId))
 	switch {
 	case errors.Is(err, domain.ErrNotFound):
-		return nil, errors.Errorf("unexpected role id %d", user.RoleId)
+		return nil, errors.Errorf("unexpected role-user id %d", userId)
 	case err != nil:
-		return nil, errors.WithMessagef(err, "get role by id %d", user.RoleId)
+		return nil, errors.WithMessagef(err, "get role by user id %d", userId)
+	}
+
+	role := &entity.Role{}
+	if len(roles) != 0 {
+		role, err = u.roleRepoUser.GetRoleById(ctx, roles[0])
+		if err != nil {
+			return nil, errors.WithMessage(err, "get roles")
+		}
 	}
 
 	return &domain.AdminUserShort{
-		FirstName: user.FirstName,
-		LastName:  user.LastName,
-		Email:     user.Email,
-		Role:      role.Name,
+		FirstName:   user.FirstName,
+		LastName:    user.LastName,
+		Email:       user.Email,
+		Role:        role.Name,
+		Roles:       roles,
+		Permissions: role.Permissions,
 	}, nil
 }
 
@@ -77,14 +95,24 @@ func (u User) GetUsers(ctx context.Context, req domain.UsersRequest) (*domain.Us
 		return nil, errors.WithMessage(err, "get users from repo")
 	}
 
-	roleNames, err := u.roleNames(ctx)
-	if err != nil {
-		return nil, errors.WithMessage(err, "role names")
+	userIds := make([]int, 0)
+	for _, user := range users {
+		userIds = append(userIds, int(user.Id))
 	}
+
+	rolesByUsers, err := u.userRoleRepo.GetRolesByUserIds(ctx, userIds)
 
 	items := make([]domain.User, 0, len(users))
 	for _, user := range users {
-		items = append(items, u.toDomain(user, roleNames))
+		roles := make([]int, 0)
+
+		for _, role := range rolesByUsers {
+			if role.UserId == int(user.Id) {
+				roles = append(roles, role.RoleId)
+			}
+		}
+
+		items = append(items, u.toDomain(user, roles))
 	}
 
 	return &domain.UsersResponse{Items: items}, err
@@ -106,19 +134,14 @@ func (u User) CreateUser(ctx context.Context, req domain.CreateUserRequest) (*do
 		return nil, errors.WithMessage(err, "crypt password")
 	}
 
-	roleNames, err := u.roleNames(ctx)
-	if err != nil {
-		return nil, errors.WithMessage(err, "role names")
-	}
-
 	usr := entity.User{
 		SudirUserId: nil,
 		Id:          0,
-		RoleId:      req.RoleId,
 		FirstName:   req.FirstName,
 		LastName:    req.LastName,
 		Email:       req.Email,
 		Password:    encryptedPassword,
+		Description: req.Description,
 		Blocked:     false,
 		UpdatedAt:   time.Now().UTC(),
 		CreatedAt:   time.Now().UTC(),
@@ -127,49 +150,35 @@ func (u User) CreateUser(ctx context.Context, req domain.CreateUserRequest) (*do
 	if err != nil {
 		return nil, errors.WithMessage(err, "create user")
 	}
-	usr.Id = int64(id)
-	result := u.toDomain(usr, roleNames)
 
+	if len(req.Roles) != 0 {
+		err = u.userRoleRepo.Insert(ctx, id, req.Roles)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	result := u.toDomain(usr, req.Roles)
 	return &result, nil
 }
 
 func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest) (*domain.User, error) {
-	user, err := u.userRepo.GetUserById(ctx, req.Id)
+	user, err := u.userRepo.GetUserByEmail(ctx, req.Email)
 	switch {
+	case errors.Is(err, domain.ErrNotFound):
+		break
 	case err != nil:
-		return nil, errors.WithMessage(err, "get user")
-	case req.Password != "" && user.SudirUserId != nil:
-		return nil, domain.ErrInvalid
-	}
-
-	if req.Email != "" && req.Email != user.Email {
-		knownUser, err := u.userRepo.GetUserByEmail(ctx, req.Email)
-		switch {
-		case err != nil:
-			return nil, errors.WithMessage(err, "get user by email")
-		case knownUser != nil:
-			return nil, domain.ErrAlreadyExists
-		}
-	}
-
-	if req.Password != "" {
-		req.Password, err = u.cryptPassword(req.Password)
-		if err != nil {
-			return nil, errors.WithMessage(err, "encrypt password")
-		}
-	}
-
-	roleNames, err := u.roleNames(ctx)
-	if err != nil {
-		return nil, errors.WithMessage(err, "role names")
+		return nil, errors.WithMessage(err, "get user by email or phone")
+	case user.Id != req.Id:
+		return nil, domain.ErrAlreadyExists
 	}
 
 	updateEntity := entity.UpdateUser{
-		RoleId:    req.RoleId,
-		FirstName: req.FirstName,
-		LastName:  req.LastName,
-		Email:     req.Email,
-		Password:  req.Password,
+		FirstName:            req.FirstName,
+		LastName:             req.LastName,
+		Email:                req.Email,
+		Description:          req.Description,
+		LastSessionCreatedAt: req.LastSessionCreatedAt,
 	}
 
 	user, err = u.userRepo.UpdateUser(ctx, req.Id, updateEntity)
@@ -177,8 +186,14 @@ func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest) (*do
 		return nil, errors.WithMessage(err, "update user")
 	}
 
-	result := u.toDomain(*user, roleNames)
+	if len(req.Roles) > 0 {
+		err = u.userRoleRepo.ForceUpsert(ctx, int(user.Id), req.Roles)
+		if err != nil {
+			return nil, errors.WithMessage(err, "force upsert")
+		}
+	}
 
+	result := u.toDomain(*user, req.Roles)
 	return &result, nil
 }
 
@@ -194,17 +209,17 @@ func (u User) DeleteUsers(ctx context.Context, ids []int64) (int, error) {
 }
 
 func (u User) GetById(ctx context.Context, userId int) (*domain.User, error) {
-	roleNames, err := u.roleNames(ctx)
-	if err != nil {
-		return nil, errors.WithMessage(err, "role names")
-	}
-
 	user, err := u.userRepo.GetUserById(ctx, int64(userId))
 	if err != nil {
 		return nil, errors.WithMessagef(err, "get user by id %d", userId)
 	}
 
-	result := u.toDomain(*user, roleNames)
+	roles, err := u.userRoleRepo.GetRolesByUserId(ctx, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	result := u.toDomain(*user, roles)
 
 	return &result, nil
 }
@@ -225,30 +240,6 @@ func (u User) Block(ctx context.Context, userId int) error {
 	return nil
 }
 
-func (u User) Roles(ctx context.Context) ([]domain.Role, error) {
-	roles, err := u.userRoleRepo.All(ctx)
-	if err != nil {
-		return nil, errors.WithMessage(err, "get all roles")
-	}
-
-	result := make([]domain.Role, 0)
-	for _, role := range roles {
-		desc := ""
-		if role.Description != nil {
-			desc = *role.Description
-		}
-		result = append(result, domain.Role{
-			Id:          role.Id,
-			Name:        role.Name,
-			Description: desc,
-			CreatedAt:   role.CreatedAt,
-			UpdatedAt:   role.UpdatedAt,
-		})
-	}
-
-	return result, nil
-}
-
 //nolint:gomnd
 func (u User) cryptPassword(password string) (string, error) {
 	passwordBytes, err := bcrypt.GenerateFromPassword([]byte(password), 12)
@@ -259,28 +250,17 @@ func (u User) cryptPassword(password string) (string, error) {
 	return string(passwordBytes), nil
 }
 
-func (u User) toDomain(user entity.User, roleNames map[int]string) domain.User {
+func (u User) toDomain(user entity.User, roleIds []int) domain.User {
 	return domain.User{
-		Id:        user.Id,
-		RoleId:    user.RoleId,
-		RoleName:  roleNames[user.RoleId],
-		FirstName: user.FirstName,
-		LastName:  user.LastName,
-		Email:     user.Email,
-		Blocked:   user.Blocked,
-		UpdatedAt: user.UpdatedAt,
-		CreatedAt: user.CreatedAt,
+		Id:                   user.Id,
+		Roles:                roleIds,
+		FirstName:            user.FirstName,
+		Description:          user.Description,
+		LastName:             user.LastName,
+		Email:                user.Email,
+		Blocked:              user.Blocked,
+		UpdatedAt:            user.UpdatedAt,
+		CreatedAt:            user.CreatedAt,
+		LastSessionCreatedAt: user.LastSessionCreatedAt,
 	}
-}
-
-func (u User) roleNames(ctx context.Context) (map[int]string, error) {
-	roles, err := u.userRoleRepo.All(ctx)
-	if err != nil {
-		return nil, errors.WithMessage(err, "get all roles")
-	}
-	result := make(map[int]string)
-	for _, role := range roles {
-		result[role.Id] = role.Name
-	}
-	return result, nil
 }

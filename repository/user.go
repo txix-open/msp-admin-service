@@ -74,12 +74,11 @@ func (u User) GetUserById(ctx context.Context, identity int64) (*entity.User, er
 func (u User) UpsertBySudirUserId(ctx context.Context, user entity.User) (*entity.User, error) {
 	sql_metrics.OperationLabelToContext(ctx, "User.UpsertBySudirUserId")
 
-	query := `
-	insert into users as u (role_id, first_name, last_name, email, created_at, updated_at, sudir_user_id) 
-	values ($1, $2, $3, $4, $5, $6, $7)
+	selectQ := `
+	insert into users as u (first_name, last_name, email, created_at, updated_at, sudir_user_id) 
+	values ($1, $2, $3, $4, $5, $6)
     on conflict (sudir_user_id) do update 
-    set role_id = excluded.role_id,
-        first_name = excluded.first_name,
+    set first_name = excluded.first_name,
         last_name = excluded.last_name,
         email = excluded.email,
         updated_at = excluded.updated_at 
@@ -89,14 +88,14 @@ func (u User) UpsertBySudirUserId(ctx context.Context, user entity.User) (*entit
 	result := entity.User{}
 	err := u.db.SelectRow(ctx,
 		&result,
-		query,
-		user.RoleId, user.FirstName, user.LastName, user.Email, user.CreatedAt, user.UpdatedAt, user.SudirUserId,
+		selectQ,
+		user.FirstName, user.LastName, user.Email, user.CreatedAt, user.UpdatedAt, user.SudirUserId,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, domain.ErrNotFound
 	}
 	if err != nil {
-		return nil, errors.WithMessagef(err, "select row: %s", query)
+		return nil, errors.WithMessagef(err, "select row: %s", selectQ)
 	}
 
 	return &result, nil
@@ -136,12 +135,12 @@ func (u User) GetUsers(ctx context.Context, ids []int64, offset, limit int, emai
 func (u User) Insert(ctx context.Context, user entity.User) (int, error) {
 	sql_metrics.OperationLabelToContext(ctx, "User.Insert")
 
-	query, args, err := query.New().
+	insertQ, args, err := query.New().
 		Insert("users").
-		Columns("role_id", "first_name", "last_name",
-			"email", "password", "created_at", "updated_at").
-		Values(user.RoleId, user.FirstName, user.LastName,
-			user.Email, user.Password, user.CreatedAt, user.UpdatedAt).
+		Columns("first_name", "last_name", "description",
+			"email", "password", "last_session_created_at", "created_at", "updated_at").
+		Values(user.FirstName, user.LastName, user.Description,
+			user.Email, user.Password, user.LastSessionCreatedAt, user.CreatedAt, user.UpdatedAt).
 		Suffix("returning id").
 		ToSql()
 	if err != nil {
@@ -149,9 +148,9 @@ func (u User) Insert(ctx context.Context, user entity.User) (int, error) {
 	}
 
 	id := 0
-	err = u.db.SelectRow(ctx, &id, query, args...)
+	err = u.db.SelectRow(ctx, &id, insertQ, args...)
 	if err != nil {
-		return 0, errors.WithMessagef(err, "select row: %s", query)
+		return 0, errors.WithMessagef(err, "select row: %s", insertQ)
 	}
 
 	return id, nil
@@ -164,14 +163,14 @@ func (u User) UpdateUser(ctx context.Context, id int64, user entity.UpdateUser) 
 	q, args, err := query.New().
 		Update("users").
 		SetMap(map[string]interface{}{
-			"role_id":    user.RoleId,
-			"first_name": user.FirstName,
-			"last_name":  user.LastName,
-			"email":      user.Email,
-			"password":   user.Password,
+			"first_name":              user.FirstName,
+			"last_name":               user.LastName,
+			"email":                   user.Email,
+			"description":             user.Description,
+			"last_session_created_at": user.LastSessionCreatedAt,
 		}).
 		Where(squirrel.Eq{"id": id}).
-		Suffix("RETURNING id, role_id, first_name, last_name, email, sudir_user_id, created_at, updated_at").
+		Suffix("RETURNING id, first_name, last_name, email, sudir_user_id, description, created_at, updated_at, last_session_created_at").
 		ToSql()
 	if err != nil {
 		return nil, errors.WithMessage(err, "build query")
@@ -183,7 +182,7 @@ func (u User) UpdateUser(ctx context.Context, id int64, user entity.UpdateUser) 
 		return nil, errors.WithMessage(err, "db select")
 	}
 
-	return &returning, err
+	return &returning, nil
 }
 
 func (u User) DeleteUser(ctx context.Context, ids []int64) (int, error) {
