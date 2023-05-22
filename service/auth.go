@@ -19,11 +19,16 @@ type auditService interface {
 type userRepository interface {
 	GetUserByEmail(ctx context.Context, email string) (*entity.User, error)
 	UpsertBySudirUserId(ctx context.Context, user entity.User) (*entity.User, error)
+	UpdateUser(ctx context.Context, id int64, user entity.UpdateUser) (*entity.User, error)
 }
 
 type tokenService interface {
 	GenerateToken(ctx context.Context, id int64) (string, string, error)
 	RevokeAllByUserId(ctx context.Context, userId int64) error
+}
+
+type authRoleRepository interface {
+	Insert(ctx context.Context, id int, roleIds []int) error
 }
 
 type sudirService interface {
@@ -35,6 +40,7 @@ type Auth struct {
 	tokenService             tokenService
 	sudirService             sudirService
 	auditService             auditService
+	authRoleRepository       authRoleRepository
 	logger                   log.Logger
 	maxInFlightLoginRequests int
 	delayLoginRequest        time.Duration
@@ -46,6 +52,7 @@ func NewAuth(
 	tokenService tokenService,
 	sudirService sudirService,
 	auditService auditService,
+	authRoleRepository authRoleRepository,
 	logger log.Logger,
 	delayLoginRequestInSec int,
 	maxInFlightLoginRequests int,
@@ -55,6 +62,7 @@ func NewAuth(
 		tokenService:             tokenService,
 		sudirService:             sudirService,
 		auditService:             auditService,
+		authRoleRepository:       authRoleRepository,
 		logger:                   logger,
 		delayLoginRequest:        time.Duration(delayLoginRequestInSec) * time.Second,
 		maxInFlightLoginRequests: maxInFlightLoginRequests,
@@ -99,6 +107,18 @@ func (a Auth) Login(ctx context.Context, request domain.LoginRequest) (*domain.L
 
 	a.auditService.SaveAuditAsync(ctx, user.Id, "Успешный вход через форму входа")
 
+	updateEntity := entity.UpdateUser{
+		FirstName:            user.FirstName,
+		LastName:             user.LastName,
+		Email:                user.Email,
+		Description:          user.Description,
+		LastSessionCreatedAt: time.Now().UTC(),
+	}
+	_, err = a.userRepository.UpdateUser(ctx, user.Id, updateEntity)
+	if err != nil {
+		return nil, errors.WithMessage(err, "update session info")
+	}
+
 	return &domain.LoginResponse{
 		Token:      tokenString,
 		Expired:    expired,
@@ -125,7 +145,6 @@ func (a Auth) LoginWithSudir(ctx context.Context, request domain.LoginSudirReque
 
 	user, err := a.userRepository.UpsertBySudirUserId(ctx, entity.User{
 		SudirUserId: &sudirUser.SudirUserId,
-		RoleId:      sudirUser.RoleId,
 		FirstName:   sudirUser.FirstName,
 		LastName:    sudirUser.LastName,
 		Email:       sudirUser.Email,
@@ -139,6 +158,14 @@ func (a Auth) LoginWithSudir(ctx context.Context, request domain.LoginSudirReque
 	}
 	if err != nil {
 		return nil, errors.WithMessage(err, "upsert by sudir user id")
+	}
+
+	// при создании юзера СУДИР первоначально роли не указаны
+	if len(sudirUser.RoleIds) > 0 {
+		err = a.authRoleRepository.Insert(ctx, int(user.Id), sudirUser.RoleIds)
+		if err != nil {
+			return nil, errors.WithMessage(err, "insert sudir roles")
+		}
 	}
 
 	tokenString, expired, err := a.tokenService.GenerateToken(ctx, user.Id)

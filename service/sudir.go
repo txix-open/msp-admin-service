@@ -66,8 +66,10 @@ func (s Sudir) Authenticate(ctx context.Context, authCode string) (*entity.Sudir
 	}*/
 
 	roleId, err := s.roleRepo.UpsertRoleByName(ctx, entity.Role{
-		Name:   user.GivenName,
-		Rights: map[string]string{},
+		Name:          user.GivenName,
+		Permissions:   []string{},
+		ExternalGroup: user.GivenName,
+		ChangeMessage: "",
 	})
 	if err != nil {
 		return nil, errors.WithMessage(err, "upsert role")
@@ -79,7 +81,7 @@ func (s Sudir) Authenticate(ctx context.Context, authCode string) (*entity.Sudir
 	}
 
 	return &entity.SudirUser{
-		RoleId:      roleId,
+		RoleIds:     []int{roleId},
 		SudirUserId: user.Sub,
 		FirstName:   user.GivenName,
 		LastName:    user.FamilyName,
