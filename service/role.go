@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 	"msp-admin-service/domain"
@@ -39,7 +40,7 @@ func (u Role) All(ctx context.Context) ([]domain.Role, error) {
 	return resRoles, nil
 }
 
-func (u Role) Create(ctx context.Context, req domain.CreateRoleRequest) (*domain.Role, error) {
+func (u Role) Create(ctx context.Context, req domain.CreateRoleRequest, adminId int64) (*domain.Role, error) {
 	role, err := u.roleRepo.Insert(ctx, entity.Role{
 		Name:          req.Name,
 		ExternalGroup: req.ExternalGroup,
@@ -51,11 +52,16 @@ func (u Role) Create(ctx context.Context, req domain.CreateRoleRequest) (*domain
 		return nil, errors.WithMessage(err, "create user")
 	}
 
+	u.auditService.SaveAuditAsync(ctx, adminId, fmt.Sprintf("Роль. Создание новой роли %s. %s",
+		role.Name,
+		role.ChangeMessage,
+	))
+
 	result := u.toDomain(*role)
 	return &result, nil
 }
 
-func (u Role) Update(ctx context.Context, req domain.UpdateRoleRequest) (*domain.Role, error) {
+func (u Role) Update(ctx context.Context, req domain.UpdateRoleRequest, adminId int64) (*domain.Role, error) {
 	role, err := u.roleRepo.Update(ctx, entity.Role{
 		Id:            req.Id,
 		Name:          req.Name,
@@ -68,16 +74,21 @@ func (u Role) Update(ctx context.Context, req domain.UpdateRoleRequest) (*domain
 		return nil, errors.WithMessage(err, "update user")
 	}
 
+	u.auditService.SaveAuditAsync(ctx, adminId, fmt.Sprintf("Роль. Изменение роли %s. %s",
+		role.Name,
+		role.ChangeMessage,
+	))
 	result := u.toDomain(*role)
 	return &result, nil
 }
 
-func (u Role) Delete(ctx context.Context, req domain.DeleteRoleRequest) error {
+func (u Role) Delete(ctx context.Context, req domain.DeleteRoleRequest, adminId int64) error {
 	err := u.roleRepo.Delete(ctx, req.Id)
 	if err != nil {
 		return errors.WithMessage(err, "delete role")
 	}
 
+	u.auditService.SaveAuditAsync(ctx, adminId, fmt.Sprintf("Роль. Удаление роли. ID: %d", req.Id))
 	return nil
 }
 

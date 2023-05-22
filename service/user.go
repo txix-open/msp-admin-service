@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/integration-system/isp-kit/log"
@@ -118,7 +119,7 @@ func (u User) GetUsers(ctx context.Context, req domain.UsersRequest) (*domain.Us
 	return &domain.UsersResponse{Items: items}, err
 }
 
-func (u User) CreateUser(ctx context.Context, req domain.CreateUserRequest) (*domain.User, error) {
+func (u User) CreateUser(ctx context.Context, req domain.CreateUserRequest, adminId int64) (*domain.User, error) {
 	user, err := u.userRepo.GetUserByEmail(ctx, req.Email)
 	switch {
 	case errors.Is(err, domain.ErrNotFound):
@@ -158,11 +159,15 @@ func (u User) CreateUser(ctx context.Context, req domain.CreateUserRequest) (*do
 		}
 	}
 
+	u.auditService.SaveAuditAsync(ctx, adminId,
+		fmt.Sprintf("Пользователь. Создание пользователя %s.", usr.Email),
+	)
+
 	result := u.toDomain(usr, req.Roles)
 	return &result, nil
 }
 
-func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest) (*domain.User, error) {
+func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, adminId int64) (*domain.User, error) {
 	user, err := u.userRepo.GetUserByEmail(ctx, req.Email)
 	switch {
 	case errors.Is(err, domain.ErrNotFound):
@@ -193,11 +198,15 @@ func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest) (*do
 		}
 	}
 
+	u.auditService.SaveAuditAsync(ctx, adminId,
+		fmt.Sprintf("Пользователь. Изменение пользователя %s.", user.Email),
+	)
+
 	result := u.toDomain(*user, req.Roles)
 	return &result, nil
 }
 
-func (u User) DeleteUsers(ctx context.Context, ids []int64) (int, error) {
+func (u User) DeleteUsers(ctx context.Context, ids []int64, adminId int64) (int, error) {
 	if len(ids) == 0 {
 		return 0, nil
 	}
@@ -205,6 +214,11 @@ func (u User) DeleteUsers(ctx context.Context, ids []int64) (int, error) {
 	if err != nil {
 		return 0, errors.WithMessage(err, "delete users")
 	}
+
+	u.auditService.SaveAuditAsync(ctx, adminId,
+		fmt.Sprintf("Пользователь. Удаление пользователей %d.", ids),
+	)
+
 	return count, err
 }
 

@@ -2,12 +2,10 @@ package controller
 
 import (
 	"context"
-	"strconv"
 
 	"github.com/integration-system/isp-kit/grpc"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"msp-admin-service/domain"
 )
@@ -15,9 +13,9 @@ import (
 type userService interface {
 	GetProfileById(ctx context.Context, userId int64) (*domain.AdminUserShort, error)
 	GetUsers(ctx context.Context, identities domain.UsersRequest) (*domain.UsersResponse, error)
-	CreateUser(ctx context.Context, req domain.CreateUserRequest) (*domain.User, error)
-	UpdateUser(ctx context.Context, req domain.UpdateUserRequest) (*domain.User, error)
-	DeleteUsers(ctx context.Context, ids []int64) (int, error)
+	CreateUser(ctx context.Context, req domain.CreateUserRequest, adminId int64) (*domain.User, error)
+	UpdateUser(ctx context.Context, req domain.UpdateUserRequest, adminId int64) (*domain.User, error)
+	DeleteUsers(ctx context.Context, ids []int64, adminId int64) (int, error)
 	Block(ctx context.Context, userId int) error
 	GetById(ctx context.Context, userId int) (*domain.User, error)
 }
@@ -45,17 +43,12 @@ func NewUser(userService userService) User {
 // @Failure 500 {object} domain.GrpcError
 // @Router /user/get_profile [POST]
 func (u User) GetProfile(ctx context.Context, authData grpc.AuthData) (*domain.AdminUserShort, error) {
-	adminIdInString, err := grpc.StringFromMd(domain.AdminAuthIdHeader, metadata.MD(authData))
+	adminId, err := getUserToken(authData)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, err.Error())
-	}
-	adminId, err := strconv.Atoi(adminIdInString)
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "admin id is not a number")
+		return nil, err
 	}
 
-	profile, err := u.userService.GetProfileById(ctx, int64(adminId))
-
+	profile, err := u.userService.GetProfileById(ctx, adminId)
 	switch {
 	case errors.Is(err, domain.ErrUnauthenticated):
 		return nil, status.Error(codes.Unauthenticated, "user is blocked")
@@ -102,9 +95,13 @@ func (u User) GetUsers(ctx context.Context, identities domain.UsersRequest) (*do
 // @Failure 409 {object} domain.GrpcError "Пользователь с указанным email уже существует"
 // @Failure 500 {object} domain.GrpcError
 // @Router /user/create_user [POST]
-func (u User) CreateUser(ctx context.Context, req domain.CreateUserRequest) (*domain.User, error) {
-	user, err := u.userService.CreateUser(ctx, req)
+func (u User) CreateUser(ctx context.Context, authData grpc.AuthData, req domain.CreateUserRequest) (*domain.User, error) {
+	adminId, err := getUserToken(authData)
+	if err != nil {
+		return nil, err
+	}
 
+	user, err := u.userService.CreateUser(ctx, req, adminId)
 	switch {
 	case errors.Is(err, domain.ErrAlreadyExists):
 		return nil, status.Error(codes.AlreadyExists, "user with the same email already exists")
@@ -129,9 +126,13 @@ func (u User) CreateUser(ctx context.Context, req domain.CreateUserRequest) (*do
 // @Failure 409 {object} domain.GrpcError "Пользователь с указанным email уже существует"
 // @Failure 500 {object} domain.GrpcError
 // @Router /user/update_user [POST]
-func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest) (*domain.User, error) {
-	result, err := u.userService.UpdateUser(ctx, req)
+func (u User) UpdateUser(ctx context.Context, authData grpc.AuthData, req domain.UpdateUserRequest) (*domain.User, error) {
+	adminId, err := getUserToken(authData)
+	if err != nil {
+		return nil, err
+	}
 
+	result, err := u.userService.UpdateUser(ctx, req, adminId)
 	switch {
 	case errors.Is(err, domain.ErrNotFound):
 		return nil, status.Error(codes.NotFound, "user not found")
@@ -158,8 +159,13 @@ func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest) (*do
 // @Failure 400 {object} domain.GrpcError "Невалидное тело запроса"
 // @Failure 500 {object} domain.GrpcError
 // @Router /user/delete_user [POST]
-func (u User) DeleteUser(ctx context.Context, identities domain.IdentitiesRequest) (*domain.DeleteResponse, error) {
-	deletedCount, err := u.userService.DeleteUsers(ctx, identities.Ids)
+func (u User) DeleteUser(ctx context.Context, authData grpc.AuthData, identities domain.IdentitiesRequest) (*domain.DeleteResponse, error) {
+	adminId, err := getUserToken(authData)
+	if err != nil {
+		return nil, err
+	}
+
+	deletedCount, err := u.userService.DeleteUsers(ctx, identities.Ids, adminId)
 	if err != nil {
 		return nil, errors.WithMessage(err, "delete")
 	}
@@ -178,7 +184,7 @@ func (u User) DeleteUser(ctx context.Context, identities domain.IdentitiesReques
 // @Failure 400 {object} domain.GrpcError "Невалидное тело запроса"
 // @Failure 500 {object} domain.GrpcError
 // @Router /user/block_user [POST]
-func (u User) Block(ctx context.Context, identities domain.IdRequest) error {
+func (u User) Block(ctx context.Context, authData grpc.AuthData, identities domain.IdRequest) error {
 	err := u.userService.Block(ctx, identities.UserId)
 	if err != nil {
 		return errors.WithMessage(err, "block")

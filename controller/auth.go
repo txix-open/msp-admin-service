@@ -43,17 +43,12 @@ func NewAuth(authService authService, logger log.Logger) Auth {
 // @Failure 500 {object} domain.GrpcError
 // @Router /auth/logout [POST]
 func (a Auth) Logout(ctx context.Context, authData grpc.AuthData) error {
-	token, err := grpc.StringFromMd(domain.AdminAuthIdHeader, metadata.MD(authData))
+	adminId, err := getUserToken(authData)
 	if err != nil {
-		return status.Error(codes.InvalidArgument, err.Error())
+		return err
 	}
 
-	adminId, err := strconv.Atoi(token)
-	if err != nil {
-		return status.Error(codes.InvalidArgument, "admin id is not a number")
-	}
-
-	err = a.authService.Logout(ctx, int64(adminId))
+	err = a.authService.Logout(ctx, adminId)
 	if err != nil {
 		return errors.WithMessage(err, "logout")
 	}
@@ -116,4 +111,18 @@ func (a Auth) LoginWithSudir(ctx context.Context, request domain.LoginSudirReque
 	default:
 		return auth, nil
 	}
+}
+
+func getUserToken(authData grpc.AuthData) (int64, error) {
+	token, err := grpc.StringFromMd(domain.AdminAuthIdHeader, metadata.MD(authData))
+	if err != nil {
+		return 0, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	adminId, err := strconv.Atoi(token)
+	if err != nil {
+		return 0, status.Error(codes.InvalidArgument, "admin id is not a number")
+	}
+
+	return int64(adminId), nil
 }

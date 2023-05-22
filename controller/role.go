@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 
+	"github.com/integration-system/isp-kit/grpc"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -11,9 +12,9 @@ import (
 
 type roleService interface {
 	All(ctx context.Context) ([]domain.Role, error)
-	Create(ctx context.Context, req domain.CreateRoleRequest) (*domain.Role, error)
-	Update(ctx context.Context, req domain.UpdateRoleRequest) (*domain.Role, error)
-	Delete(ctx context.Context, req domain.DeleteRoleRequest) error
+	Create(ctx context.Context, req domain.CreateRoleRequest, adminId int64) (*domain.Role, error)
+	Update(ctx context.Context, req domain.UpdateRoleRequest, adminId int64) (*domain.Role, error)
+	Delete(ctx context.Context, req domain.DeleteRoleRequest, adminId int64) error
 }
 
 type Role struct {
@@ -60,9 +61,13 @@ func (u Role) All(ctx context.Context) ([]domain.Role, error) {
 // @Failure 409 {object} domain.GrpcError "Пользователь с указанным email уже существует"
 // @Failure 500 {object} domain.GrpcError
 // @Router /user/create_user [POST]
-func (u Role) CreateRole(ctx context.Context, req domain.CreateRoleRequest) (*domain.Role, error) {
-	user, err := u.roleService.Create(ctx, req)
+func (u Role) CreateRole(ctx context.Context, authData grpc.AuthData, req domain.CreateRoleRequest) (*domain.Role, error) {
+	adminId, err := getUserToken(authData)
+	if err != nil {
+		return nil, err
+	}
 
+	user, err := u.roleService.Create(ctx, req, adminId)
 	switch {
 	case errors.Is(err, domain.ErrAlreadyExists):
 		return nil, status.Error(codes.AlreadyExists, "role with the same user-role pair")
@@ -87,9 +92,13 @@ func (u Role) CreateRole(ctx context.Context, req domain.CreateRoleRequest) (*do
 // @Failure 409 {object} domain.GrpcError "Пользователь с указанным email уже существует"
 // @Failure 500 {object} domain.GrpcError
 // @Router /user/update_user [POST]
-func (u Role) UpdateRole(ctx context.Context, req domain.UpdateRoleRequest) (*domain.Role, error) {
-	result, err := u.roleService.Update(ctx, req)
+func (u Role) UpdateRole(ctx context.Context, authData grpc.AuthData, req domain.UpdateRoleRequest) (*domain.Role, error) {
+	adminId, err := getUserToken(authData)
+	if err != nil {
+		return nil, err
+	}
 
+	result, err := u.roleService.Update(ctx, req, adminId)
 	switch {
 	case errors.Is(err, domain.ErrNotFound):
 		return nil, status.Error(codes.NotFound, "user not found")
@@ -116,8 +125,13 @@ func (u Role) UpdateRole(ctx context.Context, req domain.UpdateRoleRequest) (*do
 // @Failure 400 {object} domain.GrpcError "Невалидное тело запроса"
 // @Failure 500 {object} domain.GrpcError
 // @Router /user/delete_user [POST]
-func (u Role) DeleteRole(ctx context.Context, req domain.DeleteRoleRequest) error {
-	err := u.roleService.Delete(ctx, req)
+func (u Role) DeleteRole(ctx context.Context, authData grpc.AuthData, req domain.DeleteRoleRequest) error {
+	adminId, err := getUserToken(authData)
+	if err != nil {
+		return err
+	}
+
+	err = u.roleService.Delete(ctx, req, adminId)
 	if err != nil {
 		return errors.WithMessage(err, "delete")
 	}
