@@ -43,20 +43,25 @@ func (l Locator) Config(cfg conf.Remote) Config {
 	userRepo := repository.NewUser(l.db)
 	tokenRepo := repository.NewToken(l.db)
 	auditRepo := repository.NewAudit(l.db)
+	userRoleRepo := repository.NewUserRole(l.db)
 
 	auditService := service.NewAudit(auditRepo, l.logger)
 	tokenService := service.NewToken(tokenRepo, cfg.ExpireSec)
 	sudirService := service.NewSudir(cfg.SudirAuth, sudirRepo, roleRepo)
-	userService := service.NewUser(userRepo, roleRepo, tokenRepo, l.logger)
+	userService := service.NewUser(userRepo, userRoleRepo, roleRepo, tokenRepo, l.logger)
 	authService := service.NewAuth(
 		userRepo,
 		tokenService,
 		sudirService,
 		auditService,
+		userRoleRepo,
 		l.logger,
 		cfg.AntiBruteforce.DelayLoginRequestInSec,
 		cfg.AntiBruteforce.MaxInFlightLoginRequests,
 	)
+	roleService := service.NewRole(roleRepo)
+
+	permissionsService := service.NewPermission(cfg.Permissions)
 
 	userController := controller.NewUser(userService)
 	customizationController := controller.NewCustomization(cfg.UiDesign)
@@ -64,6 +69,8 @@ func (l Locator) Config(cfg conf.Remote) Config {
 	secureController := controller.NewSecure(tokenService)
 	sessionController := controller.NewSession(tokenService)
 	auditController := controller.NewAudit(auditService)
+	roleController := controller.NewRole(roleService)
+	permissionController := controller.NewPermissions(permissionsService)
 
 	handler := routes.Handler(
 		endpoint.DefaultWrapper(l.logger),
@@ -74,6 +81,8 @@ func (l Locator) Config(cfg conf.Remote) Config {
 			Secure:        secureController,
 			Session:       sessionController,
 			Audit:         auditController,
+			Role:          roleController,
+			Permissions:   permissionController,
 		},
 	)
 
