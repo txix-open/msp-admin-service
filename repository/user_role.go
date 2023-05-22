@@ -49,7 +49,7 @@ func (u UserRole) GetRolesByUserIds(ctx context.Context, identity []int) ([]enti
 	return roles, nil
 }
 
-func (u UserRole) Insert(ctx context.Context, id int, roleIds []int) error {
+func (u UserRole) InsertPairs(ctx context.Context, id int, roleIds []int) error {
 	rolesQ := query.New().
 		Insert("user_roles").
 		Columns("user_id", "role_id")

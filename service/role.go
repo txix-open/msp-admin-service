@@ -11,18 +11,20 @@ import (
 
 type roleRoleRepo interface {
 	All(ctx context.Context) ([]entity.Role, error)
-	Insert(ctx context.Context, role entity.Role) (*entity.Role, error)
+	InsertRole(ctx context.Context, role entity.Role) (*entity.Role, error)
 	Update(ctx context.Context, role entity.Role) (*entity.Role, error)
 	Delete(ctx context.Context, id int) error
 }
 
 type Role struct {
-	roleRepo roleRoleRepo
+	roleRepo     roleRoleRepo
+	auditService auditService
 }
 
-func NewRole(roleRepo roleRoleRepo) Role {
+func NewRole(roleRepo roleRoleRepo, audit auditService) Role {
 	return Role{
-		roleRepo: roleRepo,
+		roleRepo:     roleRepo,
+		auditService: audit,
 	}
 }
 
@@ -41,7 +43,7 @@ func (u Role) All(ctx context.Context) ([]domain.Role, error) {
 }
 
 func (u Role) Create(ctx context.Context, req domain.CreateRoleRequest, adminId int64) (*domain.Role, error) {
-	role, err := u.roleRepo.Insert(ctx, entity.Role{
+	role, err := u.roleRepo.InsertRole(ctx, entity.Role{
 		Name:          req.Name,
 		ExternalGroup: req.ExternalGroup,
 		ChangeMessage: req.ChangeMessage,

@@ -13,12 +13,16 @@ import (
 )
 
 type TokenRep interface {
-	Save(ctx context.Context, token entity.Token) error
+	TokenSaver
 	GetEntity(ctx context.Context, token string) (*entity.Token, error)
 	RevokeByUserId(ctx context.Context, userId int64, updatedAt time.Time) error
 	All(ctx context.Context, limit int, offset int) ([]entity.Token, error)
 	Count(ctx context.Context) (int64, error)
 	UpdateStatus(ctx context.Context, id int, status string) error
+}
+
+type TokenSaver interface {
+	Save(ctx context.Context, token entity.Token) error
 }
 
 type Token struct {
@@ -33,7 +37,7 @@ func NewToken(tokenRep TokenRep, lifeTimeInSec int) Token {
 	}
 }
 
-func (s Token) GenerateToken(ctx context.Context, id int64) (string, string, error) {
+func (s Token) GenerateToken(ctx context.Context, repo TokenSaver, id int64) (string, string, error) {
 	cryptoRand := make([]byte, 128) //nolint:gomnd
 	_, err := rand.Read(cryptoRand)
 	if err != nil {
@@ -44,7 +48,7 @@ func (s Token) GenerateToken(ctx context.Context, id int64) (string, string, err
 	createdAt := time.Now().UTC()
 	expiredAt := createdAt.Add(s.lifeTime)
 
-	err = s.tokenRep.Save(ctx, entity.Token{
+	err = repo.Save(ctx, entity.Token{
 		Token:     random,
 		UserId:    id,
 		Status:    entity.TokenStatusAllowed,

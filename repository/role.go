@@ -100,7 +100,7 @@ func (r Role) All(ctx context.Context) ([]entity.Role, error) {
 	return roles, nil
 }
 
-func (r Role) Insert(ctx context.Context, role entity.Role) (*entity.Role, error) {
+func (r Role) InsertRole(ctx context.Context, role entity.Role) (*entity.Role, error) {
 	q, args, err := query.New().Insert("roles").
 		Columns("name", "permissions", "change_message").
 		Values(role.Name, role.Permissions, role.ChangeMessage).

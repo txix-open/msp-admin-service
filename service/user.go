@@ -12,7 +12,17 @@ import (
 	"msp-admin-service/entity"
 )
 
-type userRepo interface {
+type UserTransaction interface {
+	UserRepo
+	UserRoleRepo
+	TokenRepo
+}
+
+type UserTransactionRunner interface {
+	UserTransaction(ctx context.Context, tx func(ctx context.Context, tx UserTransaction) error) error
+}
+
+type UserRepo interface {
 	GetUserById(ctx context.Context, identity int64) (*entity.User, error)
 	GetUsers(ctx context.Context, ids []int64, offset, limit int, email string) ([]entity.User, error)
 	GetUserByEmail(ctx context.Context, email string) (*entity.User, error)
@@ -22,14 +32,14 @@ type userRepo interface {
 	ChangeBlockStatus(ctx context.Context, userId int) (bool, error)
 }
 
-type tokenRepo interface {
+type TokenRepo interface {
 	UpdateStatusByUserId(ctx context.Context, userId int, status string) error
 }
 
-type userRoleRepo interface {
+type UserRoleRepo interface {
 	GetRolesByUserId(ctx context.Context, identity int) ([]int, error)
 	GetRolesByUserIds(ctx context.Context, identity []int) ([]entity.UserRole, error)
-	Insert(ctx context.Context, id int, roleIds []int) error
+	InsertPairs(ctx context.Context, id int, roleIds []int) error
 	ForceUpsert(ctx context.Context, id int, roleIds []int) error
 }
 
@@ -38,19 +48,31 @@ type roleRepoUser interface {
 }
 
 type User struct {
-	userRepo     userRepo
-	userRoleRepo userRoleRepo
+	userRepo     UserRepo
+	userRoleRepo UserRoleRepo
 	roleRepoUser roleRepoUser
-	tokenRepo    tokenRepo
+	tokenRepo    TokenRepo
+	auditService auditService
+	txRunner     UserTransactionRunner
 	logger       log.Logger
 }
 
-func NewUser(userRepo userRepo, userRoleRepo userRoleRepo, roleRepoUser roleRepoUser, tokenRepo tokenRepo, logger log.Logger) User {
+func NewUser(
+	userRepo UserRepo,
+	userRoleRepo UserRoleRepo,
+	roleRepoUser roleRepoUser,
+	tokenRepo TokenRepo,
+	service auditService,
+	txRunner UserTransactionRunner,
+	logger log.Logger,
+) User {
 	return User{
 		userRepo:     userRepo,
 		userRoleRepo: userRoleRepo,
 		roleRepoUser: roleRepoUser,
 		tokenRepo:    tokenRepo,
+		auditService: service,
+		txRunner:     txRunner,
 		logger:       logger,
 	}
 }
@@ -120,43 +142,52 @@ func (u User) GetUsers(ctx context.Context, req domain.UsersRequest) (*domain.Us
 }
 
 func (u User) CreateUser(ctx context.Context, req domain.CreateUserRequest, adminId int64) (*domain.User, error) {
-	user, err := u.userRepo.GetUserByEmail(ctx, req.Email)
-	switch {
-	case errors.Is(err, domain.ErrNotFound):
-		break
-	case err != nil:
-		return nil, errors.WithMessage(err, "get user by email or phone")
-	case user != nil:
-		return nil, domain.ErrAlreadyExists
-	}
+	var usr entity.User
 
-	encryptedPassword, err := u.cryptPassword(req.Password)
-	if err != nil {
-		return nil, errors.WithMessage(err, "crypt password")
-	}
-
-	usr := entity.User{
-		SudirUserId: nil,
-		Id:          0,
-		FirstName:   req.FirstName,
-		LastName:    req.LastName,
-		Email:       req.Email,
-		Password:    encryptedPassword,
-		Description: req.Description,
-		Blocked:     false,
-		UpdatedAt:   time.Now().UTC(),
-		CreatedAt:   time.Now().UTC(),
-	}
-	id, err := u.userRepo.Insert(ctx, usr)
-	if err != nil {
-		return nil, errors.WithMessage(err, "create user")
-	}
-
-	if len(req.Roles) != 0 {
-		err = u.userRoleRepo.Insert(ctx, id, req.Roles)
-		if err != nil {
-			return nil, err
+	err := u.txRunner.UserTransaction(ctx, func(ctx context.Context, tx UserTransaction) error {
+		user, err := tx.GetUserByEmail(ctx, req.Email)
+		switch {
+		case errors.Is(err, domain.ErrNotFound):
+			break
+		case err != nil:
+			return errors.WithMessage(err, "get user by email or phone")
+		case user != nil:
+			return domain.ErrAlreadyExists
 		}
+
+		encryptedPassword, err := u.cryptPassword(req.Password)
+		if err != nil {
+			return errors.WithMessage(err, "crypt password")
+		}
+
+		usr = entity.User{
+			SudirUserId: nil,
+			Id:          0,
+			FirstName:   req.FirstName,
+			LastName:    req.LastName,
+			Email:       req.Email,
+			Password:    encryptedPassword,
+			Description: req.Description,
+			Blocked:     false,
+			UpdatedAt:   time.Now().UTC(),
+			CreatedAt:   time.Now().UTC(),
+		}
+		id, err := tx.Insert(ctx, usr)
+		if err != nil {
+			return errors.WithMessage(err, "create user")
+		}
+
+		if len(req.Roles) != 0 {
+			err = tx.InsertPairs(ctx, id, req.Roles)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, errors.WithMessage(err, "create user transaction")
 	}
 
 	u.auditService.SaveAuditAsync(ctx, adminId,
@@ -168,34 +199,44 @@ func (u User) CreateUser(ctx context.Context, req domain.CreateUserRequest, admi
 }
 
 func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, adminId int64) (*domain.User, error) {
-	user, err := u.userRepo.GetUserByEmail(ctx, req.Email)
-	switch {
-	case errors.Is(err, domain.ErrNotFound):
-		break
-	case err != nil:
-		return nil, errors.WithMessage(err, "get user by email or phone")
-	case user.Id != req.Id:
-		return nil, domain.ErrAlreadyExists
-	}
+	var user *entity.User
 
-	updateEntity := entity.UpdateUser{
-		FirstName:            req.FirstName,
-		LastName:             req.LastName,
-		Email:                req.Email,
-		Description:          req.Description,
-		LastSessionCreatedAt: req.LastSessionCreatedAt,
-	}
-
-	user, err = u.userRepo.UpdateUser(ctx, req.Id, updateEntity)
-	if err != nil {
-		return nil, errors.WithMessage(err, "update user")
-	}
-
-	if len(req.Roles) > 0 {
-		err = u.userRoleRepo.ForceUpsert(ctx, int(user.Id), req.Roles)
-		if err != nil {
-			return nil, errors.WithMessage(err, "force upsert")
+	err := u.txRunner.UserTransaction(ctx, func(ctx context.Context, tx UserTransaction) error {
+		var err error
+		user, err = tx.GetUserByEmail(ctx, req.Email)
+		switch {
+		case errors.Is(err, domain.ErrNotFound):
+			return err
+		case err != nil:
+			return errors.WithMessage(err, "get user by email or phone")
+		case user.Id != req.Id:
+			return domain.ErrAlreadyExists
 		}
+
+		updateEntity := entity.UpdateUser{
+			FirstName:            req.FirstName,
+			LastName:             req.LastName,
+			Email:                req.Email,
+			Description:          req.Description,
+			LastSessionCreatedAt: req.LastSessionCreatedAt,
+		}
+
+		user, err = tx.UpdateUser(ctx, req.Id, updateEntity)
+		if err != nil {
+			return errors.WithMessage(err, "update user")
+		}
+
+		if len(req.Roles) > 0 {
+			err = tx.ForceUpsert(ctx, int(user.Id), req.Roles)
+			if err != nil {
+				return errors.WithMessage(err, "force upsert")
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, errors.WithMessage(err, "update user transaction")
 	}
 
 	u.auditService.SaveAuditAsync(ctx, adminId,
@@ -239,16 +280,24 @@ func (u User) GetById(ctx context.Context, userId int) (*domain.User, error) {
 }
 
 func (u User) Block(ctx context.Context, userId int) error {
-	blocked, err := u.userRepo.ChangeBlockStatus(ctx, userId)
-	if err != nil {
-		return errors.WithMessage(err, "change block status")
-	}
-
-	if blocked {
-		err := u.tokenRepo.UpdateStatusByUserId(ctx, userId, entity.TokenStatusRevoked)
+	err := u.txRunner.UserTransaction(ctx, func(ctx context.Context, tx UserTransaction) error {
+		blocked, err := tx.ChangeBlockStatus(ctx, userId)
 		if err != nil {
-			return errors.WithMessage(err, "revoke tokens")
+			return errors.WithMessage(err, "change block status")
 		}
+
+		if blocked {
+			err := tx.UpdateStatusByUserId(ctx, userId, entity.TokenStatusRevoked)
+			if err != nil {
+				return errors.WithMessage(err, "revoke tokens")
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return errors.WithMessage(err, "block user transaction")
 	}
 
 	return nil

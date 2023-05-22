@@ -12,15 +12,21 @@ import (
 	"msp-admin-service/routes"
 	"msp-admin-service/service"
 	"msp-admin-service/service/worker"
+	"msp-admin-service/transaction"
 )
+
+type DB interface {
+	db.DB
+	db.Transactional
+}
 
 type Locator struct {
 	logger  log.Logger
 	httpCli *httpcli.Client
-	db      db.DB
+	db      DB
 }
 
-func NewLocator(logger log.Logger, httpCli *httpcli.Client, db db.DB) Locator {
+func NewLocator(logger log.Logger, httpCli *httpcli.Client, db DB) Locator {
 	return Locator{
 		logger:  logger,
 		httpCli: httpCli,
@@ -47,10 +53,22 @@ func (l Locator) Config(cfg conf.Remote) Config {
 
 	auditService := service.NewAudit(auditRepo, l.logger)
 	tokenService := service.NewToken(tokenRepo, cfg.ExpireSec)
-	sudirService := service.NewSudir(cfg.SudirAuth, sudirRepo, roleRepo)
-	userService := service.NewUser(userRepo, userRoleRepo, roleRepo, tokenRepo, l.logger)
+	sudirService := service.NewSudir(cfg.SudirAuth, sudirRepo)
+
+	txManager := transaction.NewManager(l.db)
+
+	userService := service.NewUser(
+		userRepo,
+		userRoleRepo,
+		roleRepo,
+		tokenRepo,
+		auditService,
+		txManager,
+		l.logger,
+	)
 	authService := service.NewAuth(
 		userRepo,
+		txManager,
 		tokenService,
 		sudirService,
 		auditService,
@@ -59,7 +77,7 @@ func (l Locator) Config(cfg conf.Remote) Config {
 		cfg.AntiBruteforce.DelayLoginRequestInSec,
 		cfg.AntiBruteforce.MaxInFlightLoginRequests,
 	)
-	roleService := service.NewRole(roleRepo)
+	roleService := service.NewRole(roleRepo, auditService)
 
 	permissionsService := service.NewPermission(cfg.Permissions)
 

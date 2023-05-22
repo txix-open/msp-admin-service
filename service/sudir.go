@@ -27,18 +27,16 @@ type roleRepo interface {
 type Sudir struct {
 	cfg       *conf.SudirAuth
 	sudirRepo sudirRepo
-	roleRepo  roleRepo
 }
 
-func NewSudir(cfg *conf.SudirAuth, sudirRepo sudirRepo, roleRepo roleRepo) Sudir {
+func NewSudir(cfg *conf.SudirAuth, sudirRepo sudirRepo) Sudir {
 	return Sudir{
 		cfg:       cfg,
 		sudirRepo: sudirRepo,
-		roleRepo:  roleRepo,
 	}
 }
 
-func (s Sudir) Authenticate(ctx context.Context, authCode string) (*entity.SudirUser, error) {
+func (s Sudir) Authenticate(ctx context.Context, authCode string, roleRepo roleRepo) (*entity.SudirUser, error) {
 	if s.cfg == nil {
 		return nil, domain.ErrSudirAuthIsMissed
 	}
@@ -65,7 +63,7 @@ func (s Sudir) Authenticate(ctx context.Context, authCode string) (*entity.Sudir
 		return nil, errors.New("undefined role")
 	}*/
 
-	roleId, err := s.roleRepo.UpsertRoleByName(ctx, entity.Role{
+	roleId, err := roleRepo.UpsertRoleByName(ctx, entity.Role{
 		Name:          user.GivenName,
 		Permissions:   []string{},
 		ExternalGroup: user.GivenName,
