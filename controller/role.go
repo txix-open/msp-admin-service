@@ -28,70 +28,68 @@ func NewRole(roleService roleService) Role {
 }
 
 // All
-// @Tags user
-// @Summary Список пользователей
-// @Description Получить список пользователей
+// @Tags role
+// @Summary Список ролей
+// @Description Получить список ролей
 // @Accept json
 // @Produce json
 // @Param X-AUTH-ADMIN header string true "Токен администратора"
-// @Param body body domain.UsersRequest true "Тело запроса"
-// @Success 200 {object} domain.UsersResponse
+// @Success 200 {array} domain.Role
 // @Failure 400 {object} domain.GrpcError
 // @Failure 500 {object} domain.GrpcError
-// @Router /user/get_users [POST]
+// @Router /role/all [POST]
 func (u Role) All(ctx context.Context) ([]domain.Role, error) {
 	users, err := u.roleService.All(ctx)
 	if err != nil {
-		return nil, errors.WithMessage(err, "get users")
+		return nil, errors.WithMessage(err, "get roles")
 	}
 
 	return users, nil
 }
 
-// CreateUser
+// CreateRole
 // @Tags user
-// @Summary Создать пользователя
-// @Description Создать пользователя
+// @Summary Создать роль
+// @Description Создать роль
 // @Accept json
 // @Produce json
 // @Param X-AUTH-ADMIN header string true "Токен администратора"
-// @Param body body domain.CreateUserRequest true "Тело запроса"
+// @Param body body domain.CreateRoleRequest true "Тело запроса"
 // @Success 200 {object} domain.User
 // @Failure 400 {object} domain.GrpcError "Невалидное тело запроса"
-// @Failure 409 {object} domain.GrpcError "Пользователь с указанным email уже существует"
+// @Failure 409 {object} domain.GrpcError "Роль с указанным именем уже существует"
 // @Failure 500 {object} domain.GrpcError
-// @Router /user/create_user [POST]
+// @Router /role/create [POST]
 func (u Role) CreateRole(ctx context.Context, authData grpc.AuthData, req domain.CreateRoleRequest) (*domain.Role, error) {
 	adminId, err := getUserToken(authData)
 	if err != nil {
 		return nil, err
 	}
 
-	user, err := u.roleService.Create(ctx, req, adminId)
+	role, err := u.roleService.Create(ctx, req, adminId)
 	switch {
 	case errors.Is(err, domain.ErrAlreadyExists):
-		return nil, status.Error(codes.AlreadyExists, "role with the same user-role pair")
+		return nil, status.Error(codes.AlreadyExists, "role with current name already exists")
 	case err != nil:
 		return nil, errors.WithMessage(err, "create role")
 	default:
-		return user, nil
+		return role, nil
 	}
 }
 
-// UpdateUser
-// @Tags user
-// @Summary Обновить пользователя
-// @Description Обновить данные существующего пользователя
+// UpdateRole
+// @Tags role
+// @Summary Обновить роль
+// @Description Обновить данные существующую роль
 // @Accept json
 // @Produce json
 // @Param X-AUTH-ADMIN header string true "Токен администратора"
-// @Param body body domain.UpdateUserRequest true "Тело запроса"
-// @Success 200 {object} domain.User
-// @Failure 400 {object} domain.GrpcError "Невалидное тело запроса"
-// @Failure 404 {object} domain.GrpcError "Пользователь с указанным id не существует"
-// @Failure 409 {object} domain.GrpcError "Пользователь с указанным email уже существует"
+// @Param body body domain.UpdateRoleRequest true "Тело запроса"
+// @Success 200 {object} domain.Role
+// @Failure 404 {object} domain.GrpcError "Роль с указанным id не существует"
+// @Failure 409 {object} domain.GrpcError "Роль с указанным именем уже существует"
 // @Failure 500 {object} domain.GrpcError
-// @Router /user/update_user [POST]
+// @Router /role/update [POST]
 func (u Role) UpdateRole(ctx context.Context, authData grpc.AuthData, req domain.UpdateRoleRequest) (*domain.Role, error) {
 	adminId, err := getUserToken(authData)
 	if err != nil {
@@ -101,30 +99,28 @@ func (u Role) UpdateRole(ctx context.Context, authData grpc.AuthData, req domain
 	result, err := u.roleService.Update(ctx, req, adminId)
 	switch {
 	case errors.Is(err, domain.ErrNotFound):
-		return nil, status.Error(codes.NotFound, "user not found")
-	case errors.Is(err, domain.ErrInvalid):
-		return nil, status.Error(codes.InvalidArgument, "user modification is not available")
+		return nil, status.Error(codes.NotFound, "role not found")
 	case errors.Is(err, domain.ErrAlreadyExists):
-		return nil, status.Error(codes.AlreadyExists, "user with the same email already exists")
+		return nil, status.Error(codes.AlreadyExists, "role with current name already exists")
 	case err != nil:
-		return nil, errors.WithMessage(err, "update user")
+		return nil, errors.WithMessage(err, "update role")
 	default:
 		return result, nil
 	}
 }
 
-// DeleteUser
-// @Tags user
-// @Summary Удалить пользователя
-// @Description Удалить существующего пользователя
+// DeleteRole
+// @Tags role
+// @Summary Удалить роль
+// @Description Удалить существующую роль
 // @Accept json
 // @Produce json
 // @Param X-AUTH-ADMIN header string true "Токен администратора"
-// @Param body body domain.IdentitiesRequest true "Тело запроса"
-// @Success 200 {object} domain.DeleteResponse
+// @Param body body domain.DeleteRoleRequest true "Тело запроса"
+// @Success 200
 // @Failure 400 {object} domain.GrpcError "Невалидное тело запроса"
 // @Failure 500 {object} domain.GrpcError
-// @Router /user/delete_user [POST]
+// @Router /role/delete [POST]
 func (u Role) DeleteRole(ctx context.Context, authData grpc.AuthData, req domain.DeleteRoleRequest) error {
 	adminId, err := getUserToken(authData)
 	if err != nil {

@@ -20,17 +20,13 @@ func NewPermissions(permissionsService permissionsService) Permissions {
 	}
 }
 
-// GetProfile
+// GetPermissions
 // @Tags user
-// @Summary Получить профиль
-// @Description Получить данные профиля
+// @Summary Получить все разрашения
+// @Description Получить все разрашения
 // @Accept json
 // @Produce json
-// @Param X-AUTH-ADMIN header string true "Токен администратора"
-// @Success 200 {object} domain.AdminUserShort
-// @Failure 400 {object} domain.GrpcError "Невалидный токен"
-// @Failure 404 {object} domain.GrpcError "Пользователя не существует"
-// @Failure 500 {object} domain.GrpcError
+// @Success 200 {array} domain.Permission
 // @Router /user/get_profile [POST]
 func (u Permissions) GetPermissions(ctx context.Context) []domain.Permission {
 	return u.permissionsService.All(ctx)
