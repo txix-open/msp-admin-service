@@ -164,11 +164,10 @@ func (u User) UpdateUser(ctx context.Context, id int64, user entity.UpdateUser) 
 	q, args, err := query.New().
 		Update("users").
 		SetMap(map[string]interface{}{
-			"first_name":              user.FirstName,
-			"last_name":               user.LastName,
-			"email":                   user.Email,
-			"description":             user.Description,
-			"last_session_created_at": user.LastSessionCreatedAt,
+			"first_name":  user.FirstName,
+			"last_name":   user.LastName,
+			"email":       user.Email,
+			"description": user.Description,
 		}).
 		Where(squirrel.Eq{"id": id}).
 		Suffix("RETURNING id, first_name, last_name, email, sudir_user_id, description, created_at, updated_at, last_session_created_at").
