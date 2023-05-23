@@ -67,7 +67,6 @@ func (s Sudir) Authenticate(ctx context.Context, authCode string, roleRepo roleR
 		Name:          user.GivenName,
 		Permissions:   []string{},
 		ExternalGroup: user.GivenName,
-		ChangeMessage: "",
 	})
 	if err != nil {
 		return nil, errors.WithMessage(err, "upsert role")
