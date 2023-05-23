@@ -16,7 +16,7 @@ type userService interface {
 	CreateUser(ctx context.Context, req domain.CreateUserRequest, adminId int64) (*domain.User, error)
 	UpdateUser(ctx context.Context, req domain.UpdateUserRequest, adminId int64) (*domain.User, error)
 	DeleteUsers(ctx context.Context, ids []int64, adminId int64) (int, error)
-	Block(ctx context.Context, userId int) error
+	Block(ctx context.Context, adminId int64, userId int) error
 	GetById(ctx context.Context, userId int) (*domain.User, error)
 }
 
@@ -185,7 +185,12 @@ func (u User) DeleteUser(ctx context.Context, authData grpc.AuthData, identities
 // @Failure 500 {object} domain.GrpcError
 // @Router /user/block_user [POST]
 func (u User) Block(ctx context.Context, authData grpc.AuthData, identities domain.IdRequest) error {
-	err := u.userService.Block(ctx, identities.UserId)
+	adminId, err := getUserToken(authData)
+	if err != nil {
+		return err
+	}
+
+	err = u.userService.Block(ctx, adminId, identities.UserId)
 	if err != nil {
 		return errors.WithMessage(err, "block")
 	}

@@ -293,7 +293,9 @@ func (u User) GetById(ctx context.Context, userId int) (*domain.User, error) {
 	return &result, nil
 }
 
-func (u User) Block(ctx context.Context, userId int) error {
+func (u User) Block(ctx context.Context, adminId int64, userId int) error {
+	userBlocked := "блокировка"
+
 	err := u.txRunner.UserTransaction(ctx, func(ctx context.Context, tx UserTransaction) error {
 		blocked, err := tx.ChangeBlockStatus(ctx, userId)
 		if err != nil {
@@ -307,12 +309,19 @@ func (u User) Block(ctx context.Context, userId int) error {
 			}
 		}
 
+		if !blocked {
+			userBlocked = "разблокировка"
+		}
+
 		return nil
 	})
-
 	if err != nil {
 		return errors.WithMessage(err, "block user transaction")
 	}
+
+	u.auditService.SaveAuditAsync(ctx, adminId,
+		fmt.Sprintf("Пользователь. %s пользователя ID %d.", userBlocked, userId),
+	)
 
 	return nil
 }

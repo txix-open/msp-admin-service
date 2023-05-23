@@ -14,6 +14,8 @@ type roleRoleRepo interface {
 	InsertRole(ctx context.Context, role entity.Role) (*entity.Role, error)
 	Update(ctx context.Context, role entity.Role) (*entity.Role, error)
 	Delete(ctx context.Context, id int) error
+	GetRoleByName(ctx context.Context, name string) (*entity.Role, error)
+	GetRoleByIds(ctx context.Context, id []int) ([]entity.Role, error)
 }
 
 type Role struct {
@@ -43,20 +45,29 @@ func (u Role) All(ctx context.Context) ([]domain.Role, error) {
 }
 
 func (u Role) Create(ctx context.Context, req domain.CreateRoleRequest, adminId int64) (*domain.Role, error) {
-	role, err := u.roleRepo.InsertRole(ctx, entity.Role{
+	role, err := u.roleRepo.GetRoleByName(ctx, req.Name)
+	switch {
+	case errors.Is(err, domain.ErrNotFound):
+		break
+	case err != nil:
+		return nil, errors.WithMessagef(err, "get role by name")
+	case role != nil:
+		return nil, domain.ErrAlreadyExists
+	}
+
+	role, err = u.roleRepo.InsertRole(ctx, entity.Role{
 		Name:          req.Name,
 		ExternalGroup: req.ExternalGroup,
-		ChangeMessage: req.ChangeMessage,
 		Permissions:   req.Permissions,
 	})
 
 	if err != nil {
-		return nil, errors.WithMessage(err, "create user")
+		return nil, errors.WithMessage(err, "create role")
 	}
 
-	u.auditService.SaveAuditAsync(ctx, adminId, fmt.Sprintf("Роль. Создание новой роли %s. %s",
-		role.Name,
-		role.ChangeMessage,
+	u.auditService.SaveAuditAsync(ctx, adminId, fmt.Sprintf("Роль. Создание новой роли %s. Причина: %s",
+		req.Name,
+		req.ChangeMessage,
 	))
 
 	result := u.toDomain(*role)
@@ -64,21 +75,38 @@ func (u Role) Create(ctx context.Context, req domain.CreateRoleRequest, adminId 
 }
 
 func (u Role) Update(ctx context.Context, req domain.UpdateRoleRequest, adminId int64) (*domain.Role, error) {
+	roleByName, err := u.roleRepo.GetRoleByName(ctx, req.Name)
+	switch {
+	case errors.Is(err, domain.ErrNotFound):
+		break
+	case err != nil:
+		return nil, errors.WithMessagef(err, "get role by id")
+	}
+
+	roles, err := u.roleRepo.GetRoleByIds(ctx, []int{req.Id})
+	switch {
+	case errors.Is(err, domain.ErrNotFound):
+		break
+	case err != nil:
+		return nil, errors.WithMessagef(err, "get role by id")
+	case roleByName != nil && roleByName.Id != roles[0].Id:
+		return nil, domain.ErrAlreadyExists
+	}
+
 	role, err := u.roleRepo.Update(ctx, entity.Role{
 		Id:            req.Id,
 		Name:          req.Name,
 		ExternalGroup: req.ExternalGroup,
-		ChangeMessage: req.ChangeMessage,
 		Permissions:   req.Permissions,
 	})
 
 	if err != nil {
-		return nil, errors.WithMessage(err, "update user")
+		return nil, errors.WithMessage(err, "update role")
 	}
 
-	u.auditService.SaveAuditAsync(ctx, adminId, fmt.Sprintf("Роль. Изменение роли %s. %s",
-		role.Name,
-		role.ChangeMessage,
+	u.auditService.SaveAuditAsync(ctx, adminId, fmt.Sprintf("Роль. Изменение роли %s. Причина: %s",
+		req.Name,
+		req.ChangeMessage,
 	))
 	result := u.toDomain(*role)
 	return &result, nil
@@ -99,7 +127,6 @@ func (u Role) toDomain(role entity.Role) domain.Role {
 		Id:            role.Id,
 		Name:          role.Name,
 		ExternalGroup: role.ExternalGroup,
-		ChangeMessage: role.ChangeMessage,
 		Permissions:   role.Permissions,
 		CreatedAt:     role.CreatedAt,
 		UpdatedAt:     role.UpdatedAt,

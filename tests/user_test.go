@@ -324,6 +324,7 @@ func (s *UserTestSuite) TestBlockUser() {
 	})
 
 	err := s.grpcCli.Invoke("admin/user/block_user").
+		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(id))).
 		JsonRequestBody(domain.IdRequest{UserId: int(id)}).
 		Do(context.Background())
 	s.Require().NoError(err)
