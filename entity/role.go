@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"database/sql/driver"
 	"time"
 
 	"github.com/integration-system/isp-kit/json"
@@ -10,7 +11,6 @@ type Role struct {
 	Id            int
 	Name          string
 	ExternalGroup string
-	ChangeMessage string
 	Permissions   PermList
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
@@ -18,14 +18,12 @@ type Role struct {
 
 type PermList []string
 
+// nolint
 func (p *PermList) Scan(src any) error {
-	var data []byte
-	switch v := src.(type) {
-	case string:
-		data = []byte(v)
-	case []byte:
-		data = v
-	}
+	return json.Unmarshal(src.([]byte), p)
+}
 
-	return json.Unmarshal(data, p)
+func (p PermList) Value() (driver.Value, error) {
+	bytes, err := json.Marshal(p)
+	return driver.Value(bytes), err
 }
