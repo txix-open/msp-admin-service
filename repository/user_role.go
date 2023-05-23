@@ -83,6 +83,10 @@ func (u UserRole) ForceUpsert(ctx context.Context, id int, roleIds []int) error 
 		return errors.WithMessage(err, "exec")
 	}
 
+	if len(roleIds) == 0 {
+		return nil
+	}
+
 	rolesQ := query.New().
 		Insert("user_roles").
 		Columns("user_id", "role_id")

@@ -2,9 +2,7 @@ package service
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/integration-system/isp-kit/json"
 	"msp-admin-service/conf"
 	"msp-admin-service/domain"
 )
@@ -14,14 +12,6 @@ type Permission struct {
 }
 
 func NewPermission(permissions []conf.Permission) *Permission {
-	perms := []string{}
-
-	for _, perm := range permissions {
-		perms = append(perms, perm.Key)
-	}
-
-	bb, _ := json.Marshal(perms)
-	fmt.Println(string(bb))
 	return &Permission{
 		permissions: toDomain(permissions),
 	}

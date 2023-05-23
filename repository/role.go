@@ -21,7 +21,7 @@ func NewRole(db db.DB) Role {
 	return Role{db: db}
 }
 
-func (r Role) GetRoleById(ctx context.Context, id int) (*entity.Role, error) {
+func (r Role) GetRoleByIds(ctx context.Context, id []int) ([]entity.Role, error) {
 	sql_metrics.OperationLabelToContext(ctx, "Role.GetRoleById")
 
 	q, args, err := query.New().
@@ -33,8 +33,8 @@ func (r Role) GetRoleById(ctx context.Context, id int) (*entity.Role, error) {
 		return nil, errors.WithMessage(err, "build query")
 	}
 
-	role := entity.Role{}
-	err = r.db.SelectRow(ctx, &role, q, args...)
+	var roles []entity.Role
+	err = r.db.Select(ctx, &roles, q, args...)
 
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
@@ -42,7 +42,7 @@ func (r Role) GetRoleById(ctx context.Context, id int) (*entity.Role, error) {
 	case err != nil:
 		return nil, errors.WithMessage(err, "db select")
 	default:
-		return &role, nil
+		return roles, nil
 	}
 }
 

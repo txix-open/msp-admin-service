@@ -44,7 +44,7 @@ type UserRoleRepo interface {
 }
 
 type roleRepoUser interface {
-	GetRoleById(ctx context.Context, id int) (*entity.Role, error)
+	GetRoleByIds(ctx context.Context, id []int) ([]entity.Role, error)
 }
 
 type User struct {
@@ -94,9 +94,9 @@ func (u User) GetProfileById(ctx context.Context, userId int64) (*domain.AdminUs
 		return nil, errors.WithMessagef(err, "get role by user id %d", userId)
 	}
 
-	role := &entity.Role{}
+	var roleList []entity.Role
 	if len(roles) != 0 {
-		role, err = u.roleRepoUser.GetRoleById(ctx, roles[0])
+		roleList, err = u.roleRepoUser.GetRoleByIds(ctx, roles)
 		if err != nil {
 			return nil, errors.WithMessage(err, "get roles")
 		}
@@ -106,10 +106,26 @@ func (u User) GetProfileById(ctx context.Context, userId int64) (*domain.AdminUs
 		FirstName:   user.FirstName,
 		LastName:    user.LastName,
 		Email:       user.Email,
-		Role:        role.Name,
+		Role:        roleList[0].Name,
 		Roles:       roles,
-		Permissions: role.Permissions,
+		Permissions: mergePermissions(roleList),
 	}, nil
+}
+
+func mergePermissions(roles []entity.Role) []string {
+	permissionsMap := make(map[string]bool)
+	permList := make([]string, 0)
+
+	for _, role := range roles {
+		for _, perm := range role.Permissions {
+			if _, ok := permissionsMap[perm]; !ok {
+				permissionsMap[perm] = true
+				permList = append(permList, perm)
+			}
+		}
+	}
+
+	return permList
 }
 
 func (u User) GetUsers(ctx context.Context, req domain.UsersRequest) (*domain.UsersResponse, error) {
@@ -226,11 +242,9 @@ func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, admi
 			return errors.WithMessage(err, "update user")
 		}
 
-		if len(req.Roles) > 0 {
-			err = tx.ForceUpsert(ctx, int(user.Id), req.Roles)
-			if err != nil {
-				return errors.WithMessage(err, "force upsert")
-			}
+		err = tx.ForceUpsert(ctx, int(user.Id), req.Roles)
+		if err != nil {
+			return errors.WithMessage(err, "force upsert")
 		}
 
 		return nil
