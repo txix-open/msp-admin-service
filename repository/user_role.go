@@ -18,21 +18,6 @@ func NewUserRole(db db.DB) UserRole {
 	return UserRole{db: db}
 }
 
-func (u UserRole) GetRolesByUserId(ctx context.Context, identity int) ([]int, error) {
-	rolesQ, args, err := query.New().Select("role_id").
-		From("user_roles").Where(squirrel.Eq{"user_id": identity}).ToSql()
-	if err != nil {
-		return nil, errors.WithMessage(err, "build query")
-	}
-	var roles []int
-	err = u.db.Select(ctx, &roles, rolesQ, args...)
-	if err != nil {
-		return nil, err
-	}
-
-	return roles, nil
-}
-
 func (u UserRole) GetRolesByUserIds(ctx context.Context, identity []int) ([]entity.UserRole, error) {
 	rolesQ, args, err := query.New().Select("role_id", "user_id").
 		From("user_roles").Where(squirrel.Eq{"user_id": identity}).ToSql()
@@ -43,7 +28,7 @@ func (u UserRole) GetRolesByUserIds(ctx context.Context, identity []int) ([]enti
 	var roles []entity.UserRole
 	err = u.db.Select(ctx, &roles, rolesQ, args...)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessagef(err, "select: %s", rolesQ)
 	}
 
 	return roles, nil
@@ -65,7 +50,7 @@ func (u UserRole) InsertPairs(ctx context.Context, id int, roleIds []int) error 
 
 	_, err = u.db.Exec(ctx, rolesQResult, args...)
 	if err != nil {
-		return errors.WithMessage(err, "exec")
+		return errors.WithMessagef(err, "exec: %s", rolesQResult)
 	}
 
 	return nil
@@ -80,7 +65,7 @@ func (u UserRole) ForceUpsert(ctx context.Context, id int, roleIds []int) error 
 
 	_, err = u.db.Exec(ctx, deleteQ, args...)
 	if err != nil {
-		return errors.WithMessage(err, "exec")
+		return errors.WithMessagef(err, "exec: %s", deleteQ)
 	}
 
 	if len(roleIds) == 0 {
@@ -102,7 +87,7 @@ func (u UserRole) ForceUpsert(ctx context.Context, id int, roleIds []int) error 
 
 	_, err = u.db.Exec(ctx, rolesQResult, args...)
 	if err != nil {
-		return errors.WithMessage(err, "exec")
+		return errors.WithMessagef(err, "exec: %s", rolesQResult)
 	}
 
 	return nil

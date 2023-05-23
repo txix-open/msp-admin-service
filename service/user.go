@@ -37,7 +37,6 @@ type TokenRepo interface {
 }
 
 type UserRoleRepo interface {
-	GetRolesByUserId(ctx context.Context, identity int) ([]int, error)
 	GetRolesByUserIds(ctx context.Context, identity []int) ([]entity.UserRole, error)
 	InsertPairs(ctx context.Context, id int, roleIds []int) error
 	ForceUpsert(ctx context.Context, id int, roleIds []int) error
@@ -86,17 +85,15 @@ func (u User) GetProfileById(ctx context.Context, userId int64) (*domain.AdminUs
 		return nil, errors.WithMessagef(domain.ErrUnauthenticated, "user '%d' is blocked", user.Id)
 	}
 
-	roles, err := u.userRoleRepo.GetRolesByUserId(ctx, int(userId))
-	switch {
-	case errors.Is(err, domain.ErrNotFound):
-		return nil, errors.Errorf("unexpected role-user id %d", userId)
-	case err != nil:
+	roles, err := u.userRoleRepo.GetRolesByUserIds(ctx, []int{int(userId)})
+	if err != nil {
 		return nil, errors.WithMessagef(err, "get role by user id %d", userId)
 	}
+	roleIds := getRoleIds(roles)
 
 	var roleList []entity.Role
-	if len(roles) != 0 {
-		roleList, err = u.roleRepoUser.GetRoleByIds(ctx, roles)
+	if len(roleIds) != 0 {
+		roleList, err = u.roleRepoUser.GetRoleByIds(ctx, roleIds)
 		if err != nil {
 			return nil, errors.WithMessage(err, "get roles")
 		}
@@ -107,25 +104,9 @@ func (u User) GetProfileById(ctx context.Context, userId int64) (*domain.AdminUs
 		LastName:    user.LastName,
 		Email:       user.Email,
 		Role:        roleList[0].Name,
-		Roles:       roles,
+		Roles:       roleIds,
 		Permissions: mergePermissions(roleList),
 	}, nil
-}
-
-func mergePermissions(roles []entity.Role) []string {
-	permissionsMap := make(map[string]bool)
-	permList := make([]string, 0)
-
-	for _, role := range roles {
-		for _, perm := range role.Permissions {
-			if _, ok := permissionsMap[perm]; !ok {
-				permissionsMap[perm] = true
-				permList = append(permList, perm)
-			}
-		}
-	}
-
-	return permList
 }
 
 func (u User) GetUsers(ctx context.Context, req domain.UsersRequest) (*domain.UsersResponse, error) {
@@ -221,11 +202,18 @@ func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, admi
 	var user *entity.User
 
 	err := u.txRunner.UserTransaction(ctx, func(ctx context.Context, tx UserTransaction) error {
-		var err error
-		user, err = tx.GetUserByEmail(ctx, req.Email)
+		_, err := tx.GetUserById(ctx, req.Id)
 		switch {
 		case errors.Is(err, domain.ErrNotFound):
 			return err
+		case err != nil:
+			return errors.WithMessage(err, "get user by id")
+		}
+
+		user, err = tx.GetUserByEmail(ctx, req.Email)
+		switch {
+		case errors.Is(err, domain.ErrNotFound):
+			break
 		case err != nil:
 			return errors.WithMessage(err, "get user by email or phone")
 		case user.Id != req.Id:
@@ -286,13 +274,12 @@ func (u User) GetById(ctx context.Context, userId int) (*domain.User, error) {
 		return nil, errors.WithMessagef(err, "get user by id %d", userId)
 	}
 
-	roles, err := u.userRoleRepo.GetRolesByUserId(ctx, userId)
+	roles, err := u.userRoleRepo.GetRolesByUserIds(ctx, []int{userId})
 	if err != nil {
 		return nil, errors.WithMessage(err, "get roles by user ids")
 	}
 
-	result := u.toDomain(*user, roles)
-
+	result := u.toDomain(*user, getRoleIds(roles))
 	return &result, nil
 }
 
@@ -352,4 +339,30 @@ func (u User) toDomain(user entity.User, roleIds []int) domain.User {
 		CreatedAt:            user.CreatedAt,
 		LastSessionCreatedAt: user.LastSessionCreatedAt,
 	}
+}
+
+func getRoleIds(roles []entity.UserRole) []int {
+	roleList := make([]int, 0)
+
+	for _, role := range roles {
+		roleList = append(roleList, role.RoleId)
+	}
+
+	return roleList
+}
+
+func mergePermissions(roles []entity.Role) []string {
+	permissionsMap := make(map[string]bool)
+	permList := make([]string, 0)
+
+	for _, role := range roles {
+		for _, perm := range role.Permissions {
+			if _, ok := permissionsMap[perm]; !ok {
+				permissionsMap[perm] = true
+				permList = append(permList, perm)
+			}
+		}
+	}
+
+	return permList
 }
