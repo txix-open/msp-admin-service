@@ -75,13 +75,14 @@ func (u User) UpsertBySudirUserId(ctx context.Context, user entity.User) (*entit
 	sql_metrics.OperationLabelToContext(ctx, "User.UpsertBySudirUserId")
 
 	selectQ := `
-	insert into users as u (first_name, last_name, email, created_at, updated_at, sudir_user_id) 
-	values ($1, $2, $3, $4, $5, $6)
+	insert into users as u (first_name, last_name, email, created_at, updated_at, sudir_user_id, last_session_created_at) 
+	values ($1, $2, $3, $4, $5, $6, $7)
     on conflict (sudir_user_id) do update 
     set first_name = excluded.first_name,
         last_name = excluded.last_name,
         email = excluded.email,
-        updated_at = excluded.updated_at 
+        updated_at = excluded.updated_at,
+        last_session_created_at = excluded.last_session_created_at
     where u.blocked = false
     returning *
 `
@@ -89,7 +90,7 @@ func (u User) UpsertBySudirUserId(ctx context.Context, user entity.User) (*entit
 	err := u.db.SelectRow(ctx,
 		&result,
 		selectQ,
-		user.FirstName, user.LastName, user.Email, user.CreatedAt, user.UpdatedAt, user.SudirUserId,
+		user.FirstName, user.LastName, user.Email, user.CreatedAt, user.UpdatedAt, user.SudirUserId, user.LastSessionCreatedAt,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, domain.ErrNotFound
@@ -138,9 +139,9 @@ func (u User) Insert(ctx context.Context, user entity.User) (int, error) {
 	insertQ, args, err := query.New().
 		Insert("users").
 		Columns("first_name", "last_name", "description",
-			"email", "password", "last_session_created_at", "created_at", "updated_at").
+			"email", "password", "created_at", "updated_at").
 		Values(user.FirstName, user.LastName, user.Description,
-			user.Email, user.Password, user.LastSessionCreatedAt, user.CreatedAt, user.UpdatedAt).
+			user.Email, user.Password, user.CreatedAt, user.UpdatedAt).
 		Suffix("returning id").
 		ToSql()
 	if err != nil {

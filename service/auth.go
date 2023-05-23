@@ -127,12 +127,13 @@ func (a Auth) Login(ctx context.Context, request domain.LoginRequest) (*domain.L
 
 		a.auditService.SaveAuditAsync(ctx, user.Id, "Успешный вход через форму входа")
 
+		lastSessionCreatedAt := time.Now().UTC()
 		updateEntity := entity.UpdateUser{
 			FirstName:            user.FirstName,
 			LastName:             user.LastName,
 			Email:                user.Email,
 			Description:          user.Description,
-			LastSessionCreatedAt: time.Now().UTC(),
+			LastSessionCreatedAt: &lastSessionCreatedAt,
 		}
 		_, err = tx.UpdateUser(ctx, user.Id, updateEntity)
 		if err != nil {
@@ -178,15 +179,17 @@ func (a Auth) LoginWithSudir(ctx context.Context, request domain.LoginSudirReque
 			return domain.ErrUnauthenticated
 		}
 
+		lastSessionCreatedAt := time.Now().UTC()
 		user, err = tx.UpsertBySudirUserId(ctx, entity.User{
-			SudirUserId: &sudirUser.SudirUserId,
-			FirstName:   sudirUser.FirstName,
-			LastName:    sudirUser.LastName,
-			Email:       sudirUser.Email,
-			Password:    "",
-			Blocked:     false,
-			UpdatedAt:   time.Now().UTC(),
-			CreatedAt:   time.Now().UTC(),
+			SudirUserId:          &sudirUser.SudirUserId,
+			FirstName:            sudirUser.FirstName,
+			LastName:             sudirUser.LastName,
+			Email:                sudirUser.Email,
+			Password:             "",
+			Blocked:              false,
+			UpdatedAt:            time.Now().UTC(),
+			CreatedAt:            time.Now().UTC(),
+			LastSessionCreatedAt: &lastSessionCreatedAt,
 		})
 		if errors.Is(err, domain.ErrNotFound) {
 			return errors.Errorf("user with sudir user id = %s is blocked", sudirUser.SudirUserId)

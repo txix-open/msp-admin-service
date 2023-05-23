@@ -12,7 +12,7 @@ type User struct {
 	Email                string
 	Description          string
 	Blocked              bool
-	LastSessionCreatedAt time.Time
+	LastSessionCreatedAt *time.Time
 	UpdatedAt            time.Time
 	CreatedAt            time.Time
 }
@@ -38,24 +38,22 @@ type AdminUserShort struct {
 }
 
 type CreateUserRequest struct {
-	Roles                []int
-	FirstName            string
-	LastName             string
-	Email                string `valid:"required"`
-	Password             string `valid:"required"`
-	Description          string
-	LastSessionCreatedAt time.Time
+	Roles       []int
+	FirstName   string
+	LastName    string
+	Email       string `valid:"required"`
+	Password    string `valid:"required"`
+	Description string
 }
 
 type UpdateUserRequest struct {
-	Id                   int64 `valid:"required"`
-	Roles                []int
-	FirstName            string
-	LastName             string
-	Email                string
-	Description          string
-	Blocked              bool
-	LastSessionCreatedAt time.Time
+	Id          int64 `valid:"required"`
+	Roles       []int
+	FirstName   string
+	LastName    string
+	Email       string
+	Description string
+	Blocked     bool
 }
 
 type DeleteResponse struct {

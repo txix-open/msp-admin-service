@@ -140,6 +140,9 @@ func (u User) GetUsers(ctx context.Context, req domain.UsersRequest) (*domain.Us
 	}
 
 	rolesByUsers, err := u.userRoleRepo.GetRolesByUserIds(ctx, userIds)
+	if err != nil {
+		return nil, errors.WithMessage(err, "get roles by user id")
+	}
 
 	items := make([]domain.User, 0, len(users))
 	for _, user := range users {
@@ -234,7 +237,7 @@ func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, admi
 			LastName:             req.LastName,
 			Email:                req.Email,
 			Description:          req.Description,
-			LastSessionCreatedAt: req.LastSessionCreatedAt,
+			LastSessionCreatedAt: user.LastSessionCreatedAt, // get current state of session creation
 		}
 
 		user, err = tx.UpdateUser(ctx, req.Id, updateEntity)
@@ -285,7 +288,7 @@ func (u User) GetById(ctx context.Context, userId int) (*domain.User, error) {
 
 	roles, err := u.userRoleRepo.GetRolesByUserId(ctx, userId)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "get roles by user ids")
 	}
 
 	result := u.toDomain(*user, roles)

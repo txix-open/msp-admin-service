@@ -11,7 +11,7 @@ type User struct {
 	Email                string
 	Password             string
 	Blocked              bool
-	LastSessionCreatedAt time.Time
+	LastSessionCreatedAt *time.Time
 	UpdatedAt            time.Time
 	CreatedAt            time.Time
 }
@@ -30,5 +30,5 @@ type UpdateUser struct {
 	LastName             string
 	Email                string
 	Description          string
-	LastSessionCreatedAt time.Time
+	LastSessionCreatedAt *time.Time
 }
