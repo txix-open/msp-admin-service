@@ -39,6 +39,7 @@ type tokenService interface {
 }
 
 type authRoleRepository interface {
+	GetRolesByUserIds(ctx context.Context, identity []int) ([]entity.UserRole, error)
 	InsertPairs(ctx context.Context, id int, roleIds []int) error
 }
 
@@ -198,8 +199,13 @@ func (a Auth) LoginWithSudir(ctx context.Context, request domain.LoginSudirReque
 			return errors.WithMessage(err, "upsert by sudir user id")
 		}
 
+		userRoles, err := tx.GetRolesByUserIds(ctx, []int{int(user.Id)})
+		if err != nil {
+			return errors.WithMessage(err, "select user roles")
+		}
+
 		// при создании юзера СУДИР первоначально роли не указаны
-		if len(sudirUser.RoleIds) > 0 {
+		if len(userRoles) == 0 {
 			err = tx.InsertPairs(ctx, int(user.Id), sudirUser.RoleIds)
 			if err != nil {
 				return errors.WithMessage(err, "insert sudir roles")

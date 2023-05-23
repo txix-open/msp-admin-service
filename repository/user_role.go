@@ -27,11 +27,12 @@ func (u UserRole) GetRolesByUserIds(ctx context.Context, identity []int) ([]enti
 
 	var roles []entity.UserRole
 	err = u.db.Select(ctx, &roles, rolesQ, args...)
-	if err != nil {
-		return nil, errors.WithMessagef(err, "select: %s", rolesQ)
+	switch {
+	case err != nil:
+		return nil, errors.WithMessagef(err, "db select: %s", rolesQ)
+	default:
+		return roles, nil
 	}
-
-	return roles, nil
 }
 
 func (u UserRole) InsertPairs(ctx context.Context, id int, roleIds []int) error {

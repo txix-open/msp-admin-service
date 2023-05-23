@@ -20,7 +20,7 @@ type sudirRepo interface {
 }
 
 type roleRepo interface {
-	GetRoleByName(ctx context.Context, name string) (*entity.Role, error)
+	GetRoleByExternalGroup(ctx context.Context, group string) (*entity.Role, error)
 	UpsertRoleByName(ctx context.Context, role entity.Role) (int, error)
 }
 
@@ -56,12 +56,28 @@ func (s Sudir) Authenticate(ctx context.Context, authCode string, roleRepo roleR
 	case user.SudirAuthError != nil:
 		return nil, errors.WithMessage(user.SudirAuthError, "get user")
 	}
+	email := user.Email
+	if email == "" {
+		email = user.Sub
+	}
 
-	//nolint
-	/*role := getRole(user.Groups)
-	if role == "" {
-		return nil, errors.New("undefined role")
-	}*/
+	isNewRole := false
+	role, err := roleRepo.GetRoleByExternalGroup(ctx, user.GivenName)
+	switch {
+	case errors.Is(err, domain.ErrNotFound):
+		isNewRole = true
+	case err != nil:
+		return nil, errors.WithMessage(err, "")
+	}
+	if !isNewRole {
+		return &entity.SudirUser{
+			RoleIds:     []int{role.Id},
+			SudirUserId: user.Sub,
+			FirstName:   user.GivenName,
+			LastName:    user.FamilyName,
+			Email:       email,
+		}, nil
+	}
 
 	roleId, err := roleRepo.UpsertRoleByName(ctx, entity.Role{
 		Name:          user.GivenName,
@@ -71,12 +87,6 @@ func (s Sudir) Authenticate(ctx context.Context, authCode string, roleRepo roleR
 	if err != nil {
 		return nil, errors.WithMessage(err, "upsert role")
 	}
-
-	email := user.Email
-	if email == "" {
-		email = user.Sub
-	}
-
 	return &entity.SudirUser{
 		RoleIds:     []int{roleId},
 		SudirUserId: user.Sub,
