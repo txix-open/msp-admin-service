@@ -80,7 +80,7 @@ func (u Role) Update(ctx context.Context, req domain.UpdateRoleRequest, adminId 
 	case errors.Is(err, domain.ErrNotFound):
 		break
 	case err != nil:
-		return nil, errors.WithMessagef(err, "get role by id")
+		return nil, errors.WithMessagef(err, "get role by name")
 	}
 
 	roles, err := u.roleRepo.GetRoleByIds(ctx, []int{req.Id})

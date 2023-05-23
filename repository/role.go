@@ -25,7 +25,7 @@ func (r Role) GetRoleByIds(ctx context.Context, id []int) ([]entity.Role, error)
 	sql_metrics.OperationLabelToContext(ctx, "Role.GetRoleById")
 
 	q, args, err := query.New().
-		Select("id, name, change_message, external_group, permissions::jsonb, created_at, updated_at").
+		Select("id, name, external_group, permissions, created_at, updated_at").
 		From("roles").
 		Where(squirrel.Eq{"id": id}).
 		ToSql()
@@ -40,7 +40,7 @@ func (r Role) GetRoleByIds(ctx context.Context, id []int) ([]entity.Role, error)
 	case errors.Is(err, sql.ErrNoRows):
 		return nil, domain.ErrNotFound
 	case err != nil:
-		return nil, errors.WithMessage(err, "db select")
+		return nil, errors.WithMessagef(err, "db select: %s", q)
 	default:
 		return roles, nil
 	}
@@ -65,7 +65,7 @@ func (r Role) GetRoleByName(ctx context.Context, name string) (*entity.Role, err
 	case errors.Is(err, sql.ErrNoRows):
 		return nil, domain.ErrNotFound
 	case err != nil:
-		return nil, errors.WithMessage(err, "db select")
+		return nil, errors.WithMessagef(err, "db select: %s", q)
 	default:
 		return &role, nil
 	}
@@ -93,7 +93,7 @@ func (r Role) All(ctx context.Context) ([]entity.Role, error) {
 	sql_metrics.OperationLabelToContext(ctx, "Role.All")
 
 	roles := make([]entity.Role, 0)
-	err := r.db.Select(ctx, &roles, "select id, name, external_group, change_message, permissions::jsonb, created_at, updated_at from roles order by created_at")
+	err := r.db.Select(ctx, &roles, "select id, name, external_group, permissions, created_at, updated_at from roles order by created_at")
 	if err != nil {
 		return nil, errors.WithMessage(err, "select all roles")
 	}
@@ -102,8 +102,8 @@ func (r Role) All(ctx context.Context) ([]entity.Role, error) {
 
 func (r Role) InsertRole(ctx context.Context, role entity.Role) (*entity.Role, error) {
 	q, args, err := query.New().Insert("roles").
-		Columns("name", "permissions", "change_message").
-		Values(role.Name, role.Permissions, role.ChangeMessage).
+		Columns("name", "permissions").
+		Values(role.Name, role.Permissions).
 		Suffix("RETURNING *").ToSql()
 	if err != nil {
 		return nil, errors.WithMessage(err, "build query")
@@ -112,7 +112,7 @@ func (r Role) InsertRole(ctx context.Context, role entity.Role) (*entity.Role, e
 	var result entity.Role
 	err = r.db.SelectRow(ctx, &result, q, args...)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessagef(err, "insert: %s", q)
 	}
 
 	return &result, nil
@@ -122,7 +122,6 @@ func (r Role) Update(ctx context.Context, role entity.Role) (*entity.Role, error
 	q, args, err := query.New().Update("roles").
 		Set("name", role.Name).
 		Set("permissions", role.Permissions).
-		Set("change_message", role.ChangeMessage).
 		Where(squirrel.Eq{"id": role.Id}).
 		Suffix("RETURNING *").ToSql()
 	if err != nil {
@@ -132,7 +131,7 @@ func (r Role) Update(ctx context.Context, role entity.Role) (*entity.Role, error
 	var result entity.Role
 	err = r.db.SelectRow(ctx, &result, q, args...)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessagef(err, "update: %s", q)
 	}
 
 	return &result, nil
