@@ -34,6 +34,7 @@ type UserRepo interface {
 
 type TokenRepo interface {
 	UpdateStatusByUserId(ctx context.Context, userId int, status string) error
+	LastAccessByUserIds(ctx context.Context, userIds []int) (map[int64]*time.Time, error)
 }
 
 type UserRoleRepo interface {
@@ -122,7 +123,12 @@ func (u User) GetUsers(ctx context.Context, req domain.UsersRequest) (*domain.Us
 
 	rolesByUsers, err := u.userRoleRepo.GetRolesByUserIds(ctx, userIds)
 	if err != nil {
-		return nil, errors.WithMessage(err, "get roles by user id")
+		return nil, errors.WithMessage(err, "get roles by user ids")
+	}
+
+	lastSessionsByUsers, err := u.tokenRepo.LastAccessByUserIds(ctx, userIds)
+	if err != nil {
+		return nil, errors.WithMessage(err, "get last sessions by user ids")
 	}
 
 	items := make([]domain.User, 0, len(users))
@@ -135,7 +141,7 @@ func (u User) GetUsers(ctx context.Context, req domain.UsersRequest) (*domain.Us
 			}
 		}
 
-		items = append(items, u.toDomain(user, roles))
+		items = append(items, u.toDomain(user, roles, lastSessionsByUsers[user.Id]))
 	}
 
 	return &domain.UsersResponse{Items: items}, err
@@ -194,12 +200,15 @@ func (u User) CreateUser(ctx context.Context, req domain.CreateUserRequest, admi
 		fmt.Sprintf("Пользователь. Создание пользователя %s.", usr.Email),
 	)
 
-	result := u.toDomain(usr, req.Roles)
+	result := u.toDomain(usr, req.Roles, nil)
 	return &result, nil
 }
 
 func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, adminId int64) (*domain.User, error) {
-	var user *entity.User
+	var (
+		user                 *entity.User
+		lastSessionCreatedAt *time.Time
+	)
 
 	err := u.txRunner.UserTransaction(ctx, func(ctx context.Context, tx UserTransaction) error {
 		_, err := tx.GetUserById(ctx, req.Id)
@@ -221,11 +230,10 @@ func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, admi
 		}
 
 		updateEntity := entity.UpdateUser{
-			FirstName:            req.FirstName,
-			LastName:             req.LastName,
-			Email:                req.Email,
-			Description:          req.Description,
-			LastSessionCreatedAt: user.LastSessionCreatedAt, // get current state of session creation
+			FirstName:   req.FirstName,
+			LastName:    req.LastName,
+			Email:       req.Email,
+			Description: req.Description,
 		}
 
 		user, err = tx.UpdateUser(ctx, req.Id, updateEntity)
@@ -238,6 +246,13 @@ func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, admi
 			return errors.WithMessage(err, "update user role links")
 		}
 
+		userLastSession, err := tx.LastAccessByUserIds(ctx, []int{int(user.Id)})
+		if err != nil {
+			return errors.WithMessage(err, "get last user session")
+		}
+
+		lastSessionCreatedAt = userLastSession[user.Id]
+
 		return nil
 	})
 	if err != nil {
@@ -248,7 +263,7 @@ func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, admi
 		fmt.Sprintf("Пользователь. Изменение пользователя %s.", user.Email),
 	)
 
-	result := u.toDomain(*user, req.Roles)
+	result := u.toDomain(*user, req.Roles, lastSessionCreatedAt)
 	return &result, nil
 }
 
@@ -276,10 +291,15 @@ func (u User) GetById(ctx context.Context, userId int) (*domain.User, error) {
 
 	roles, err := u.userRoleRepo.GetRolesByUserIds(ctx, []int{userId})
 	if err != nil {
-		return nil, errors.WithMessage(err, "get roles by user ids")
+		return nil, errors.WithMessage(err, "get roles by user id")
 	}
 
-	result := u.toDomain(*user, getRoleIds(roles))
+	lastSessions, err := u.tokenRepo.LastAccessByUserIds(ctx, []int{userId})
+	if err != nil {
+		return nil, errors.WithMessage(err, "get last sessions by user id")
+	}
+
+	result := u.toDomain(*user, getRoleIds(roles), lastSessions[int64(userId)])
 	return &result, nil
 }
 
@@ -326,7 +346,7 @@ func (u User) cryptPassword(password string) (string, error) {
 	return string(passwordBytes), nil
 }
 
-func (u User) toDomain(user entity.User, roleIds []int) domain.User {
+func (u User) toDomain(user entity.User, roleIds []int, lastSessionCreatedAt *time.Time) domain.User {
 	return domain.User{
 		Id:                   user.Id,
 		Roles:                roleIds,
@@ -337,7 +357,7 @@ func (u User) toDomain(user entity.User, roleIds []int) domain.User {
 		Blocked:              user.Blocked,
 		UpdatedAt:            user.UpdatedAt,
 		CreatedAt:            user.CreatedAt,
-		LastSessionCreatedAt: user.LastSessionCreatedAt,
+		LastSessionCreatedAt: lastSessionCreatedAt,
 	}
 }
 
