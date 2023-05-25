@@ -38,8 +38,8 @@ type TokenRepo interface {
 
 type UserRoleRepo interface {
 	GetRolesByUserIds(ctx context.Context, identity []int) ([]entity.UserRole, error)
-	InsertPairs(ctx context.Context, id int, roleIds []int) error
-	ForceUpsert(ctx context.Context, id int, roleIds []int) error
+	InsertUserRoleLinks(ctx context.Context, id int, roleIds []int) error
+	UpdateUserRoleLinks(ctx context.Context, id int, roleIds []int) error
 }
 
 type roleRepoUser interface {
@@ -178,7 +178,7 @@ func (u User) CreateUser(ctx context.Context, req domain.CreateUserRequest, admi
 		}
 
 		if len(req.Roles) != 0 {
-			err = tx.InsertPairs(ctx, id, req.Roles)
+			err = tx.InsertUserRoleLinks(ctx, id, req.Roles)
 			if err != nil {
 				return err
 			}
@@ -233,9 +233,9 @@ func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, admi
 			return errors.WithMessage(err, "update user")
 		}
 
-		err = tx.ForceUpsert(ctx, int(user.Id), req.Roles)
+		err = tx.UpdateUserRoleLinks(ctx, int(user.Id), req.Roles)
 		if err != nil {
-			return errors.WithMessage(err, "force upsert")
+			return errors.WithMessage(err, "update user role links")
 		}
 
 		return nil

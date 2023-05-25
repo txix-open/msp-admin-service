@@ -72,7 +72,6 @@ func (l Locator) Config(cfg conf.Remote) Config {
 		tokenService,
 		sudirService,
 		auditService,
-		userRoleRepo,
 		l.logger,
 		cfg.AntiBruteforce.DelayLoginRequestInSec,
 		cfg.AntiBruteforce.MaxInFlightLoginRequests,

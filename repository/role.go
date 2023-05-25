@@ -94,24 +94,6 @@ func (r Role) GetRoleByExternalGroup(ctx context.Context, group string) (*entity
 	}
 }
 
-func (r Role) UpsertRoleByName(ctx context.Context, role entity.Role) (int, error) {
-	sql_metrics.OperationLabelToContext(ctx, "Role.UpsertRoleByName")
-
-	query := `
-	insert into roles (name, permissions, external_group) 
-	values ($1, $2, $3) on conflict (name) do update 
-    set name = excluded.name, external_group = excluded.external_group
-	returning id
-`
-	id := 0
-	err := r.db.SelectRow(ctx, &id, query, role.Name, role.Permissions, role.ExternalGroup)
-	if err != nil {
-		return 0, errors.WithMessagef(err, "select %s", query)
-	}
-
-	return id, nil
-}
-
 func (r Role) All(ctx context.Context) ([]entity.Role, error) {
 	sql_metrics.OperationLabelToContext(ctx, "Role.All")
 
@@ -125,8 +107,8 @@ func (r Role) All(ctx context.Context) ([]entity.Role, error) {
 
 func (r Role) InsertRole(ctx context.Context, role entity.Role) (*entity.Role, error) {
 	q, args, err := query.New().Insert("roles").
-		Columns("name", "permissions").
-		Values(role.Name, role.Permissions).
+		Columns("name", "permissions", "external_group").
+		Values(role.Name, role.Permissions, role.ExternalGroup).
 		Suffix("RETURNING *").ToSql()
 	if err != nil {
 		return nil, errors.WithMessage(err, "build query")
@@ -145,6 +127,7 @@ func (r Role) Update(ctx context.Context, role entity.Role) (*entity.Role, error
 	q, args, err := query.New().Update("roles").
 		Set("name", role.Name).
 		Set("permissions", role.Permissions).
+		Set("external_group", role.ExternalGroup).
 		Where(squirrel.Eq{"id": role.Id}).
 		Suffix("RETURNING *").ToSql()
 	if err != nil {

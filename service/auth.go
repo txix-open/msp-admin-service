@@ -38,11 +38,6 @@ type tokenService interface {
 	RevokeAllByUserId(ctx context.Context, userId int64) error
 }
 
-type authRoleRepository interface {
-	GetRolesByUserIds(ctx context.Context, identity []int) ([]entity.UserRole, error)
-	InsertPairs(ctx context.Context, id int, roleIds []int) error
-}
-
 type sudirService interface {
 	Authenticate(ctx context.Context, authCode string, repo roleRepo) (*entity.SudirUser, error)
 }
@@ -53,7 +48,6 @@ type Auth struct {
 	tokenService             tokenService
 	sudirService             sudirService
 	auditService             auditService
-	authRoleRepository       authRoleRepository
 	logger                   log.Logger
 	maxInFlightLoginRequests int
 	delayLoginRequest        time.Duration
@@ -66,7 +60,6 @@ func NewAuth(
 	tokenService tokenService,
 	sudirService sudirService,
 	auditService auditService,
-	authRoleRepository authRoleRepository,
 	logger log.Logger,
 	delayLoginRequestInSec int,
 	maxInFlightLoginRequests int,
@@ -77,7 +70,6 @@ func NewAuth(
 		tokenService:             tokenService,
 		sudirService:             sudirService,
 		auditService:             auditService,
-		authRoleRepository:       authRoleRepository,
 		logger:                   logger,
 		delayLoginRequest:        time.Duration(delayLoginRequestInSec) * time.Second,
 		maxInFlightLoginRequests: maxInFlightLoginRequests,
@@ -206,7 +198,7 @@ func (a Auth) LoginWithSudir(ctx context.Context, request domain.LoginSudirReque
 
 		// при создании юзера СУДИР первоначально роли не указаны
 		if len(userRoles) == 0 {
-			err = tx.InsertPairs(ctx, int(user.Id), sudirUser.RoleIds)
+			err = tx.InsertUserRoleLinks(ctx, int(user.Id), sudirUser.RoleIds)
 			if err != nil {
 				return errors.WithMessage(err, "insert sudir roles")
 			}

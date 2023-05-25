@@ -21,7 +21,7 @@ type sudirRepo interface {
 
 type roleRepo interface {
 	GetRoleByExternalGroup(ctx context.Context, group string) (*entity.Role, error)
-	UpsertRoleByName(ctx context.Context, role entity.Role) (int, error)
+	InsertRole(ctx context.Context, role entity.Role) (*entity.Role, error)
 }
 
 type Sudir struct {
@@ -61,34 +61,24 @@ func (s Sudir) Authenticate(ctx context.Context, authCode string, roleRepo roleR
 		email = user.Sub
 	}
 
-	isNewRole := false
-	role, err := roleRepo.GetRoleByExternalGroup(ctx, user.GivenName)
-	switch {
-	case errors.Is(err, domain.ErrNotFound):
-		isNewRole = true
-	case err != nil:
-		return nil, errors.WithMessage(err, "")
+	var role *entity.Role
+	role, err = roleRepo.GetRoleByExternalGroup(ctx, user.GivenName)
+	if errors.Is(err, domain.ErrNotFound) {
+		role, err = roleRepo.InsertRole(ctx, entity.Role{
+			Name:          user.GivenName,
+			ExternalGroup: user.GivenName, // TODO take group name correctly from user.Group
+			Permissions:   []string{},
+		})
+		if err != nil {
+			return nil, errors.WithMessage(err, "insert role")
+		}
 	}
-	if !isNewRole {
-		return &entity.SudirUser{
-			RoleIds:     []int{role.Id},
-			SudirUserId: user.Sub,
-			FirstName:   user.GivenName,
-			LastName:    user.FamilyName,
-			Email:       email,
-		}, nil
+	if err != nil {
+		return nil, errors.WithMessage(err, "get role by external group")
 	}
 
-	roleId, err := roleRepo.UpsertRoleByName(ctx, entity.Role{
-		Name:          user.GivenName,
-		Permissions:   []string{},
-		ExternalGroup: user.GivenName,
-	})
-	if err != nil {
-		return nil, errors.WithMessage(err, "upsert role")
-	}
 	return &entity.SudirUser{
-		RoleIds:     []int{roleId},
+		RoleIds:     []int{role.Id},
 		SudirUserId: user.Sub,
 		FirstName:   user.GivenName,
 		LastName:    user.FamilyName,

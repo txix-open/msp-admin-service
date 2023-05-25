@@ -35,7 +35,7 @@ func (u UserRole) GetRolesByUserIds(ctx context.Context, identity []int) ([]enti
 	}
 }
 
-func (u UserRole) InsertPairs(ctx context.Context, id int, roleIds []int) error {
+func (u UserRole) InsertUserRoleLinks(ctx context.Context, id int, roleIds []int) error {
 	rolesQ := query.New().
 		Insert("user_roles").
 		Columns("user_id", "role_id")
@@ -57,7 +57,7 @@ func (u UserRole) InsertPairs(ctx context.Context, id int, roleIds []int) error 
 	return nil
 }
 
-func (u UserRole) ForceUpsert(ctx context.Context, id int, roleIds []int) error {
+func (u UserRole) UpdateUserRoleLinks(ctx context.Context, id int, roleIds []int) error {
 	deleteQ, args, err := query.New().
 		Delete("user_roles").Where(squirrel.Eq{"user_id": id}).ToSql()
 	if err != nil {
