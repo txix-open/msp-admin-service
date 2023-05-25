@@ -75,14 +75,13 @@ func (u User) UpsertBySudirUserId(ctx context.Context, user entity.User) (*entit
 	sql_metrics.OperationLabelToContext(ctx, "User.UpsertBySudirUserId")
 
 	selectQ := `
-	insert into users as u (first_name, last_name, email, created_at, updated_at, sudir_user_id, last_session_created_at) 
-	values ($1, $2, $3, $4, $5, $6, $7)
+	insert into users as u (first_name, last_name, email, created_at, updated_at, sudir_user_id) 
+	values ($1, $2, $3, $4, $5, $6)
     on conflict (sudir_user_id) do update 
     set first_name = excluded.first_name,
         last_name = excluded.last_name,
         email = excluded.email,
-        updated_at = excluded.updated_at,
-        last_session_created_at = excluded.last_session_created_at
+        updated_at = excluded.updated_at
     where u.blocked = false
     returning *
 `
@@ -90,7 +89,7 @@ func (u User) UpsertBySudirUserId(ctx context.Context, user entity.User) (*entit
 	err := u.db.SelectRow(ctx,
 		&result,
 		selectQ,
-		user.FirstName, user.LastName, user.Email, user.CreatedAt, user.UpdatedAt, user.SudirUserId, user.LastSessionCreatedAt,
+		user.FirstName, user.LastName, user.Email, user.CreatedAt, user.UpdatedAt, user.SudirUserId,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, domain.ErrNotFound
@@ -170,7 +169,7 @@ func (u User) UpdateUser(ctx context.Context, id int64, user entity.UpdateUser) 
 			"description": user.Description,
 		}).
 		Where(squirrel.Eq{"id": id}).
-		Suffix("RETURNING id, first_name, last_name, email, sudir_user_id, description, created_at, updated_at, last_session_created_at").
+		Suffix("RETURNING id, first_name, last_name, email, sudir_user_id, description, created_at, updated_at").
 		ToSql()
 	if err != nil {
 		return nil, errors.WithMessage(err, "build query")
