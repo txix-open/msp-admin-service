@@ -14,7 +14,6 @@ INSERT INTO user_roles SELECT id as user_id, role_id FROM users;
 -- alter users
 ALTER TABLE users DROP COLUMN role_id;
 ALTER TABLE users ADD COLUMN description TEXT NOT NULL DEFAULT ('');
-ALTER TABLE users ADD COLUMN last_session_created_at timestamp;
 
 -- alter roles
 ALTER TABLE roles DROP COLUMN description;
