@@ -24,6 +24,7 @@ type Remote struct {
 	LogLevel            log.Level           `schemaGen:"logLevel" schema:"Уровень логирования"`
 	AntiBruteforce      AntiBruteforce      `schema:"Настройки антибрут для admin login"`
 	BlockInactiveWorker BlockInactiveWorker `valid:"required" schema:"Блокировка неактивных УЗ"`
+	Permissions         []Permission
 }
 
 type UIDesign struct {
@@ -46,4 +47,9 @@ type AntiBruteforce struct {
 type BlockInactiveWorker struct {
 	DaysThreshold        int `valid:"required" schema:"Кол-во дней"`
 	RunIntervalInMinutes int `valid:"required" schema:"Интервал запуска,в минутах"`
+}
+
+type Permission struct {
+	Key  string
+	Name string
 }

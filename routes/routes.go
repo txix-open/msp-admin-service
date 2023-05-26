@@ -15,6 +15,8 @@ type Controllers struct {
 	Secure        controller.Secure
 	Session       controller.Session
 	Audit         controller.Audit
+	Role          controller.Role
+	Permissions   controller.Permissions
 }
 
 func EndpointDescriptors() []cluster.EndpointDescriptor {
@@ -93,16 +95,40 @@ func endpointDescriptors(c Controllers) []cluster.EndpointDescriptor {
 			Handler:          c.User.Block,
 		},
 		{
-			Path:             "admin/user/get_roles",
-			Inner:            true,
-			UserAuthRequired: false,
-			Handler:          c.User.GetRoles,
-		},
-		{
 			Path:             "admin/user/get_by_id",
 			Inner:            true,
 			UserAuthRequired: false,
 			Handler:          c.User.GetById,
+		},
+		{
+			Path:             "admin/role/all",
+			Inner:            true,
+			UserAuthRequired: false,
+			Handler:          c.Role.All,
+		},
+		{
+			Path:             "admin/user/get_permissions",
+			Inner:            true,
+			UserAuthRequired: false,
+			Handler:          c.Permissions.GetPermissions,
+		},
+		{
+			Path:             "admin/role/create",
+			Inner:            true,
+			UserAuthRequired: false,
+			Handler:          c.Role.CreateRole,
+		},
+		{
+			Path:             "admin/role/update",
+			Inner:            true,
+			UserAuthRequired: false,
+			Handler:          c.Role.UpdateRole,
+		},
+		{
+			Path:             "admin/role/delete",
+			Inner:            true,
+			UserAuthRequired: false,
+			Handler:          c.Role.DeleteRole,
 		},
 		{
 			Path:             "admin/session/all",

@@ -5,15 +5,16 @@ import (
 )
 
 type User struct {
-	Id        int64
-	RoleId    int
-	RoleName  string
-	FirstName string
-	LastName  string
-	Email     string
-	Blocked   bool
-	UpdatedAt time.Time
-	CreatedAt time.Time
+	Id                   int64
+	Roles                []int
+	FirstName            string
+	LastName             string
+	Email                string
+	Description          string
+	Blocked              bool
+	LastSessionCreatedAt *time.Time
+	UpdatedAt            time.Time
+	CreatedAt            time.Time
 }
 
 type UsersResponse struct {
@@ -28,27 +29,31 @@ type UsersRequest struct {
 }
 
 type AdminUserShort struct {
-	FirstName string
-	LastName  string
-	Email     string `valid:"required"`
-	Role      string
+	FirstName   string
+	LastName    string
+	Email       string `valid:"required"`
+	Role        string
+	Roles       []int
+	Permissions []string
 }
 
 type CreateUserRequest struct {
-	RoleId    int
-	FirstName string
-	LastName  string
-	Email     string `valid:"required"`
-	Password  string `valid:"required"`
+	Roles       []int
+	FirstName   string
+	LastName    string
+	Email       string `valid:"required"`
+	Password    string `valid:"required"`
+	Description string
 }
 
 type UpdateUserRequest struct {
-	Id        int64 `valid:"required"`
-	RoleId    int
-	FirstName string
-	LastName  string
-	Email     string
-	Password  string
+	Id          int64 `valid:"required"`
+	Roles       []int
+	FirstName   string
+	LastName    string
+	Email       string
+	Description string
+	Blocked     bool
 }
 
 type DeleteResponse struct {
@@ -61,12 +66,4 @@ type IdentitiesRequest struct {
 
 type IdRequest struct {
 	UserId int `valid:"required"`
-}
-
-type Role struct {
-	Id          int
-	Name        string
-	Description string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
 }

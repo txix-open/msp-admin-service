@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/Masterminds/squirrel"
 	"github.com/integration-system/isp-kit/db"
 	"github.com/integration-system/isp-kit/db/query"
 	"github.com/integration-system/isp-kit/metrics/sql_metrics"
@@ -155,6 +156,34 @@ func (r Token) LastAccessNotBlockedUsers(ctx context.Context) (map[int64]time.Ti
 	result := make(map[int64]time.Time, 0)
 	for _, token := range tokens {
 		result[token.UserId] = token.CreatedAt
+	}
+
+	return result, nil
+}
+
+func (r Token) LastAccessByUserIds(ctx context.Context, userIds []int) (map[int64]*time.Time, error) {
+	sql_metrics.OperationLabelToContext(ctx, "Token.LastAccessNotBlockedUsers")
+
+	q, args, err := query.New().
+		Select("user_id", "max(created_at) as created_at").
+		From("tokens").
+		Where(squirrel.Eq{"user_id": userIds}).
+		GroupBy("user_id").
+		ToSql()
+	if err != nil {
+		return nil, errors.WithMessage(err, "build query")
+	}
+
+	tokens := make([]entity.Token, 0)
+	err = r.db.Select(ctx, &tokens, q, args...)
+	if err != nil {
+		return nil, errors.WithMessagef(err, "select query: %s", q)
+	}
+
+	result := make(map[int64]*time.Time, 0)
+	for _, token := range tokens {
+		createdAt := token.CreatedAt
+		result[token.UserId] = &createdAt
 	}
 
 	return result, nil

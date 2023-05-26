@@ -12,15 +12,21 @@ import (
 	"msp-admin-service/routes"
 	"msp-admin-service/service"
 	"msp-admin-service/service/worker"
+	"msp-admin-service/transaction"
 )
+
+type DB interface {
+	db.DB
+	db.Transactional
+}
 
 type Locator struct {
 	logger  log.Logger
 	httpCli *httpcli.Client
-	db      db.DB
+	db      DB
 }
 
-func NewLocator(logger log.Logger, httpCli *httpcli.Client, db db.DB) Locator {
+func NewLocator(logger log.Logger, httpCli *httpcli.Client, db DB) Locator {
 	return Locator{
 		logger:  logger,
 		httpCli: httpCli,
@@ -43,13 +49,26 @@ func (l Locator) Config(cfg conf.Remote) Config {
 	userRepo := repository.NewUser(l.db)
 	tokenRepo := repository.NewToken(l.db)
 	auditRepo := repository.NewAudit(l.db)
+	userRoleRepo := repository.NewUserRole(l.db)
 
 	auditService := service.NewAudit(auditRepo, l.logger)
 	tokenService := service.NewToken(tokenRepo, cfg.ExpireSec)
-	sudirService := service.NewSudir(cfg.SudirAuth, sudirRepo, roleRepo)
-	userService := service.NewUser(userRepo, roleRepo, tokenRepo, l.logger)
+	sudirService := service.NewSudir(cfg.SudirAuth, sudirRepo)
+
+	txManager := transaction.NewManager(l.db)
+
+	userService := service.NewUser(
+		userRepo,
+		userRoleRepo,
+		roleRepo,
+		tokenRepo,
+		auditService,
+		txManager,
+		l.logger,
+	)
 	authService := service.NewAuth(
 		userRepo,
+		txManager,
 		tokenService,
 		sudirService,
 		auditService,
@@ -57,6 +76,9 @@ func (l Locator) Config(cfg conf.Remote) Config {
 		cfg.AntiBruteforce.DelayLoginRequestInSec,
 		cfg.AntiBruteforce.MaxInFlightLoginRequests,
 	)
+	roleService := service.NewRole(roleRepo, auditService)
+
+	permissionsService := service.NewPermission(cfg.Permissions)
 
 	userController := controller.NewUser(userService)
 	customizationController := controller.NewCustomization(cfg.UiDesign)
@@ -64,6 +86,8 @@ func (l Locator) Config(cfg conf.Remote) Config {
 	secureController := controller.NewSecure(tokenService)
 	sessionController := controller.NewSession(tokenService)
 	auditController := controller.NewAudit(auditService)
+	roleController := controller.NewRole(roleService)
+	permissionController := controller.NewPermissions(permissionsService)
 
 	handler := routes.Handler(
 		endpoint.DefaultWrapper(l.logger),
@@ -74,6 +98,8 @@ func (l Locator) Config(cfg conf.Remote) Config {
 			Secure:        secureController,
 			Session:       sessionController,
 			Audit:         auditController,
+			Role:          roleController,
+			Permissions:   permissionController,
 		},
 	)
 

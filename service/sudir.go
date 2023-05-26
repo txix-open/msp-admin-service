@@ -20,25 +20,23 @@ type sudirRepo interface {
 }
 
 type roleRepo interface {
-	GetRoleByName(ctx context.Context, name string) (*entity.Role, error)
-	UpsertRoleByName(ctx context.Context, role entity.Role) (int, error)
+	GetRoleByExternalGroup(ctx context.Context, group string) (*entity.Role, error)
+	InsertRole(ctx context.Context, role entity.Role) (*entity.Role, error)
 }
 
 type Sudir struct {
 	cfg       *conf.SudirAuth
 	sudirRepo sudirRepo
-	roleRepo  roleRepo
 }
 
-func NewSudir(cfg *conf.SudirAuth, sudirRepo sudirRepo, roleRepo roleRepo) Sudir {
+func NewSudir(cfg *conf.SudirAuth, sudirRepo sudirRepo) Sudir {
 	return Sudir{
 		cfg:       cfg,
 		sudirRepo: sudirRepo,
-		roleRepo:  roleRepo,
 	}
 }
 
-func (s Sudir) Authenticate(ctx context.Context, authCode string) (*entity.SudirUser, error) {
+func (s Sudir) Authenticate(ctx context.Context, authCode string, roleRepo roleRepo) (*entity.SudirUser, error) {
 	if s.cfg == nil {
 		return nil, domain.ErrSudirAuthIsMissed
 	}
@@ -58,28 +56,29 @@ func (s Sudir) Authenticate(ctx context.Context, authCode string) (*entity.Sudir
 	case user.SudirAuthError != nil:
 		return nil, errors.WithMessage(user.SudirAuthError, "get user")
 	}
-
-	//nolint
-	/*role := getRole(user.Groups)
-	if role == "" {
-		return nil, errors.New("undefined role")
-	}*/
-
-	roleId, err := s.roleRepo.UpsertRoleByName(ctx, entity.Role{
-		Name:   user.GivenName,
-		Rights: map[string]string{},
-	})
-	if err != nil {
-		return nil, errors.WithMessage(err, "upsert role")
-	}
-
 	email := user.Email
 	if email == "" {
 		email = user.Sub
 	}
 
+	var role *entity.Role
+	role, err = roleRepo.GetRoleByExternalGroup(ctx, user.GivenName)
+	if errors.Is(err, domain.ErrNotFound) {
+		role, err = roleRepo.InsertRole(ctx, entity.Role{
+			Name:          user.GivenName,
+			ExternalGroup: user.GivenName, // TODO take group name correctly from user.Group
+			Permissions:   []string{},
+		})
+		if err != nil {
+			return nil, errors.WithMessage(err, "insert role")
+		}
+	}
+	if err != nil {
+		return nil, errors.WithMessage(err, "get role by external group")
+	}
+
 	return &entity.SudirUser{
-		RoleId:      roleId,
+		RoleIds:     []int{role.Id},
 		SudirUserId: user.Sub,
 		FirstName:   user.GivenName,
 		LastName:    user.FamilyName,

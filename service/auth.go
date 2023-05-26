@@ -12,6 +12,17 @@ import (
 	"msp-admin-service/entity"
 )
 
+type AuthTransaction interface {
+	userRepository
+	roleRepo
+	UserRoleRepo
+	TokenSaver
+}
+
+type AuthTransactionRunner interface {
+	AuthTransaction(ctx context.Context, tx func(ctx context.Context, tx AuthTransaction) error) error
+}
+
 type auditService interface {
 	SaveAuditAsync(ctx context.Context, userId int64, message string)
 }
@@ -19,19 +30,21 @@ type auditService interface {
 type userRepository interface {
 	GetUserByEmail(ctx context.Context, email string) (*entity.User, error)
 	UpsertBySudirUserId(ctx context.Context, user entity.User) (*entity.User, error)
+	UpdateUser(ctx context.Context, id int64, user entity.UpdateUser) (*entity.User, error)
 }
 
 type tokenService interface {
-	GenerateToken(ctx context.Context, id int64) (string, string, error)
+	GenerateToken(ctx context.Context, repo TokenSaver, id int64) (string, string, error)
 	RevokeAllByUserId(ctx context.Context, userId int64) error
 }
 
 type sudirService interface {
-	Authenticate(ctx context.Context, authCode string) (*entity.SudirUser, error)
+	Authenticate(ctx context.Context, authCode string, repo roleRepo) (*entity.SudirUser, error)
 }
 
 type Auth struct {
 	userRepository           userRepository
+	txRunner                 AuthTransactionRunner
 	tokenService             tokenService
 	sudirService             sudirService
 	auditService             auditService
@@ -43,6 +56,7 @@ type Auth struct {
 
 func NewAuth(
 	userRepository userRepository,
+	txRunner AuthTransactionRunner,
 	tokenService tokenService,
 	sudirService sudirService,
 	auditService auditService,
@@ -52,6 +66,7 @@ func NewAuth(
 ) Auth {
 	return Auth{
 		userRepository:           userRepository,
+		txRunner:                 txRunner,
 		tokenService:             tokenService,
 		sudirService:             sudirService,
 		auditService:             auditService,
@@ -71,33 +86,57 @@ func (a Auth) Login(ctx context.Context, request domain.LoginRequest) (*domain.L
 	}
 	time.Sleep(a.delayLoginRequest)
 
-	user, err := a.userRepository.GetUserByEmail(ctx, request.Email)
-	switch {
-	case errors.Is(err, domain.ErrNotFound):
-		return nil, errors.WithMessage(domain.ErrUnauthenticated, "wrong email")
-	case err != nil:
-		return nil, errors.WithMessage(err, "get user by email")
-	case user.SudirUserId != nil:
-		return nil, domain.ErrSudirAuthorization
-	}
+	var (
+		tokenString string
+		expired     string
+	)
 
-	if user.Blocked {
-		a.auditService.SaveAuditAsync(ctx, user.Id, "Неуспешный вход. Пользователь заблокирован")
-		return nil, errors.WithMessagef(domain.ErrUnauthenticated, "user '%d' is blocked", user.Id)
-	}
+	err := a.txRunner.AuthTransaction(ctx, func(ctx context.Context, tx AuthTransaction) error {
+		user, err := tx.GetUserByEmail(ctx, request.Email)
+		switch {
+		case errors.Is(err, domain.ErrNotFound):
+			return errors.WithMessage(domain.ErrUnauthenticated, "wrong email")
+		case err != nil:
+			return errors.WithMessage(err, "get user by email")
+		case user.SudirUserId != nil:
+			return domain.ErrSudirAuthorization
+		}
 
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(request.Password))
+		if user.Blocked {
+			a.auditService.SaveAuditAsync(ctx, user.Id, "Неуспешный вход. Пользователь заблокирован")
+			return errors.WithMessagef(domain.ErrUnauthenticated, "user '%d' is blocked", user.Id)
+		}
+
+		err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(request.Password))
+		if err != nil {
+			a.auditService.SaveAuditAsync(ctx, user.Id, "Неуспешный вход. Неверный пароль")
+			return errors.WithMessage(domain.ErrUnauthenticated, "wrong password")
+		}
+
+		tokenString, expired, err = a.tokenService.GenerateToken(ctx, tx, user.Id)
+		if err != nil {
+			return errors.WithMessage(err, "generate token")
+		}
+
+		a.auditService.SaveAuditAsync(ctx, user.Id, "Успешный вход через форму входа")
+
+		updateEntity := entity.UpdateUser{
+			FirstName:   user.FirstName,
+			LastName:    user.LastName,
+			Email:       user.Email,
+			Description: user.Description,
+		}
+		_, err = tx.UpdateUser(ctx, user.Id, updateEntity)
+		if err != nil {
+			return errors.WithMessage(err, "update session info")
+		}
+
+		return nil
+	})
+
 	if err != nil {
-		a.auditService.SaveAuditAsync(ctx, user.Id, "Неуспешный вход. Неверный пароль")
-		return nil, errors.WithMessage(domain.ErrUnauthenticated, "wrong password")
+		return nil, err
 	}
-
-	tokenString, expired, err := a.tokenService.GenerateToken(ctx, user.Id)
-	if err != nil {
-		return nil, errors.WithMessage(err, "generate token")
-	}
-
-	a.auditService.SaveAuditAsync(ctx, user.Id, "Успешный вход через форму входа")
 
 	return &domain.LoginResponse{
 		Token:      tokenString,
@@ -107,43 +146,69 @@ func (a Auth) Login(ctx context.Context, request domain.LoginRequest) (*domain.L
 }
 
 func (a Auth) LoginWithSudir(ctx context.Context, request domain.LoginSudirRequest) (*domain.LoginResponse, error) {
-	sudirUser, err := a.sudirService.Authenticate(ctx, request.AuthCode)
+	var (
+		user *entity.User
 
-	var authErr *entity.SudirAuthError
-	switch {
-	case errors.As(err, &authErr):
-		a.logger.Error(ctx, "sudir authenticate: error occurred", log.String("error", err.Error()))
-		return nil, domain.ErrUnauthenticated
-	case err != nil:
-		return nil, errors.WithMessage(err, "sudir authenticate")
-	case sudirUser.SudirUserId == "" || sudirUser.Email == "":
-		a.logger.Error(ctx, "sudir authenticate: missing sudirUserId or email",
-			log.String("userId", sudirUser.SudirUserId),
-			log.String("email", sudirUser.Email))
-		return nil, domain.ErrUnauthenticated
-	}
+		tokenString string
+		expired     string
+	)
 
-	user, err := a.userRepository.UpsertBySudirUserId(ctx, entity.User{
-		SudirUserId: &sudirUser.SudirUserId,
-		RoleId:      sudirUser.RoleId,
-		FirstName:   sudirUser.FirstName,
-		LastName:    sudirUser.LastName,
-		Email:       sudirUser.Email,
-		Password:    "",
-		Blocked:     false,
-		UpdatedAt:   time.Now().UTC(),
-		CreatedAt:   time.Now().UTC(),
+	err := a.txRunner.AuthTransaction(ctx, func(ctx context.Context, tx AuthTransaction) error {
+		sudirUser, err := a.sudirService.Authenticate(ctx, request.AuthCode, tx)
+
+		var authErr *entity.SudirAuthError
+		switch {
+		case errors.As(err, &authErr):
+			a.logger.Error(ctx, "sudir authenticate: error occurred", log.String("error", err.Error()))
+			return domain.ErrUnauthenticated
+		case err != nil:
+			return errors.WithMessage(err, "sudir authenticate")
+		case sudirUser.SudirUserId == "" || sudirUser.Email == "":
+			a.logger.Error(ctx, "sudir authenticate: missing sudirUserId or email",
+				log.String("userId", sudirUser.SudirUserId),
+				log.String("email", sudirUser.Email))
+			return domain.ErrUnauthenticated
+		}
+
+		user, err = tx.UpsertBySudirUserId(ctx, entity.User{
+			SudirUserId: &sudirUser.SudirUserId,
+			FirstName:   sudirUser.FirstName,
+			LastName:    sudirUser.LastName,
+			Email:       sudirUser.Email,
+			Password:    "",
+			Blocked:     false,
+			UpdatedAt:   time.Now().UTC(),
+			CreatedAt:   time.Now().UTC(),
+		})
+		if errors.Is(err, domain.ErrNotFound) {
+			return errors.Errorf("user with sudir user id = %s is blocked", sudirUser.SudirUserId)
+		}
+		if err != nil {
+			return errors.WithMessage(err, "upsert by sudir user id")
+		}
+
+		userRoles, err := tx.GetRolesByUserIds(ctx, []int{int(user.Id)})
+		if err != nil {
+			return errors.WithMessage(err, "select user roles")
+		}
+
+		// при создании юзера СУДИР первоначально роли не указаны
+		if len(userRoles) == 0 {
+			err = tx.InsertUserRoleLinks(ctx, int(user.Id), sudirUser.RoleIds)
+			if err != nil {
+				return errors.WithMessage(err, "insert sudir roles")
+			}
+		}
+
+		tokenString, expired, err = a.tokenService.GenerateToken(ctx, tx, user.Id)
+		if err != nil {
+			return errors.WithMessage(err, "generate token")
+		}
+
+		return nil
 	})
-	if errors.Is(err, domain.ErrNotFound) {
-		return nil, errors.Errorf("user with sudir user id = %s is blocked", sudirUser.SudirUserId)
-	}
 	if err != nil {
-		return nil, errors.WithMessage(err, "upsert by sudir user id")
-	}
-
-	tokenString, expired, err := a.tokenService.GenerateToken(ctx, user.Id)
-	if err != nil {
-		return nil, errors.WithMessage(err, "generate token")
+		return nil, err
 	}
 
 	a.auditService.SaveAuditAsync(ctx, user.Id, "Успешный вход через СУДИР")
