@@ -7,36 +7,84 @@ import (
 	"github.com/integration-system/isp-kit/log"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
+	"msp-admin-service/conf"
 	"msp-admin-service/domain"
 	"msp-admin-service/entity"
 )
 
-type AuditRepo interface {
+type AuditRepository interface {
 	Insert(ctx context.Context, log entity.Audit) (int, error)
 	All(ctx context.Context, limit int, offset int) ([]entity.Audit, error)
 	Count(ctx context.Context) (int64, error)
 }
 
-type Audit struct {
-	repo   AuditRepo
-	logger log.Logger
+type AuditEventRepository interface {
+	All(ctx context.Context) ([]entity.AuditEvent, error)
+	Upsert(ctx context.Context, eventList []entity.AuditEvent) error
+	IsEnable(ctx context.Context, event string) (bool, error)
 }
 
-func NewAudit(repo AuditRepo, logger log.Logger) Audit {
+type Audit struct {
+	logger            log.Logger
+	auditRep          AuditRepository
+	auditEventRep     AuditEventRepository
+	eventSetting      map[string]conf.AuditEventSetting
+	expectedEventList map[string]bool
+}
+
+func NewAudit(
+	ctx context.Context,
+	logger log.Logger,
+	auditRep AuditRepository,
+	auditEventRep AuditEventRepository,
+	settings []conf.AuditEventSetting,
+) Audit {
+	expectedEventList := map[string]bool{
+		entity.EventSuccessLogin:  true,
+		entity.EventErrorLogin:    true,
+		entity.EventSuccessLogout: true,
+		entity.EventRoleChanged:   true,
+		entity.EventUserChanged:   true,
+	}
+
+	eventName := make(map[string]conf.AuditEventSetting)
+	for _, setting := range settings {
+		expectedEvent := expectedEventList[setting.Event]
+		if !expectedEvent {
+			logger.Warn(ctx, "not expected audit event in remote config", log.String("event", setting.Event))
+			continue
+		}
+
+		eventName[setting.Event] = setting
+	}
+
 	return Audit{
-		repo:   repo,
-		logger: logger,
+		logger:            logger,
+		auditRep:          auditRep,
+		auditEventRep:     auditEventRep,
+		eventSetting:      eventName,
+		expectedEventList: expectedEventList,
 	}
 }
 
-func (s Audit) SaveAuditAsync(ctx context.Context, userId int64, message string) {
+func (s Audit) SaveAuditAsync(ctx context.Context, userId int64, message string, event string) {
 	go func() {
+		isEnable, err := s.auditEventRep.IsEnable(context.Background(), event)
+		if err != nil {
+			s.logger.Error(ctx, "check is enable audit event", log.Any("error", err))
+			return
+		}
+		if !isEnable {
+			return
+		}
+
 		audit := entity.Audit{
 			UserId:    int(userId),
 			Message:   message,
+			Event:     event,
 			CreatedAt: time.Now().UTC(),
 		}
-		_, err := s.repo.Insert(context.Background(), audit)
+		_, err = s.auditRep.Insert(context.Background(), audit)
 		if err != nil {
 			s.logger.Error(ctx, "insert audit", log.Any("error", err))
 		}
@@ -49,16 +97,16 @@ func (s Audit) All(ctx context.Context, limit int, offset int) (*domain.AuditRes
 	var total int64
 	var err error
 	group.Go(func() error {
-		tokens, err = s.repo.All(ctx, limit, offset)
+		tokens, err = s.auditRep.All(ctx, limit, offset)
 		if err != nil {
-			return errors.WithMessage(err, "get all tokens")
+			return errors.WithMessage(err, "get all audit")
 		}
 		return nil
 	})
 	group.Go(func() error {
-		total, err = s.repo.Count(ctx)
+		total, err = s.auditRep.Count(ctx)
 		if err != nil {
-			return errors.WithMessage(err, "count all tokens")
+			return errors.WithMessage(err, "count all audit")
 		}
 		return nil
 	})
@@ -69,7 +117,12 @@ func (s Audit) All(ctx context.Context, limit int, offset int) (*domain.AuditRes
 
 	items := make([]domain.Audit, 0)
 	for _, token := range tokens {
-		items = append(items, domain.Audit(token))
+		items = append(items, domain.Audit{
+			Id:        token.Id,
+			UserId:    token.UserId,
+			Message:   token.Message,
+			CreatedAt: token.CreatedAt,
+		})
 	}
 	result := domain.AuditResponse{
 		TotalCount: int(total),
