@@ -135,7 +135,7 @@ func (a Auth) Login(ctx context.Context, request domain.LoginRequest) (*domain.L
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "auth transaction")
 	}
 
 	return &domain.LoginResponse{
@@ -208,7 +208,7 @@ func (a Auth) LoginWithSudir(ctx context.Context, request domain.LoginSudirReque
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "auth transaction")
 	}
 
 	a.auditService.SaveAuditAsync(ctx, user.Id, "Успешный вход через СУДИР", entity.EventSuccessLogin)

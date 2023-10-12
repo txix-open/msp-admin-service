@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	sudirRolePrefix = "CN="
+	sudirRolePrefix = "CN=" // nolint:unused
 )
 
 type sudirRepo interface {

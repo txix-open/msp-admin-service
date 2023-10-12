@@ -3,6 +3,7 @@ package tests
 import (
 	"github.com/integration-system/isp-kit/db/query"
 	"github.com/integration-system/isp-kit/test/dbt"
+	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
 	"msp-admin-service/entity"
 )
@@ -28,7 +29,7 @@ func InsertSudirUser(db *dbt.TestDb, user entity.SudirUser) (int64, error) {
 		Suffix("RETURNING id").
 		ToSql()
 	if err != nil {
-		return 0, err
+		return 0, errors.WithMessagef(err, "insert sudir user")
 	}
 	var id int64
 	db.Must().SelectRow(&id, q, args...)
@@ -43,7 +44,7 @@ func InsertRole(db *dbt.TestDb, role entity.Role) (int64, error) {
 		Suffix("ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id").
 		ToSql()
 	if err != nil {
-		return 0, err
+		return 0, errors.WithMessagef(err, "insert role")
 	}
 	var id int64
 	db.Must().SelectRow(&id, q, args...)
@@ -57,7 +58,7 @@ func InsertUserRole(db *dbt.TestDb, role entity.UserRole) error {
 		Values(role.UserId, role.RoleId).
 		ToSql()
 	if err != nil {
-		return err
+		return errors.WithMessage(err, "insert user role")
 	}
 	db.Must().Exec(q, args...)
 	return nil

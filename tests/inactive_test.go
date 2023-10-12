@@ -1,4 +1,4 @@
-package tests
+package tests_test
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 	"msp-admin-service/conf"
 	"msp-admin-service/entity"
 	"msp-admin-service/repository"
+	"msp-admin-service/tests"
 )
 
 func TestInactiveWorker(t *testing.T) {
@@ -20,16 +21,16 @@ func TestInactiveWorker(t *testing.T) {
 	test, require := test.New(t)
 	db := dbt.New(test, dbx.WithMigration("../migrations"))
 
-	userId := InsertUser(db, entity.User{Email: "a@test"})
-	InsertUser(db, entity.User{Email: "b@test"})
-	InsertTokenEntity(db, entity.Token{
+	userId := tests.InsertUser(db, entity.User{Email: "a@test"})
+	tests.InsertUser(db, entity.User{Email: "b@test"})
+	tests.InsertTokenEntity(db, entity.Token{
 		Id:        0,
 		Token:     "123",
 		UserId:    userId,
 		Status:    entity.TokenStatusAllowed,
 		CreatedAt: time.Now().UTC().Add(-48 * time.Hour),
 	})
-	InsertTokenEntity(db, entity.Token{
+	tests.InsertTokenEntity(db, entity.Token{
 		Id:        0,
 		Token:     "234",
 		UserId:    userId,
@@ -38,7 +39,7 @@ func TestInactiveWorker(t *testing.T) {
 	})
 
 	worker := assembly.NewLocator(test.Logger(), nil, db).
-		Config(conf.Remote{BlockInactiveWorker: conf.BlockInactiveWorker{DaysThreshold: 1}}).
+		Config(context.Background(), conf.Remote{BlockInactiveWorker: conf.BlockInactiveWorker{DaysThreshold: 1}}).
 		InactiveBlocker
 	worker.Do(context.Background())
 	time.Sleep(1 * time.Second)

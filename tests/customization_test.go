@@ -1,4 +1,4 @@
-package tests
+package tests_test
 
 import (
 	"context"
@@ -15,6 +15,7 @@ import (
 )
 
 func TestCustomizationTestSuite(t *testing.T) {
+	t.Parallel()
 	suite.Run(t, &CustomizationTestSuite{})
 }
 
@@ -30,18 +31,17 @@ func (s *CustomizationTestSuite) SetupTest() {
 	s.test = testInstance
 	s.db = dbt.New(testInstance, dbx.WithMigration("../migrations"))
 
-	cfg := conf.Remote{
+	remote := conf.Remote{
 		UiDesign: conf.UIDesign{
 			Name:         "test",
 			PrimaryColor: "#ff4d4f",
 		},
 		ExpireSec: 0,
 	}
+	cfg := assembly.NewLocator(testInstance.Logger(), nil, s.db).
+		Config(context.Background(), remote)
 
-	locator := assembly.NewLocator(testInstance.Logger(), nil, s.db)
-	handler := locator.Handler(cfg)
-
-	server, apiCli := grpct.TestServer(testInstance, handler)
+	server, apiCli := grpct.TestServer(testInstance, cfg.Handler)
 	s.grpcCli = apiCli
 
 	testInstance.T().Cleanup(func() {
@@ -54,7 +54,7 @@ func (s *CustomizationTestSuite) TestGetDesign() {
 	err := s.grpcCli.
 		Invoke("admin/user/get_design").
 		JsonRequestBody(struct{}{}).
-		ReadJsonResponse(&response).
+		JsonResponseBody(&response).
 		Do(context.Background())
 	s.Require().NoError(err)
 	expected := conf.UIDesign{

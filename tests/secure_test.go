@@ -1,4 +1,4 @@
-package tests
+package tests_test
 
 import (
 	"context"
@@ -17,9 +17,11 @@ import (
 	"msp-admin-service/conf"
 	"msp-admin-service/domain"
 	"msp-admin-service/entity"
+	"msp-admin-service/tests"
 )
 
 func TestSecureSuite(t *testing.T) {
+	t.Parallel()
 	suite.Run(t, &SecureSuite{})
 }
 
@@ -35,13 +37,13 @@ func (s *SecureSuite) SetupTest() {
 	s.test, s.require = test.New(s.T())
 	s.db = dbt.New(s.test, dbx.WithMigration("../migrations"))
 	httpCli := httpcli.New()
-	locator := assembly.NewLocator(s.test.Logger(), httpCli, s.db)
-	handler := locator.Handler(
-		conf.Remote{
-			ExpireSec: 3600,
-		},
-	)
-	server, apiCli := grpct.TestServer(s.test, handler)
+	remote := conf.Remote{
+		ExpireSec: 3600,
+	}
+	cfg := assembly.NewLocator(s.test.Logger(), httpCli, s.db).
+		Config(context.Background(), remote)
+
+	server, apiCli := grpct.TestServer(s.test, cfg.Handler)
 	s.test.T().Cleanup(func() {
 		server.Shutdown()
 	})
@@ -49,7 +51,7 @@ func (s *SecureSuite) SetupTest() {
 }
 
 func (s *SecureSuite) Test_Authenticate_HappyPath() {
-	InsertTokenEntity(s.db, entity.Token{
+	tests.InsertTokenEntity(s.db, entity.Token{
 		Token:     "happy_path",
 		UserId:    1,
 		Status:    entity.TokenStatusAllowed,
@@ -62,7 +64,7 @@ func (s *SecureSuite) Test_Authenticate_HappyPath() {
 		JsonRequestBody(domain.SecureAuthRequest{
 			Token: "happy_path",
 		}).
-		ReadJsonResponse(&result).
+		JsonResponseBody(&result).
 		Do(context.Background())
 	s.require.NoError(err)
 	s.require.Equal(domain.SecureAuthResponse{
@@ -73,7 +75,7 @@ func (s *SecureSuite) Test_Authenticate_HappyPath() {
 }
 
 func (s *SecureSuite) Test_Authenticate_StatusRevoked() {
-	InsertTokenEntity(s.db, entity.Token{
+	tests.InsertTokenEntity(s.db, entity.Token{
 		Token:     "revoked",
 		UserId:    1,
 		Status:    entity.TokenStatusRevoked,
@@ -86,7 +88,7 @@ func (s *SecureSuite) Test_Authenticate_StatusRevoked() {
 		JsonRequestBody(domain.SecureAuthRequest{
 			Token: "revoked",
 		}).
-		ReadJsonResponse(&result).
+		JsonResponseBody(&result).
 		Do(context.Background())
 	s.require.NoError(err)
 	s.require.Equal(domain.SecureAuthResponse{
@@ -97,7 +99,7 @@ func (s *SecureSuite) Test_Authenticate_StatusRevoked() {
 }
 
 func (s *SecureSuite) Test_Authenticate_Expired() {
-	InsertTokenEntity(s.db, entity.Token{
+	tests.InsertTokenEntity(s.db, entity.Token{
 		Token:     "expired",
 		UserId:    1,
 		Status:    entity.TokenStatusAllowed,
@@ -110,7 +112,7 @@ func (s *SecureSuite) Test_Authenticate_Expired() {
 		JsonRequestBody(domain.SecureAuthRequest{
 			Token: "expired",
 		}).
-		ReadJsonResponse(&result).
+		JsonResponseBody(&result).
 		Do(context.Background())
 	s.require.NoError(err)
 	s.require.Equal(domain.SecureAuthResponse{
@@ -126,7 +128,7 @@ func (s *SecureSuite) Test_Authenticate_NotFound() {
 		JsonRequestBody(domain.SecureAuthRequest{
 			Token: "not_found",
 		}).
-		ReadJsonResponse(&result).
+		JsonResponseBody(&result).
 		Do(context.Background())
 	s.require.NoError(err)
 	s.require.Equal(domain.SecureAuthResponse{

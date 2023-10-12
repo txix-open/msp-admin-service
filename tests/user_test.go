@@ -1,4 +1,4 @@
-package tests
+package tests_test
 
 import (
 	"context"
@@ -22,6 +22,7 @@ import (
 	"msp-admin-service/entity"
 	"msp-admin-service/repository"
 	"msp-admin-service/service"
+	"msp-admin-service/tests"
 )
 
 type tokenService interface {
@@ -29,6 +30,7 @@ type tokenService interface {
 }
 
 func TestUserTestSuite(t *testing.T) {
+	t.Parallel()
 	suite.Run(t, &UserTestSuite{})
 }
 
@@ -47,13 +49,13 @@ func (s *UserTestSuite) SetupTest() {
 	s.db = dbt.New(testInstance, dbx.WithMigration("../migrations"))
 	s.httpCli = httpcli.New()
 
-	cfg := conf.Remote{
+	remote := conf.Remote{
 		ExpireSec: 0,
 	}
-	locator := assembly.NewLocator(testInstance.Logger(), s.httpCli, s.db)
-	handler := locator.Handler(cfg)
+	cfg := assembly.NewLocator(testInstance.Logger(), s.httpCli, s.db).
+		Config(context.Background(), remote)
 
-	server, apiCli := grpct.TestServer(testInstance, handler)
+	server, apiCli := grpct.TestServer(testInstance, cfg.Handler)
 	s.grpcCli = apiCli
 
 	testInstance.T().Cleanup(func() {
@@ -65,19 +67,19 @@ func (s *UserTestSuite) SetupTest() {
 }
 
 func (s *UserTestSuite) TestGetProfileHappyPath() {
-	id := InsertUser(s.db, entity.User{
+	id := tests.InsertUser(s.db, entity.User{
 		FirstName: "name",
 		LastName:  "surname",
 		Email:     "a@a.ru",
 		Password:  "password",
 	})
 
-	roleId, err := InsertRole(s.db, entity.Role{
+	roleId, err := tests.InsertRole(s.db, entity.Role{
 		Name: "admin",
 	})
 	s.Require().NoError(err)
 
-	err = InsertUserRole(s.db, entity.UserRole{
+	err = tests.InsertUserRole(s.db, entity.UserRole{
 		UserId: int(id),
 		RoleId: int(roleId),
 	})
@@ -85,7 +87,7 @@ func (s *UserTestSuite) TestGetProfileHappyPath() {
 
 	response := domain.AdminUserShort{}
 	err = s.grpcCli.Invoke("admin/user/get_profile").
-		ReadJsonResponse(&response).
+		JsonResponseBody(&response).
 		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(id))).
 		Do(context.Background())
 	s.Require().NoError(err)
@@ -101,7 +103,7 @@ func (s *UserTestSuite) TestGetProfileHappyPath() {
 }
 
 func (s *UserTestSuite) TestGetProfileNotFound() {
-	id := InsertUser(s.db, entity.User{
+	id := tests.InsertUser(s.db, entity.User{
 		FirstName: "name",
 		LastName:  "surname",
 		Email:     "a@b.ru",
@@ -118,7 +120,7 @@ func (s *UserTestSuite) TestGetProfileNotFound() {
 }
 
 func (s *UserTestSuite) TestGetProfileSudir() {
-	id, err := InsertSudirUser(s.db, entity.SudirUser{
+	id, err := tests.InsertSudirUser(s.db, entity.SudirUser{
 		SudirUserId: "sudirUser1",
 		FirstName:   "name",
 		LastName:    "surname",
@@ -126,21 +128,22 @@ func (s *UserTestSuite) TestGetProfileSudir() {
 	})
 	s.Require().NoError(err)
 
-	roleId, err := InsertRole(s.db, entity.Role{
+	roleId, err := tests.InsertRole(s.db, entity.Role{
 		Name: "admin",
 	})
 	s.Require().NoError(err)
 
-	err = InsertUserRole(s.db, entity.UserRole{
+	err = tests.InsertUserRole(s.db, entity.UserRole{
 		UserId: int(id),
 		RoleId: int(roleId),
 	})
 	s.Require().NoError(err)
 
 	response := domain.AdminUserShort{}
-	err = s.grpcCli.Invoke("admin/user/get_profile").
+	err = s.grpcCli.
+		Invoke("admin/user/get_profile").
 		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(id))).
-		ReadJsonResponse(&response).
+		JsonResponseBody(&response).
 		Do(context.Background())
 	s.Require().NoError(err)
 	expected := domain.AdminUserShort{
@@ -155,10 +158,10 @@ func (s *UserTestSuite) TestGetProfileSudir() {
 }
 
 func (s *UserTestSuite) TestGetUsers() {
-	InsertUser(s.db, entity.User{Email: "a1@a.ru"})
-	InsertUser(s.db, entity.User{Email: "b1@a.ru"})
-	InsertUser(s.db, entity.User{Email: "a1@b.ru"})
-	InsertUser(s.db, entity.User{Email: "a1@c.ru"})
+	tests.InsertUser(s.db, entity.User{Email: "a1@a.ru"})
+	tests.InsertUser(s.db, entity.User{Email: "b1@a.ru"})
+	tests.InsertUser(s.db, entity.User{Email: "a1@b.ru"})
+	tests.InsertUser(s.db, entity.User{Email: "a1@c.ru"})
 
 	response := domain.UsersResponse{}
 	err := s.grpcCli.Invoke("admin/user/get_users").
@@ -167,7 +170,9 @@ func (s *UserTestSuite) TestGetUsers() {
 			Offset: 1,
 			Limit:  1,
 			Email:  "a1@",
-		}).ReadJsonResponse(&response).Do(context.Background())
+		}).
+		JsonResponseBody(&response).
+		Do(context.Background())
 	s.Require().NoError(err)
 
 	s.Require().Equal(1, len(response.Items))
@@ -175,7 +180,7 @@ func (s *UserTestSuite) TestGetUsers() {
 }
 
 func (s *UserTestSuite) TestCreateUserHappyPath() {
-	admin := InsertUser(s.db, entity.User{Email: "admin@a.ru"})
+	admin := tests.InsertUser(s.db, entity.User{Email: "admin@a.ru"})
 
 	preCount := 0
 	s.db.Must().SelectRow(&preCount, "select count(*) from users")
@@ -190,7 +195,7 @@ func (s *UserTestSuite) TestCreateUserHappyPath() {
 			Email:     "a2@a.ru",
 			Password:  "password",
 		}).
-		ReadJsonResponse(&response).
+		JsonResponseBody(&response).
 		Do(context.Background())
 	s.Require().NoError(err)
 
@@ -201,7 +206,7 @@ func (s *UserTestSuite) TestCreateUserHappyPath() {
 }
 
 func (s *UserTestSuite) TestCreateUserAlreadyExist() {
-	id := InsertUser(s.db, entity.User{Email: "exists@a.ru"})
+	id := tests.InsertUser(s.db, entity.User{Email: "exists@a.ru"})
 
 	err := s.grpcCli.
 		Invoke("admin/user/create_user").
@@ -220,7 +225,7 @@ func (s *UserTestSuite) TestCreateUserAlreadyExist() {
 }
 
 func (s *AuthTestSuite) TestUpdateUserHappyPath() {
-	id := InsertUser(s.db, entity.User{Email: "update@a.ru", Password: "password"})
+	id := tests.InsertUser(s.db, entity.User{Email: "update@a.ru", Password: "password"})
 	req := domain.UpdateUserRequest{
 		Id:        id,
 		FirstName: "name",
@@ -232,7 +237,7 @@ func (s *AuthTestSuite) TestUpdateUserHappyPath() {
 		Invoke("admin/user/update_user").
 		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(id))).
 		JsonRequestBody(req).
-		ReadJsonResponse(&response).
+		JsonResponseBody(&response).
 		Do(context.Background())
 	s.Require().NoError(err)
 	expected := domain.UpdateUserRequest{
@@ -245,7 +250,7 @@ func (s *AuthTestSuite) TestUpdateUserHappyPath() {
 }
 
 func (s *AuthTestSuite) TestUpdateSudirUserHappyPath() {
-	id, err := InsertSudirUser(s.db, entity.SudirUser{Email: "sudir@a.ru"})
+	id, err := tests.InsertSudirUser(s.db, entity.SudirUser{Email: "sudir@a.ru"})
 	s.Require().NoError(err)
 	req := domain.UpdateUserRequest{
 		Id:        id,
@@ -258,7 +263,7 @@ func (s *AuthTestSuite) TestUpdateSudirUserHappyPath() {
 		Invoke("admin/user/update_user").
 		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(id))).
 		JsonRequestBody(req).
-		ReadJsonResponse(&response).
+		JsonResponseBody(&response).
 		Do(context.Background())
 	s.Require().NoError(err)
 	expected := domain.UpdateUserRequest{
@@ -271,8 +276,8 @@ func (s *AuthTestSuite) TestUpdateSudirUserHappyPath() {
 }
 
 func (s *AuthTestSuite) TestUpdateUserAlreadyExist() {
-	admin := InsertUser(s.db, entity.User{Email: "a_exists@a.ru", Password: "password"})
-	id := InsertUser(s.db, entity.User{Email: "b_exists@b.ru", Password: "password"})
+	admin := tests.InsertUser(s.db, entity.User{Email: "a_exists@a.ru", Password: "password"})
+	id := tests.InsertUser(s.db, entity.User{Email: "b_exists@b.ru", Password: "password"})
 	req := domain.UpdateUserRequest{
 		Id:        id,
 		FirstName: "name",
@@ -291,22 +296,25 @@ func (s *AuthTestSuite) TestUpdateUserAlreadyExist() {
 }
 
 func (s *UserTestSuite) TestDeleteUsers() {
-	admin := InsertUser(s.db, entity.User{Email: "a_del@a.ru"})
-	InsertUser(s.db, entity.User{Email: "b_del@a.ru"})
-	InsertUser(s.db, entity.User{Email: "a_del@b.ru"})
-	InsertUser(s.db, entity.User{Email: "a_del@c.ru"})
+	admin := tests.InsertUser(s.db, entity.User{Email: "a_del@a.ru"})
+	tests.InsertUser(s.db, entity.User{Email: "b_del@a.ru"})
+	tests.InsertUser(s.db, entity.User{Email: "a_del@b.ru"})
+	tests.InsertUser(s.db, entity.User{Email: "a_del@c.ru"})
 
 	response := domain.DeleteResponse{}
-	err := s.grpcCli.Invoke("admin/user/delete_user").
+	err := s.grpcCli.
+		Invoke("admin/user/delete_user").
 		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(admin))).
-		JsonRequestBody(domain.IdentitiesRequest{Ids: []int64{3, 4}}).ReadJsonResponse(&response).Do(context.Background())
+		JsonRequestBody(domain.IdentitiesRequest{Ids: []int64{3, 4}}).
+		JsonResponseBody(&response).
+		Do(context.Background())
 	s.Require().NoError(err)
 
 	s.Require().Equal(2, response.Deleted)
 }
 
 func (s *UserTestSuite) TestBlockUser() {
-	id := InsertUser(s.db, entity.User{
+	id := tests.InsertUser(s.db, entity.User{
 		FirstName: "John",
 		LastName:  "Doe",
 		Email:     "a_block@a.ru",
@@ -314,7 +322,7 @@ func (s *UserTestSuite) TestBlockUser() {
 		Blocked:   false,
 	})
 	token := uuid.New().String()
-	InsertTokenEntity(s.db, entity.Token{
+	tests.InsertTokenEntity(s.db, entity.Token{
 		Token:     token,
 		UserId:    id,
 		Status:    entity.TokenStatusAllowed,
