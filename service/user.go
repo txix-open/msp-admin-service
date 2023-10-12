@@ -198,6 +198,7 @@ func (u User) CreateUser(ctx context.Context, req domain.CreateUserRequest, admi
 
 	u.auditService.SaveAuditAsync(ctx, adminId,
 		fmt.Sprintf("Пользователь. Создание пользователя %s.", usr.Email),
+		entity.EventUserChanged,
 	)
 
 	result := u.toDomain(usr, req.Roles, nil)
@@ -261,6 +262,7 @@ func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, admi
 
 	u.auditService.SaveAuditAsync(ctx, adminId,
 		fmt.Sprintf("Пользователь. Изменение пользователя %s.", user.Email),
+		entity.EventUserChanged,
 	)
 
 	result := u.toDomain(*user, req.Roles, lastSessionCreatedAt)
@@ -278,6 +280,7 @@ func (u User) DeleteUsers(ctx context.Context, ids []int64, adminId int64) (int,
 
 	u.auditService.SaveAuditAsync(ctx, adminId,
 		fmt.Sprintf("Пользователь. Удаление пользователей %d.", ids),
+		entity.EventUserChanged,
 	)
 
 	return count, err
@@ -331,6 +334,7 @@ func (u User) Block(ctx context.Context, adminId int64, userId int) error {
 
 	u.auditService.SaveAuditAsync(ctx, adminId,
 		fmt.Sprintf("Пользователь. %s пользователя ID %d.", userBlocked, userId),
+		entity.EventUserChanged,
 	)
 
 	return nil

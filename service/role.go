@@ -65,10 +65,10 @@ func (u Role) Create(ctx context.Context, req domain.CreateRoleRequest, adminId 
 		return nil, errors.WithMessage(err, "create role")
 	}
 
-	u.auditService.SaveAuditAsync(ctx, adminId, fmt.Sprintf("Роль. Создание новой роли %s. Причина: %s",
-		req.Name,
-		req.ChangeMessage,
-	))
+	u.auditService.SaveAuditAsync(ctx, adminId,
+		fmt.Sprintf("Роль. Создание новой роли %s. Причина: %s", req.Name, req.ChangeMessage),
+		entity.EventRoleChanged,
+	)
 
 	result := u.toDomain(*role)
 	return &result, nil
@@ -104,10 +104,10 @@ func (u Role) Update(ctx context.Context, req domain.UpdateRoleRequest, adminId 
 		return nil, errors.WithMessage(err, "update role")
 	}
 
-	u.auditService.SaveAuditAsync(ctx, adminId, fmt.Sprintf("Роль. Изменение роли %s. Причина: %s",
-		req.Name,
-		req.ChangeMessage,
-	))
+	u.auditService.SaveAuditAsync(ctx, adminId,
+		fmt.Sprintf("Роль. Изменение роли %s. Причина: %s", req.Name, req.ChangeMessage),
+		entity.EventRoleChanged,
+	)
 	result := u.toDomain(*role)
 	return &result, nil
 }
@@ -118,7 +118,9 @@ func (u Role) Delete(ctx context.Context, req domain.DeleteRoleRequest, adminId 
 		return errors.WithMessage(err, "delete role")
 	}
 
-	u.auditService.SaveAuditAsync(ctx, adminId, fmt.Sprintf("Роль. Удаление роли. ID: %d", req.Id))
+	u.auditService.SaveAuditAsync(ctx, adminId, fmt.Sprintf("Роль. Удаление роли. ID: %d", req.Id),
+		entity.EventRoleChanged,
+	)
 	return nil
 }
 

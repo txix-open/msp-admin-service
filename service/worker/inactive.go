@@ -6,10 +6,11 @@ import (
 
 	"github.com/integration-system/isp-kit/log"
 	"github.com/pkg/errors"
+	"msp-admin-service/entity"
 )
 
 type AuditRepo interface {
-	SaveAuditAsync(ctx context.Context, userId int64, message string)
+	SaveAuditAsync(ctx context.Context, userId int64, message string, event string)
 }
 
 type TokenRepo interface {
@@ -72,7 +73,7 @@ func (w InactiveBlocker) do(ctx context.Context) error {
 		if err != nil {
 			return errors.WithMessagef(err, "block user %d", userId)
 		}
-		w.auditRepo.SaveAuditAsync(ctx, userId, "Блокировка неактивной УЗ")
+		w.auditRepo.SaveAuditAsync(ctx, userId, "Блокировка неактивной УЗ", entity.EventUserChanged)
 	}
 
 	return nil
