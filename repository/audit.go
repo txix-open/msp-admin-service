@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/integration-system/isp-kit/db"
 	"github.com/integration-system/isp-kit/db/query"
@@ -74,4 +75,21 @@ func (r Audit) Count(ctx context.Context) (int64, error) {
 		return 0, errors.WithMessage(err, "select count")
 	}
 	return count, nil
+}
+
+func (r Audit) DeleteUpToCreatedAt(ctx context.Context, createdAt time.Time) error {
+	q, args, err := query.New().
+		Delete("audit").
+		Where("created_at < ?", createdAt).
+		ToSql()
+	if err != nil {
+		return errors.WithMessage(err, "build query")
+	}
+
+	_, err = r.db.Exec(ctx, q, args...)
+	if err != nil {
+		return errors.WithMessagef(err, "delete audit")
+	}
+
+	return nil
 }
