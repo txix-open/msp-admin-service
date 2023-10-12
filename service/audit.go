@@ -131,3 +131,47 @@ func (s Audit) All(ctx context.Context, limit int, offset int) (*domain.AuditRes
 
 	return &result, nil
 }
+
+func (s Audit) Events(ctx context.Context) ([]domain.AuditEvent, error) {
+	eventList, err := s.auditEventRep.All(ctx)
+	if err != nil {
+		return nil, errors.WithMessage(err, "get all audit_event")
+	}
+
+	result := make([]domain.AuditEvent, len(eventList))
+	for i, event := range eventList {
+		result[i] = domain.AuditEvent{
+			Event:   event.Event,
+			Name:    s.eventSetting[event.Event].Name,
+			Enabled: event.Enable,
+		}
+	}
+
+	return result, nil
+}
+
+func (s Audit) SetEvents(ctx context.Context, req []domain.SetAuditEvent) error {
+	if len(req) == 0 {
+		return nil
+	}
+
+	eventList := make([]entity.AuditEvent, len(req))
+	for i, event := range req {
+		_, found := s.expectedEventList[event.Event]
+		if !found {
+			return domain.UnknownAuditEventError{Event: event.Event}
+		}
+
+		eventList[i] = entity.AuditEvent{
+			Event:  event.Event,
+			Enable: event.Enabled,
+		}
+	}
+
+	err := s.auditEventRep.Upsert(ctx, eventList)
+	if err != nil {
+		return errors.WithMessagef(err, "upsert audit_event list")
+	}
+
+	return nil
+}
