@@ -25,8 +25,8 @@ func (r Audit) Insert(ctx context.Context, log entity.Audit) (int, error) {
 
 	query, args, err := query.New().
 		Insert("audit").
-		Columns("user_id", "message", "created_at").
-		Values(log.UserId, log.Message, log.CreatedAt).
+		Columns("user_id", "message", "event", "created_at").
+		Values(log.UserId, log.Message, log.Event, log.CreatedAt).
 		Suffix("returning id").
 		ToSql()
 	if err != nil {
