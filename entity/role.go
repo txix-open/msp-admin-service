@@ -12,6 +12,8 @@ type Role struct {
 	Name          string
 	ExternalGroup string
 	Permissions   PermList
+	Immutable     bool
+	Exclusive     bool
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 }

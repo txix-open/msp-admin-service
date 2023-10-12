@@ -130,6 +130,8 @@ func (u Role) toDomain(role entity.Role) domain.Role {
 		Name:          role.Name,
 		ExternalGroup: role.ExternalGroup,
 		Permissions:   role.Permissions,
+		Immutable:     role.Immutable,
+		Exclusive:     role.Exclusive,
 		CreatedAt:     role.CreatedAt,
 		UpdatedAt:     role.UpdatedAt,
 	}

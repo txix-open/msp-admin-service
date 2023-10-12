@@ -10,6 +10,8 @@ type Role struct {
 	ExternalGroup string
 	ChangeMessage string
 	Permissions   []string
+	Immutable     bool
+	Exclusive     bool
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 }

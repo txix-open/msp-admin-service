@@ -96,9 +96,9 @@ func (r Role) GetRoleByExternalGroup(ctx context.Context, group string) (*entity
 
 func (r Role) All(ctx context.Context) ([]entity.Role, error) {
 	sql_metrics.OperationLabelToContext(ctx, "Role.All")
-
+	q := "select id, name, external_group, permissions, immutable, exclusive, created_at, updated_at from roles order by created_at"
 	roles := make([]entity.Role, 0)
-	err := r.db.Select(ctx, &roles, "select id, name, external_group, permissions, created_at, updated_at from roles order by created_at")
+	err := r.db.Select(ctx, &roles, q)
 	if err != nil {
 		return nil, errors.WithMessage(err, "select all roles")
 	}
