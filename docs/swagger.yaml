@@ -39,6 +39,15 @@ definitions:
       userId:
         type: integer
     type: object
+  domain.AuditEvent:
+    properties:
+      enabled:
+        type: boolean
+      event:
+        type: string
+      name:
+        type: string
+    type: object
   domain.AuditResponse:
     properties:
       items:
@@ -173,10 +182,14 @@ definitions:
         type: string
       createdAt:
         type: string
+      exclusive:
+        type: boolean
       externalGroup:
         type: string
       id:
         type: integer
+      immutable:
+        type: boolean
       name:
         type: string
       permissions:
@@ -206,6 +219,13 @@ definitions:
         type: integer
       offset:
         type: integer
+    type: object
+  domain.SetAuditEvent:
+    properties:
+      enabled:
+        type: boolean
+      event:
+        type: string
     type: object
   domain.UpdateRoleRequest:
     properties:
@@ -407,6 +427,41 @@ paths:
         name: body
         required: true
         schema:
+          $ref: '#/definitions/domain.PageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.AuditResponse'
+        "400":
+          description: Невалидное тело запроса
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Получение списка логов
+      tags:
+      - log
+  /log/events:
+    post:
+      consumes:
+      - application/json
+      description: Возвращает полный список доступных событий аудита
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
           $ref: '#/definitions/domain.AuditResponse'
       produces:
       - application/json
@@ -414,7 +469,42 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/domain.PageRequest'
+            items:
+              $ref: '#/definitions/domain.AuditEvent'
+            type: array
+        "400":
+          description: Невалидное тело запроса
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Получение списка логов
+      tags:
+      - log
+  /log/set_events:
+    post:
+      consumes:
+      - application/json
+      description: Всегда возвращает полный список доступных событий аудита
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.SetAuditEvent'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ""
         "400":
           description: Невалидное тело запроса
           schema:
@@ -833,33 +923,17 @@ paths:
     post:
       consumes:
       - application/json
-      description: Получить данные профиля
-      parameters:
-      - description: Токен администратора
-        in: header
-        name: X-AUTH-ADMIN
-        required: true
-        type: string
+      description: Получить все разрашения
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/domain.AdminUserShort'
-        "400":
-          description: Невалидный токен
-          schema:
-            $ref: '#/definitions/domain.GrpcError'
-        "404":
-          description: Пользователя не существует
-          schema:
-            $ref: '#/definitions/domain.GrpcError'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/domain.GrpcError'
-      summary: Получить профиль
+            items:
+              $ref: '#/definitions/domain.Permission'
+            type: array
+      summary: Получить все разрашения
       tags:
       - user
   /user/get_users:
