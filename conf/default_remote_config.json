@@ -1,4 +1,32 @@
 {
+  "audit": {
+    "eventSettings": [
+      {
+        "event": "success_login",
+        "name": "Успешный вход"
+      },
+      {
+        "event": "error_login",
+        "name": "Неуспешный вход"
+      },
+      {
+        "event": "success_logout",
+        "name": "Успешный выход"
+      },
+      {
+        "event": "role_changed",
+        "name": "Изменение роли"
+      },
+      {
+        "event": "user_changed",
+        "name": "Изменение пользователя"
+      }
+    ],
+    "auditTTl": {
+      "timeToLiveInMin": 525600,
+      "expireSyncPeriodInMin": 1440
+    }
+  },
   "database": {
     "host": "{{ msp_pgsql_address }}",
     "port": 5432,
@@ -9,11 +37,11 @@
   },
   "logLevel": "debug",
   "antiBruteforce": {
-    "maxInFlightLoginRequests" : 3,
+    "maxInFlightLoginRequests": 3,
     "delayLoginRequestInSec": 3
   },
   "expireSec": 3600,
-  "blockInactiveWorker" : {
+  "blockInactiveWorker": {
     "daysThreshold": 90,
     "runIntervalInMinutes": 60
   }
