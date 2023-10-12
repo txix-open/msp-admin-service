@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/integration-system/isp-kit/app"
+	"github.com/integration-system/isp-kit/bgjobx"
 	"github.com/integration-system/isp-kit/bootstrap"
 	"github.com/integration-system/isp-kit/cluster"
 	"github.com/integration-system/isp-kit/dbrx"
@@ -16,27 +17,31 @@ import (
 	"github.com/integration-system/isp-kit/worker"
 	"github.com/pkg/errors"
 	"msp-admin-service/conf"
+	"msp-admin-service/service/delete_old_audit_worker"
 )
 
 type Assembly struct {
-	boot    *bootstrap.Bootstrap
-	db      *dbrx.Client
-	server  *grpc.Server
-	httpCli *httpcli.Client
-	worker  *worker.Worker
-	logger  *log.Adapter
+	boot     *bootstrap.Bootstrap
+	db       *dbrx.Client
+	server   *grpc.Server
+	httpCli  *httpcli.Client
+	worker   *worker.Worker
+	logger   *log.Adapter
+	bgjobCli *bgjobx.Client
 }
 
 func New(boot *bootstrap.Bootstrap) (*Assembly, error) {
 	server := grpc.NewServer()
 	httpCli := httpclix.Default(httpcli.WithMiddlewares(httpclix.Log(boot.App.Logger())))
 	db := dbrx.New(dbx.WithMigration(boot.MigrationsDir))
+	bgjobCli := bgjobx.NewClient(db, boot.App.Logger())
 	return &Assembly{
-		boot:    boot,
-		db:      db,
-		server:  server,
-		logger:  boot.App.Logger(),
-		httpCli: httpCli,
+		boot:     boot,
+		db:       db,
+		server:   server,
+		logger:   boot.App.Logger(),
+		httpCli:  httpCli,
+		bgjobCli: bgjobCli,
 	}, nil
 }
 
@@ -58,9 +63,14 @@ func (a *Assembly) ReceiveConfig(ctx context.Context, remoteConfig []byte) error
 	}
 
 	locator := NewLocator(a.logger, a.httpCli, a.db)
-	config := locator.Config(newCfg)
+	config := locator.Config(ctx, newCfg)
 
 	a.server.Upgrade(config.Handler)
+
+	err = a.bgjobCli.Upgrade(a.boot.App.Context(), config.BgJobCfg)
+	if err != nil {
+		a.logger.Fatal(ctx, errors.WithMessage(err, "upgrade bgjob client"))
+	}
 
 	if a.worker != nil {
 		a.worker.Shutdown()
@@ -71,6 +81,11 @@ func (a *Assembly) ReceiveConfig(ctx context.Context, remoteConfig []byte) error
 	)
 	a.worker.Run(a.boot.App.Context())
 
+	err = delete_old_audit_worker.EnqueueSeedJob(ctx, a.bgjobCli)
+	if err != nil {
+		a.logger.Fatal(ctx, errors.WithMessage(err, "initial sync job"))
+	}
+
 	return nil
 }
 
@@ -79,10 +94,18 @@ func (a *Assembly) Runners() []app.Runner {
 		RemoteConfigReceiver(a)
 	return []app.Runner{
 		app.RunnerFunc(func(ctx context.Context) error {
-			return a.server.ListenAndServe(a.boot.BindingAddress)
+			err := a.server.ListenAndServe(a.boot.BindingAddress)
+			if err != nil {
+				return errors.WithMessage(err, "listen ans serve grpc server")
+			}
+			return nil
 		}),
 		app.RunnerFunc(func(ctx context.Context) error {
-			return a.boot.ClusterCli.Run(ctx, eventHandler)
+			err := a.boot.ClusterCli.Run(ctx, eventHandler)
+			if err != nil {
+				return errors.WithMessage(err, "run cluster client")
+			}
+			return nil
 		}),
 	}
 }
@@ -92,6 +115,10 @@ func (a *Assembly) Closers() []app.Closer {
 		a.boot.ClusterCli,
 		app.CloserFunc(func() error {
 			a.server.Shutdown()
+			return nil
+		}),
+		app.CloserFunc(func() error {
+			a.bgjobCli.Close()
 			return nil
 		}),
 		a.db,

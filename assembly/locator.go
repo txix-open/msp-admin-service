@@ -1,6 +1,10 @@
 package assembly
 
 import (
+	"context"
+	"time"
+
+	"github.com/integration-system/isp-kit/bgjobx"
 	"github.com/integration-system/isp-kit/db"
 	"github.com/integration-system/isp-kit/grpc/endpoint"
 	"github.com/integration-system/isp-kit/grpc/isp"
@@ -11,6 +15,7 @@ import (
 	"msp-admin-service/repository"
 	"msp-admin-service/routes"
 	"msp-admin-service/service"
+	"msp-admin-service/service/delete_old_audit_worker"
 	"msp-admin-service/service/worker"
 	"msp-admin-service/transaction"
 )
@@ -37,42 +42,27 @@ func NewLocator(logger log.Logger, httpCli *httpcli.Client, db DB) Locator {
 type Config struct {
 	Handler         isp.BackendServiceServer
 	InactiveBlocker worker.InactiveBlocker
+	BgJobCfg        []bgjobx.WorkerConfig
 }
 
-func (l Locator) Handler(cfg conf.Remote) isp.BackendServiceServer {
-	return l.Config(cfg).Handler
-}
-
-func (l Locator) Config(cfg conf.Remote) Config {
+func (l Locator) Config(ctx context.Context, cfg conf.Remote) Config {
 	sudirRepo := repository.NewSudir(l.httpCli, cfg.SudirAuth)
 	roleRepo := repository.NewRole(l.db)
 	userRepo := repository.NewUser(l.db)
 	tokenRepo := repository.NewToken(l.db)
 	auditRepo := repository.NewAudit(l.db)
+	auditEventRepo := repository.NewAuditEvent(l.db)
 	userRoleRepo := repository.NewUserRole(l.db)
 
-	auditService := service.NewAudit(auditRepo, l.logger)
+	auditService := service.NewAudit(ctx, l.logger, auditRepo, auditEventRepo, cfg.Audit.EventSettings)
 	tokenService := service.NewToken(tokenRepo, cfg.ExpireSec)
 	sudirService := service.NewSudir(cfg.SudirAuth, sudirRepo)
 
 	txManager := transaction.NewManager(l.db)
 
-	userService := service.NewUser(
-		userRepo,
-		userRoleRepo,
-		roleRepo,
-		tokenRepo,
-		auditService,
-		txManager,
-		l.logger,
-	)
+	userService := service.NewUser(userRepo, userRoleRepo, roleRepo, tokenRepo, auditService, txManager, l.logger)
 	authService := service.NewAuth(
-		userRepo,
-		txManager,
-		tokenService,
-		sudirService,
-		auditService,
-		l.logger,
+		userRepo, txManager, tokenService, sudirService, auditService, l.logger,
 		cfg.AntiBruteforce.DelayLoginRequestInSec,
 		cfg.AntiBruteforce.MaxInFlightLoginRequests,
 	)
@@ -104,15 +94,23 @@ func (l Locator) Config(cfg conf.Remote) Config {
 	)
 
 	inactiveBlocker := worker.NewInactiveBlocker(
-		tokenRepo,
-		userRepo,
-		auditService,
+		tokenRepo, userRepo, auditService,
 		cfg.BlockInactiveWorker.DaysThreshold,
 		l.logger,
 	)
 
+	deleteOldAuditWorker := delete_old_audit_worker.NewService(l.logger, auditRepo, cfg.Audit.AuditTTl)
+
 	return Config{
 		Handler:         handler,
 		InactiveBlocker: inactiveBlocker,
+		BgJobCfg: []bgjobx.WorkerConfig{
+			{
+				Queue:        delete_old_audit_worker.QueueName,
+				Concurrency:  1,
+				PollInterval: 1 * time.Second,
+				Handle:       deleteOldAuditWorker,
+			},
+		},
 	}
 }
