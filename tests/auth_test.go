@@ -223,6 +223,13 @@ func (s *AuthTestSuite) Test_Logout_NotFound() {
 		AppendMetadata(domain.AdminAuthIdHeader, "0143218411981").
 		Do(context.Background())
 	s.Require().NoError(err)
+
+	time.Sleep(time.Second)
+	audit := repository.NewAudit(s.db)
+	auditList, err := audit.All(context.Background(), 10, 0)
+	s.Require().NoError(err)
+	s.Require().Equal(1, len(auditList))
+	s.Require().Equal(entity.EventSuccessLogout, auditList[0].Event)
 }
 
 func (s *AuthTestSuite) Test_Logout_AlreadyRevoke() {
