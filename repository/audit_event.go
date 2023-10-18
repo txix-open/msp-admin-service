@@ -23,7 +23,7 @@ func NewAuditEvent(db db.DB) AuditEvent {
 }
 
 func (r AuditEvent) All(ctx context.Context) ([]entity.AuditEvent, error) {
-	sql_metrics.OperationLabelToContext(ctx, "Audit_Event.All")
+	ctx = sql_metrics.OperationLabelToContext(ctx, "Audit_Event.All")
 
 	q, args, err := query.New().
 		Select("*").
@@ -44,7 +44,7 @@ func (r AuditEvent) All(ctx context.Context) ([]entity.AuditEvent, error) {
 }
 
 func (r AuditEvent) Upsert(ctx context.Context, eventList []entity.AuditEvent) error {
-	sql_metrics.OperationLabelToContext(ctx, "Audit_Event.Upsert")
+	ctx = sql_metrics.OperationLabelToContext(ctx, "Audit_Event.Upsert")
 
 	qBuilder := query.New().
 		Insert("audit_event").
@@ -68,6 +68,8 @@ func (r AuditEvent) Upsert(ctx context.Context, eventList []entity.AuditEvent) e
 }
 
 func (r AuditEvent) IsEnable(ctx context.Context, event string) (bool, error) {
+	ctx = sql_metrics.OperationLabelToContext(ctx, "Audit_Event.IsEnable")
+
 	q, args, err := query.New().
 		Select("enable").
 		From("audit_event").

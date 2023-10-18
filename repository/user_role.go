@@ -6,6 +6,7 @@ import (
 	"github.com/Masterminds/squirrel"
 	"github.com/integration-system/isp-kit/db"
 	"github.com/integration-system/isp-kit/db/query"
+	"github.com/integration-system/isp-kit/metrics/sql_metrics"
 	"github.com/pkg/errors"
 	"msp-admin-service/entity"
 )
@@ -19,6 +20,8 @@ func NewUserRole(db db.DB) UserRole {
 }
 
 func (u UserRole) GetRolesByUserIds(ctx context.Context, identity []int) ([]entity.UserRole, error) {
+	ctx = sql_metrics.OperationLabelToContext(ctx, "UserRole.GetRolesByUserIds")
+
 	rolesQ, args, err := query.New().Select("role_id", "user_id").
 		From("user_roles").Where(squirrel.Eq{"user_id": identity}).ToSql()
 	if err != nil {
@@ -36,6 +39,8 @@ func (u UserRole) GetRolesByUserIds(ctx context.Context, identity []int) ([]enti
 }
 
 func (u UserRole) InsertUserRoleLinks(ctx context.Context, id int, roleIds []int) error {
+	ctx = sql_metrics.OperationLabelToContext(ctx, "UserRole.InsertUserRoleLinks")
+
 	rolesQ := query.New().
 		Insert("user_roles").
 		Columns("user_id", "role_id")
@@ -58,6 +63,8 @@ func (u UserRole) InsertUserRoleLinks(ctx context.Context, id int, roleIds []int
 }
 
 func (u UserRole) UpdateUserRoleLinks(ctx context.Context, id int, roleIds []int) error {
+	ctx = sql_metrics.OperationLabelToContext(ctx, "UserRole.UpdateUserRoleLinks")
+
 	deleteQ, args, err := query.New().
 		Delete("user_roles").Where(squirrel.Eq{"user_id": id}).ToSql()
 	if err != nil {

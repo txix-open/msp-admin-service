@@ -22,7 +22,7 @@ func NewRole(db db.DB) Role {
 }
 
 func (r Role) GetRoleByIds(ctx context.Context, id []int) ([]entity.Role, error) {
-	sql_metrics.OperationLabelToContext(ctx, "Role.GetRoleByIds")
+	ctx = sql_metrics.OperationLabelToContext(ctx, "Role.GetRoleByIds")
 
 	q, args, err := query.New().
 		Select("id, name, external_group, permissions, created_at, updated_at").
@@ -45,7 +45,7 @@ func (r Role) GetRoleByIds(ctx context.Context, id []int) ([]entity.Role, error)
 }
 
 func (r Role) GetRoleByName(ctx context.Context, name string) (*entity.Role, error) {
-	sql_metrics.OperationLabelToContext(ctx, "Role.GetRoleByName")
+	ctx = sql_metrics.OperationLabelToContext(ctx, "Role.GetRoleByName")
 
 	q, args, err := query.New().
 		Select("*").
@@ -70,7 +70,7 @@ func (r Role) GetRoleByName(ctx context.Context, name string) (*entity.Role, err
 }
 
 func (r Role) GetRoleByExternalGroup(ctx context.Context, group string) (*entity.Role, error) {
-	sql_metrics.OperationLabelToContext(ctx, "Role.GetRoleByExternalGroup")
+	ctx = sql_metrics.OperationLabelToContext(ctx, "Role.GetRoleByExternalGroup")
 
 	q, args, err := query.New().
 		Select("*").
@@ -95,7 +95,7 @@ func (r Role) GetRoleByExternalGroup(ctx context.Context, group string) (*entity
 }
 
 func (r Role) All(ctx context.Context) ([]entity.Role, error) {
-	sql_metrics.OperationLabelToContext(ctx, "Role.All")
+	ctx = sql_metrics.OperationLabelToContext(ctx, "Role.All")
 	q := "select id, name, external_group, permissions, immutable, exclusive, created_at, updated_at from roles order by created_at"
 	roles := make([]entity.Role, 0)
 	err := r.db.Select(ctx, &roles, q)
@@ -106,6 +106,8 @@ func (r Role) All(ctx context.Context) ([]entity.Role, error) {
 }
 
 func (r Role) InsertRole(ctx context.Context, role entity.Role) (*entity.Role, error) {
+	ctx = sql_metrics.OperationLabelToContext(ctx, "Role.InsertRole")
+
 	q, args, err := query.New().Insert("roles").
 		Columns("name", "permissions", "external_group").
 		Values(role.Name, role.Permissions, role.ExternalGroup).
@@ -124,6 +126,8 @@ func (r Role) InsertRole(ctx context.Context, role entity.Role) (*entity.Role, e
 }
 
 func (r Role) Update(ctx context.Context, role entity.Role) (*entity.Role, error) {
+	ctx = sql_metrics.OperationLabelToContext(ctx, "Role.Update")
+
 	q, args, err := query.New().Update("roles").
 		Set("name", role.Name).
 		Set("permissions", role.Permissions).
@@ -144,6 +148,8 @@ func (r Role) Update(ctx context.Context, role entity.Role) (*entity.Role, error
 }
 
 func (r Role) Delete(ctx context.Context, id int) error {
+	ctx = sql_metrics.OperationLabelToContext(ctx, "Role.Delete")
+
 	q, args, err := query.New().Delete("roles").Where(squirrel.Eq{"id": id}).ToSql()
 	if err != nil {
 		return errors.WithMessage(err, "build query")
