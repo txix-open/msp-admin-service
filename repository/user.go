@@ -220,13 +220,14 @@ func (u User) ChangeBlockStatus(ctx context.Context, userId int) (bool, error) {
 	return blocked, nil
 }
 
-func (u User) Block(ctx context.Context, userId int) error {
+func (u User) Block(ctx context.Context, userId int) (*entity.User, error) {
 	ctx = sql_metrics.OperationLabelToContext(ctx, "User.Block")
 
-	query := "update users set blocked = true where id = $1"
-	_, err := u.db.Exec(ctx, query, userId)
+	var user entity.User
+	query := "update users set blocked = true where id = $1 returning *"
+	err := u.db.SelectRow(ctx, &user, query, userId)
 	if err != nil {
-		return errors.WithMessagef(err, "select row: %s", query)
+		return nil, errors.WithMessagef(err, "select row: %s", query)
 	}
-	return nil
+	return &user, nil
 }

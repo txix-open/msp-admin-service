@@ -17,7 +17,6 @@ import (
 	"msp-admin-service/domain"
 	"msp-admin-service/entity"
 	"msp-admin-service/repository"
-	"msp-admin-service/tests"
 
 	"github.com/integration-system/isp-kit/dbx"
 	"github.com/integration-system/isp-kit/grpc/client"
@@ -66,7 +65,7 @@ func (s *AuthTestSuite) SetupTest() {
 		},
 	}
 	cfg := assembly.NewLocator(testInstance.Logger(), s.httpCli, s.db).
-		Config(context.Background(), remote)
+		Config(context.Background(), emptyLdap, remote)
 
 	server, apiCli := grpct.TestServer(testInstance, cfg.Handler)
 	s.grpcCli = apiCli
@@ -78,7 +77,7 @@ func (s *AuthTestSuite) SetupTest() {
 }
 
 func (s *AuthTestSuite) TestLoginHappyPath() {
-	id := tests.InsertUser(s.db, entity.User{
+	id := InsertUser(s.db, entity.User{
 		FirstName: "John",
 		LastName:  "Doe",
 		Email:     "a@a.ru",
@@ -95,7 +94,7 @@ func (s *AuthTestSuite) TestLoginHappyPath() {
 		Do(context.Background())
 	s.Require().NoError(err)
 
-	tokenInfo := tests.SelectTokenEntityByToken(s.db, response.Token)
+	tokenInfo := SelectTokenEntityByToken(s.db, response.Token)
 	s.Require().Equal(tokenInfo.UserId, id)
 }
 
@@ -113,7 +112,7 @@ func (s *AuthTestSuite) TestLoginNotFound() {
 }
 
 func (s *AuthTestSuite) TestBlockedUser() {
-	tests.InsertUser(s.db, entity.User{
+	InsertUser(s.db, entity.User{
 		FirstName: "John",
 		LastName:  "Doe",
 		Email:     "a@a.ru",
@@ -134,7 +133,7 @@ func (s *AuthTestSuite) TestBlockedUser() {
 }
 
 func (s *AuthTestSuite) TestLoginWrongPassword() {
-	tests.InsertUser(s.db, entity.User{
+	InsertUser(s.db, entity.User{
 		FirstName: "John",
 		LastName:  "Doe",
 		Email:     "a@a.ru",
@@ -167,7 +166,7 @@ func (s *AuthTestSuite) TestSudirLoginHappyPath() {
 	s.db.Must().SelectRow(&user, "select id, email from users where sudir_user_id = $1", "sudirUser1")
 	s.Require().Equal("sudir@email.ru", user.Email)
 
-	tokenInfo := tests.SelectTokenEntityByToken(s.db, response.Token)
+	tokenInfo := SelectTokenEntityByToken(s.db, response.Token)
 	s.Require().Equal(tokenInfo.UserId, user.Id)
 }
 
@@ -203,8 +202,8 @@ func (s *AuthTestSuite) initMockSudir() (*httptest.Server, string) {
 }
 
 func (s *AuthTestSuite) Test_Logout_HappyPath() {
-	userId := tests.InsertUser(s.db, entity.User{Email: "suslik@mail.ru"})
-	tests.InsertTokenEntity(s.db, entity.Token{
+	userId := InsertUser(s.db, entity.User{Email: "suslik@mail.ru"})
+	InsertTokenEntity(s.db, entity.Token{
 		Token:     "token-841297641213",
 		UserId:    userId,
 		Status:    entity.TokenStatusAllowed,
@@ -216,7 +215,7 @@ func (s *AuthTestSuite) Test_Logout_HappyPath() {
 		Do(context.Background())
 	s.Require().NoError(err)
 
-	tokenInfo := tests.SelectTokenEntityByToken(s.db, "token-841297641213")
+	tokenInfo := SelectTokenEntityByToken(s.db, "token-841297641213")
 	s.Require().Equal(entity.TokenStatusRevoked, tokenInfo.Status)
 }
 
@@ -235,8 +234,8 @@ func (s *AuthTestSuite) Test_Logout_NotFound() {
 }
 
 func (s *AuthTestSuite) Test_Logout_AlreadyRevoke() {
-	userId := tests.InsertUser(s.db, entity.User{Email: "suslik@mail.ru"})
-	tests.InsertTokenEntity(s.db, entity.Token{
+	userId := InsertUser(s.db, entity.User{Email: "suslik@mail.ru"})
+	InsertTokenEntity(s.db, entity.Token{
 		Token:     "token-148623719462",
 		UserId:    userId,
 		Status:    entity.TokenStatusRevoked,
@@ -248,12 +247,12 @@ func (s *AuthTestSuite) Test_Logout_AlreadyRevoke() {
 		Do(context.Background())
 	s.Require().NoError(err)
 
-	tokenInfo := tests.SelectTokenEntityByToken(s.db, "token-148623719462")
+	tokenInfo := SelectTokenEntityByToken(s.db, "token-148623719462")
 	s.Require().Equal(entity.TokenStatusRevoked, tokenInfo.Status)
 }
 
 func (s *AuthTestSuite) TestBruteForceLogin() {
-	_ = tests.InsertUser(s.db, entity.User{
+	_ = InsertUser(s.db, entity.User{
 		FirstName: "John",
 		LastName:  "Doe",
 		Email:     "a@a.ru",

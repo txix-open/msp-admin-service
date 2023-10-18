@@ -16,8 +16,13 @@ import (
 	"msp-admin-service/routes"
 	"msp-admin-service/service"
 	"msp-admin-service/service/delete_old_audit_worker"
-	"msp-admin-service/service/worker"
+	"msp-admin-service/service/inactive_worker"
+	"msp-admin-service/service/ldap"
 	"msp-admin-service/transaction"
+)
+
+var (
+	JobPollInterval = 1 * time.Minute //nolint:gochecknoglobals
 )
 
 type DB interface {
@@ -40,12 +45,11 @@ func NewLocator(logger log.Logger, httpCli *httpcli.Client, db DB) Locator {
 }
 
 type Config struct {
-	Handler         isp.BackendServiceServer
-	InactiveBlocker worker.InactiveBlocker
-	BgJobCfg        []bgjobx.WorkerConfig
+	Handler  isp.BackendServiceServer
+	BgJobCfg []bgjobx.WorkerConfig
 }
 
-func (l Locator) Config(ctx context.Context, cfg conf.Remote) Config {
+func (l Locator) Config(ctx context.Context, ldapRepoSupplier ldap.RepoSupplier, cfg conf.Remote) Config {
 	sudirRepo := repository.NewSudir(l.httpCli, cfg.SudirAuth)
 	roleRepo := repository.NewRole(l.db)
 	userRepo := repository.NewUser(l.db)
@@ -93,24 +97,27 @@ func (l Locator) Config(ctx context.Context, cfg conf.Remote) Config {
 		},
 	)
 
-	inactiveBlocker := worker.NewInactiveBlocker(
-		tokenRepo, userRepo, auditService,
-		cfg.BlockInactiveWorker.DaysThreshold,
+	ldapService := ldap.NewService(cfg.Ldap, ldapRepoSupplier, userRoleRepo, roleRepo, l.logger)
+	inactiveBlocker := inactive_worker.NewInactiveBlocker(
+		tokenRepo, userRepo, auditService, ldapService,
+		cfg.BlockInactiveWorker,
 		l.logger,
 	)
 
 	deleteOldAuditWorker := delete_old_audit_worker.NewService(l.logger, auditRepo, cfg.Audit.AuditTTl)
 
 	return Config{
-		Handler:         handler,
-		InactiveBlocker: inactiveBlocker,
-		BgJobCfg: []bgjobx.WorkerConfig{
-			{
-				Queue:        delete_old_audit_worker.QueueName,
-				Concurrency:  1,
-				PollInterval: 1 * time.Second,
-				Handle:       deleteOldAuditWorker,
-			},
-		},
+		Handler: handler,
+		BgJobCfg: []bgjobx.WorkerConfig{{
+			Queue:        delete_old_audit_worker.QueueName,
+			Concurrency:  1,
+			PollInterval: JobPollInterval,
+			Handle:       deleteOldAuditWorker,
+		}, {
+			Queue:        inactive_worker.QueueName,
+			Concurrency:  1,
+			PollInterval: JobPollInterval,
+			Handle:       inactiveBlocker,
+		}},
 	}
 }

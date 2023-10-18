@@ -17,7 +17,6 @@ import (
 	"msp-admin-service/conf"
 	"msp-admin-service/domain"
 	"msp-admin-service/entity"
-	"msp-admin-service/tests"
 )
 
 func TestSecureSuite(t *testing.T) {
@@ -41,7 +40,7 @@ func (s *SecureSuite) SetupTest() {
 		ExpireSec: 3600,
 	}
 	cfg := assembly.NewLocator(s.test.Logger(), httpCli, s.db).
-		Config(context.Background(), remote)
+		Config(context.Background(), emptyLdap, remote)
 
 	server, apiCli := grpct.TestServer(s.test, cfg.Handler)
 	s.test.T().Cleanup(func() {
@@ -51,7 +50,7 @@ func (s *SecureSuite) SetupTest() {
 }
 
 func (s *SecureSuite) Test_Authenticate_HappyPath() {
-	tests.InsertTokenEntity(s.db, entity.Token{
+	InsertTokenEntity(s.db, entity.Token{
 		Token:     "happy_path",
 		UserId:    1,
 		Status:    entity.TokenStatusAllowed,
@@ -75,7 +74,7 @@ func (s *SecureSuite) Test_Authenticate_HappyPath() {
 }
 
 func (s *SecureSuite) Test_Authenticate_StatusRevoked() {
-	tests.InsertTokenEntity(s.db, entity.Token{
+	InsertTokenEntity(s.db, entity.Token{
 		Token:     "revoked",
 		UserId:    1,
 		Status:    entity.TokenStatusRevoked,
@@ -99,7 +98,7 @@ func (s *SecureSuite) Test_Authenticate_StatusRevoked() {
 }
 
 func (s *SecureSuite) Test_Authenticate_Expired() {
-	tests.InsertTokenEntity(s.db, entity.Token{
+	InsertTokenEntity(s.db, entity.Token{
 		Token:     "expired",
 		UserId:    1,
 		Status:    entity.TokenStatusAllowed,

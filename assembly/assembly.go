@@ -2,7 +2,6 @@ package assembly
 
 import (
 	"context"
-	"time"
 
 	"github.com/integration-system/isp-kit/app"
 	"github.com/integration-system/isp-kit/bgjobx"
@@ -14,10 +13,12 @@ import (
 	"github.com/integration-system/isp-kit/http/httpcli"
 	"github.com/integration-system/isp-kit/http/httpclix"
 	"github.com/integration-system/isp-kit/log"
-	"github.com/integration-system/isp-kit/worker"
 	"github.com/pkg/errors"
 	"msp-admin-service/conf"
+	ldapRepo "msp-admin-service/repository/ldap"
 	"msp-admin-service/service/delete_old_audit_worker"
+	"msp-admin-service/service/inactive_worker"
+	"msp-admin-service/service/ldap"
 )
 
 type Assembly struct {
@@ -25,7 +26,6 @@ type Assembly struct {
 	db       *dbrx.Client
 	server   *grpc.Server
 	httpCli  *httpcli.Client
-	worker   *worker.Worker
 	logger   *log.Adapter
 	bgjobCli *bgjobx.Client
 }
@@ -59,11 +59,17 @@ func (a *Assembly) ReceiveConfig(ctx context.Context, remoteConfig []byte) error
 
 	err = a.db.Upgrade(ctx, newCfg.Database)
 	if err != nil {
-		a.logger.Fatal(ctx, errors.WithMessage(err, "upgrade db client"), log.Any("config", a.hiddenSecret(newCfg.Database)))
+		a.logger.Fatal(ctx, errors.WithMessage(err, "upgrade db client"))
 	}
 
 	locator := NewLocator(a.logger, a.httpCli, a.db)
-	config := locator.Config(ctx, newCfg)
+	config := locator.Config(ctx, func(config *conf.Ldap) (ldap.Repo, error) {
+		repo, err := ldapRepo.NewRepository(config)
+		if err != nil {
+			return nil, errors.WithMessage(err, "new repository")
+		}
+		return repo, nil
+	}, newCfg)
 
 	a.server.Upgrade(config.Handler)
 
@@ -72,18 +78,13 @@ func (a *Assembly) ReceiveConfig(ctx context.Context, remoteConfig []byte) error
 		a.logger.Fatal(ctx, errors.WithMessage(err, "upgrade bgjob client"))
 	}
 
-	if a.worker != nil {
-		a.worker.Shutdown()
-	}
-	a.worker = worker.New(
-		config.InactiveBlocker,
-		worker.WithInterval(time.Duration(newCfg.BlockInactiveWorker.RunIntervalInMinutes)*time.Minute),
-	)
-	a.worker.Run(a.boot.App.Context())
-
 	err = delete_old_audit_worker.EnqueueSeedJob(ctx, a.bgjobCli)
 	if err != nil {
-		a.logger.Fatal(ctx, errors.WithMessage(err, "initial sync job"))
+		a.logger.Fatal(ctx, errors.WithMessage(err, "seed delete old audit worker"))
+	}
+	err = inactive_worker.EnqueueSeedJob(ctx, a.bgjobCli)
+	if err != nil {
+		a.logger.Fatal(ctx, errors.WithMessage(err, "seed inactive user worker"))
 	}
 
 	return nil
@@ -123,9 +124,4 @@ func (a *Assembly) Closers() []app.Closer {
 		}),
 		a.db,
 	}
-}
-
-func (a *Assembly) hiddenSecret(conf dbx.Config) dbx.Config {
-	conf.Password = "***"
-	return conf
 }

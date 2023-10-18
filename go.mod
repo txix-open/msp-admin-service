@@ -4,7 +4,8 @@ go 1.21
 
 require (
 	github.com/Masterminds/squirrel v1.5.4
-	github.com/google/uuid v1.3.0
+	github.com/go-ldap/ldap/v3 v3.4.6
+	github.com/google/uuid v1.3.1
 	github.com/integration-system/bgjob v1.3.0
 	github.com/integration-system/isp-kit v1.24.2
 	github.com/integration-system/jsonschema v1.0.1
@@ -16,10 +17,12 @@ require (
 )
 
 require (
+	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
+	github.com/go-asn1-ber/asn1-ber v1.5.5 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/iancoleman/strcase v0.3.0 // indirect

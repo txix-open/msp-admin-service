@@ -22,7 +22,6 @@ import (
 	"msp-admin-service/entity"
 	"msp-admin-service/repository"
 	"msp-admin-service/service"
-	"msp-admin-service/tests"
 )
 
 type tokenService interface {
@@ -53,7 +52,7 @@ func (s *UserTestSuite) SetupTest() {
 		ExpireSec: 0,
 	}
 	cfg := assembly.NewLocator(testInstance.Logger(), s.httpCli, s.db).
-		Config(context.Background(), remote)
+		Config(context.Background(), emptyLdap, remote)
 
 	server, apiCli := grpct.TestServer(testInstance, cfg.Handler)
 	s.grpcCli = apiCli
@@ -67,19 +66,19 @@ func (s *UserTestSuite) SetupTest() {
 }
 
 func (s *UserTestSuite) TestGetProfileHappyPath() {
-	id := tests.InsertUser(s.db, entity.User{
+	id := InsertUser(s.db, entity.User{
 		FirstName: "name",
 		LastName:  "surname",
 		Email:     "a@a.ru",
 		Password:  "password",
 	})
 
-	roleId, err := tests.InsertRole(s.db, entity.Role{
+	roleId, err := InsertRole(s.db, entity.Role{
 		Name: "admin",
 	})
 	s.Require().NoError(err)
 
-	err = tests.InsertUserRole(s.db, entity.UserRole{
+	err = InsertUserRole(s.db, entity.UserRole{
 		UserId: int(id),
 		RoleId: int(roleId),
 	})
@@ -103,7 +102,7 @@ func (s *UserTestSuite) TestGetProfileHappyPath() {
 }
 
 func (s *UserTestSuite) TestGetProfileNotFound() {
-	id := tests.InsertUser(s.db, entity.User{
+	id := InsertUser(s.db, entity.User{
 		FirstName: "name",
 		LastName:  "surname",
 		Email:     "a@b.ru",
@@ -120,7 +119,7 @@ func (s *UserTestSuite) TestGetProfileNotFound() {
 }
 
 func (s *UserTestSuite) TestGetProfileSudir() {
-	id, err := tests.InsertSudirUser(s.db, entity.SudirUser{
+	id, err := InsertSudirUser(s.db, entity.SudirUser{
 		SudirUserId: "sudirUser1",
 		FirstName:   "name",
 		LastName:    "surname",
@@ -128,12 +127,12 @@ func (s *UserTestSuite) TestGetProfileSudir() {
 	})
 	s.Require().NoError(err)
 
-	roleId, err := tests.InsertRole(s.db, entity.Role{
+	roleId, err := InsertRole(s.db, entity.Role{
 		Name: "admin",
 	})
 	s.Require().NoError(err)
 
-	err = tests.InsertUserRole(s.db, entity.UserRole{
+	err = InsertUserRole(s.db, entity.UserRole{
 		UserId: int(id),
 		RoleId: int(roleId),
 	})
@@ -158,10 +157,10 @@ func (s *UserTestSuite) TestGetProfileSudir() {
 }
 
 func (s *UserTestSuite) TestGetUsers() {
-	tests.InsertUser(s.db, entity.User{Email: "a1@a.ru"})
-	tests.InsertUser(s.db, entity.User{Email: "b1@a.ru"})
-	tests.InsertUser(s.db, entity.User{Email: "a1@b.ru"})
-	tests.InsertUser(s.db, entity.User{Email: "a1@c.ru"})
+	InsertUser(s.db, entity.User{Email: "a1@a.ru"})
+	InsertUser(s.db, entity.User{Email: "b1@a.ru"})
+	InsertUser(s.db, entity.User{Email: "a1@b.ru"})
+	InsertUser(s.db, entity.User{Email: "a1@c.ru"})
 
 	response := domain.UsersResponse{}
 	err := s.grpcCli.Invoke("admin/user/get_users").
@@ -180,7 +179,7 @@ func (s *UserTestSuite) TestGetUsers() {
 }
 
 func (s *UserTestSuite) TestCreateUserHappyPath() {
-	admin := tests.InsertUser(s.db, entity.User{Email: "admin@a.ru"})
+	admin := InsertUser(s.db, entity.User{Email: "admin@a.ru"})
 
 	preCount := 0
 	s.db.Must().SelectRow(&preCount, "select count(*) from users")
@@ -206,7 +205,7 @@ func (s *UserTestSuite) TestCreateUserHappyPath() {
 }
 
 func (s *UserTestSuite) TestCreateUserAlreadyExist() {
-	id := tests.InsertUser(s.db, entity.User{Email: "exists@a.ru"})
+	id := InsertUser(s.db, entity.User{Email: "exists@a.ru"})
 
 	err := s.grpcCli.
 		Invoke("admin/user/create_user").
@@ -225,7 +224,7 @@ func (s *UserTestSuite) TestCreateUserAlreadyExist() {
 }
 
 func (s *AuthTestSuite) TestUpdateUserHappyPath() {
-	id := tests.InsertUser(s.db, entity.User{Email: "update@a.ru", Password: "password"})
+	id := InsertUser(s.db, entity.User{Email: "update@a.ru", Password: "password"})
 	req := domain.UpdateUserRequest{
 		Id:        id,
 		FirstName: "name",
@@ -250,7 +249,7 @@ func (s *AuthTestSuite) TestUpdateUserHappyPath() {
 }
 
 func (s *AuthTestSuite) TestUpdateSudirUserHappyPath() {
-	id, err := tests.InsertSudirUser(s.db, entity.SudirUser{Email: "sudir@a.ru"})
+	id, err := InsertSudirUser(s.db, entity.SudirUser{Email: "sudir@a.ru"})
 	s.Require().NoError(err)
 	req := domain.UpdateUserRequest{
 		Id:        id,
@@ -276,8 +275,8 @@ func (s *AuthTestSuite) TestUpdateSudirUserHappyPath() {
 }
 
 func (s *AuthTestSuite) TestUpdateUserAlreadyExist() {
-	admin := tests.InsertUser(s.db, entity.User{Email: "a_exists@a.ru", Password: "password"})
-	id := tests.InsertUser(s.db, entity.User{Email: "b_exists@b.ru", Password: "password"})
+	admin := InsertUser(s.db, entity.User{Email: "a_exists@a.ru", Password: "password"})
+	id := InsertUser(s.db, entity.User{Email: "b_exists@b.ru", Password: "password"})
 	req := domain.UpdateUserRequest{
 		Id:        id,
 		FirstName: "name",
@@ -296,10 +295,10 @@ func (s *AuthTestSuite) TestUpdateUserAlreadyExist() {
 }
 
 func (s *UserTestSuite) TestDeleteUsers() {
-	admin := tests.InsertUser(s.db, entity.User{Email: "a_del@a.ru"})
-	tests.InsertUser(s.db, entity.User{Email: "b_del@a.ru"})
-	tests.InsertUser(s.db, entity.User{Email: "a_del@b.ru"})
-	tests.InsertUser(s.db, entity.User{Email: "a_del@c.ru"})
+	admin := InsertUser(s.db, entity.User{Email: "a_del@a.ru"})
+	InsertUser(s.db, entity.User{Email: "b_del@a.ru"})
+	InsertUser(s.db, entity.User{Email: "a_del@b.ru"})
+	InsertUser(s.db, entity.User{Email: "a_del@c.ru"})
 
 	response := domain.DeleteResponse{}
 	err := s.grpcCli.
@@ -314,7 +313,7 @@ func (s *UserTestSuite) TestDeleteUsers() {
 }
 
 func (s *UserTestSuite) TestBlockUser() {
-	id := tests.InsertUser(s.db, entity.User{
+	id := InsertUser(s.db, entity.User{
 		FirstName: "John",
 		LastName:  "Doe",
 		Email:     "a_block@a.ru",
@@ -322,7 +321,7 @@ func (s *UserTestSuite) TestBlockUser() {
 		Blocked:   false,
 	})
 	token := uuid.New().String()
-	tests.InsertTokenEntity(s.db, entity.Token{
+	InsertTokenEntity(s.db, entity.Token{
 		Token:     token,
 		UserId:    id,
 		Status:    entity.TokenStatusAllowed,

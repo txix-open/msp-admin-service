@@ -1,4 +1,4 @@
-package tests
+package tests_test
 
 import (
 	"github.com/integration-system/isp-kit/db/query"

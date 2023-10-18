@@ -26,7 +26,8 @@ type Remote struct {
 	LogLevel            log.Level           `schemaGen:"logLevel" schema:"Уровень логирования"`
 	AntiBruteforce      AntiBruteforce      `schema:"Настройки антибрут для admin login"`
 	BlockInactiveWorker BlockInactiveWorker `valid:"required" schema:"Блокировка неактивных УЗ"`
-	Permissions         []Permission
+	Permissions         []Permission        `schema:"Список разрешений"`
+	Ldap                *Ldap               `schema:"Настройки LDAP"`
 }
 
 type Audit struct {
@@ -69,4 +70,11 @@ type BlockInactiveWorker struct {
 type Permission struct {
 	Key  string
 	Name string
+}
+
+type Ldap struct {
+	Address  string `valid:"required" schema:"Адрес LDAP"`
+	Username string `valid:"required" schema:"Пользователь сервисной УЗ"`
+	Password string `valid:"required" schema:"Пароль сервисной УЗ"`
+	BaseDn   string `valid:"required"`
 }
