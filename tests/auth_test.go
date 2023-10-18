@@ -1,4 +1,4 @@
-package tests
+package tests_test
 
 import (
 	"context"
@@ -16,6 +16,7 @@ import (
 	"msp-admin-service/conf"
 	"msp-admin-service/domain"
 	"msp-admin-service/entity"
+	"msp-admin-service/repository"
 
 	"github.com/integration-system/isp-kit/dbx"
 	"github.com/integration-system/isp-kit/grpc/client"
@@ -30,6 +31,7 @@ import (
 )
 
 func TestAuthTestSuite(t *testing.T) {
+	t.Parallel()
 	suite.Run(t, &AuthTestSuite{})
 }
 
@@ -49,7 +51,7 @@ func (s *AuthTestSuite) SetupTest() {
 
 	mocksrv, host := s.initMockSudir()
 
-	cfg := conf.Remote{
+	remote := conf.Remote{
 		SudirAuth: &conf.SudirAuth{
 			ClientId:     "admin",
 			ClientSecret: "admin",
@@ -62,11 +64,10 @@ func (s *AuthTestSuite) SetupTest() {
 			DelayLoginRequestInSec:   1,
 		},
 	}
+	cfg := assembly.NewLocator(testInstance.Logger(), s.httpCli, s.db).
+		Config(context.Background(), emptyLdap, remote)
 
-	locator := assembly.NewLocator(testInstance.Logger(), s.httpCli, s.db)
-	handler := locator.Handler(cfg)
-
-	server, apiCli := grpct.TestServer(testInstance, handler)
+	server, apiCli := grpct.TestServer(testInstance, cfg.Handler)
 	s.grpcCli = apiCli
 
 	testInstance.T().Cleanup(func() {
@@ -89,7 +90,7 @@ func (s *AuthTestSuite) TestLoginHappyPath() {
 			Email:    "a@a.ru",
 			Password: "password",
 		}).
-		ReadJsonResponse(&response).
+		JsonResponseBody(&response).
 		Do(context.Background())
 	s.Require().NoError(err)
 
@@ -158,7 +159,7 @@ func (s *AuthTestSuite) TestSudirLoginHappyPath() {
 		JsonRequestBody(domain.LoginSudirRequest{
 			AuthCode: "code",
 		}).
-		ReadJsonResponse(&response).
+		JsonResponseBody(&response).
 		Do(context.Background())
 	s.Require().NoError(err)
 	user := entity.User{}
@@ -223,6 +224,13 @@ func (s *AuthTestSuite) Test_Logout_NotFound() {
 		AppendMetadata(domain.AdminAuthIdHeader, "0143218411981").
 		Do(context.Background())
 	s.Require().NoError(err)
+
+	time.Sleep(time.Second)
+	audit := repository.NewAudit(s.db)
+	auditList, err := audit.All(context.Background(), 10, 0)
+	s.Require().NoError(err)
+	s.Require().Equal(1, len(auditList))
+	s.Require().Equal(entity.EventSuccessLogout, auditList[0].Event)
 }
 
 func (s *AuthTestSuite) Test_Logout_AlreadyRevoke() {
@@ -264,11 +272,11 @@ func (s *AuthTestSuite) TestBruteForceLogin() {
 					Email:    "a@a.ru",
 					Password: fmt.Sprintf("password %s", strconv.Itoa(index)),
 				}).
-				ReadJsonResponse(&response).
+				JsonResponseBody(&response).
 				Do(ctx)
 			s.Require().Error(err)
 
-			switch status.Code(err) {
+			switch status.Code(err) { // nolint:exhaustive
 			case codes.ResourceExhausted:
 				tooManyRequestsErrorCount.Add(1)
 				s.Require().True(time.Since(start) < time.Second)

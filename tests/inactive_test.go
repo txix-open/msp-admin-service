@@ -1,10 +1,11 @@
-package tests
+package tests_test
 
 import (
 	"context"
 	"testing"
 	"time"
 
+	"github.com/integration-system/isp-kit/bgjobx"
 	"github.com/integration-system/isp-kit/dbx"
 	"github.com/integration-system/isp-kit/test"
 	"github.com/integration-system/isp-kit/test/dbt"
@@ -12,6 +13,7 @@ import (
 	"msp-admin-service/conf"
 	"msp-admin-service/entity"
 	"msp-admin-service/repository"
+	"msp-admin-service/service/inactive_worker"
 )
 
 func TestInactiveWorker(t *testing.T) {
@@ -37,11 +39,21 @@ func TestInactiveWorker(t *testing.T) {
 		CreatedAt: time.Now().UTC().Add(-5 * 24 * time.Hour),
 	})
 
-	worker := assembly.NewLocator(test.Logger(), nil, db).
-		Config(conf.Remote{BlockInactiveWorker: conf.BlockInactiveWorker{DaysThreshold: 1}}).
-		InactiveBlocker
-	worker.Do(context.Background())
-	time.Sleep(1 * time.Second)
+	config := assembly.NewLocator(test.Logger(), nil, db).
+		Config(context.Background(), emptyLdap, conf.Remote{
+			BlockInactiveWorker: conf.BlockInactiveWorker{
+				DaysThreshold:        1,
+				RunIntervalInMinutes: 60,
+			},
+		})
+	bgjobCli := bgjobx.NewClient(db, test.Logger())
+	assembly.JobPollInterval = 1 * time.Second
+	err := bgjobCli.Upgrade(context.Background(), config.BgJobCfg)
+	require.NoError(err)
+	err = inactive_worker.EnqueueSeedJob(context.Background(), bgjobCli)
+	require.NoError(err)
+
+	time.Sleep(5 * time.Second)
 
 	user, err := repository.NewUser(db).GetUserById(context.Background(), userId)
 	require.NoError(err)

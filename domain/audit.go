@@ -20,3 +20,14 @@ type PageRequest struct {
 	Limit  int `valid:"required"`
 	Offset int
 }
+
+type SetAuditEvent struct {
+	Event   string
+	Enabled bool
+}
+
+type AuditEvent struct {
+	Event   string
+	Name    string
+	Enabled bool
+}

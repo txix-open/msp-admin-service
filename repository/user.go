@@ -22,7 +22,7 @@ func NewUser(db db.DB) User {
 }
 
 func (u User) GetUserByEmail(ctx context.Context, email string) (*entity.User, error) {
-	sql_metrics.OperationLabelToContext(ctx, "User.GetUserByEmail")
+	ctx = sql_metrics.OperationLabelToContext(ctx, "User.GetUserByEmail")
 
 	q, args, err := query.New().
 		Select("*").
@@ -47,7 +47,7 @@ func (u User) GetUserByEmail(ctx context.Context, email string) (*entity.User, e
 }
 
 func (u User) GetUserById(ctx context.Context, identity int64) (*entity.User, error) {
-	sql_metrics.OperationLabelToContext(ctx, "User.GetUserById")
+	ctx = sql_metrics.OperationLabelToContext(ctx, "User.GetUserById")
 
 	q, args, err := query.New().
 		Select("*").
@@ -72,7 +72,7 @@ func (u User) GetUserById(ctx context.Context, identity int64) (*entity.User, er
 }
 
 func (u User) UpsertBySudirUserId(ctx context.Context, user entity.User) (*entity.User, error) {
-	sql_metrics.OperationLabelToContext(ctx, "User.UpsertBySudirUserId")
+	ctx = sql_metrics.OperationLabelToContext(ctx, "User.UpsertBySudirUserId")
 
 	selectQ := `
 	insert into users as u (first_name, last_name, email, created_at, updated_at, sudir_user_id) 
@@ -102,7 +102,7 @@ func (u User) UpsertBySudirUserId(ctx context.Context, user entity.User) (*entit
 }
 
 func (u User) GetUsers(ctx context.Context, ids []int64, offset, limit int, email string) ([]entity.User, error) {
-	sql_metrics.OperationLabelToContext(ctx, "User.GetUsers")
+	ctx = sql_metrics.OperationLabelToContext(ctx, "User.GetUsers")
 
 	q := query.New().
 		Select("*").
@@ -133,7 +133,7 @@ func (u User) GetUsers(ctx context.Context, ids []int64, offset, limit int, emai
 }
 
 func (u User) Insert(ctx context.Context, user entity.User) (int, error) {
-	sql_metrics.OperationLabelToContext(ctx, "User.Insert")
+	ctx = sql_metrics.OperationLabelToContext(ctx, "User.Insert")
 
 	insertQ, args, err := query.New().
 		Insert("users").
@@ -157,7 +157,7 @@ func (u User) Insert(ctx context.Context, user entity.User) (int, error) {
 }
 
 func (u User) UpdateUser(ctx context.Context, id int64, user entity.UpdateUser) (*entity.User, error) {
-	sql_metrics.OperationLabelToContext(ctx, "User.UpdateUser")
+	ctx = sql_metrics.OperationLabelToContext(ctx, "User.UpdateUser")
 
 	// return every except password
 	q, args, err := query.New().
@@ -185,7 +185,7 @@ func (u User) UpdateUser(ctx context.Context, id int64, user entity.UpdateUser) 
 }
 
 func (u User) DeleteUser(ctx context.Context, ids []int64) (int, error) {
-	sql_metrics.OperationLabelToContext(ctx, "User.DeleteUser")
+	ctx = sql_metrics.OperationLabelToContext(ctx, "User.DeleteUser")
 
 	q, args, err := query.New().
 		Delete("users").
@@ -209,7 +209,7 @@ func (u User) DeleteUser(ctx context.Context, ids []int64) (int, error) {
 }
 
 func (u User) ChangeBlockStatus(ctx context.Context, userId int) (bool, error) {
-	sql_metrics.OperationLabelToContext(ctx, "User.ChangeBlockStatus")
+	ctx = sql_metrics.OperationLabelToContext(ctx, "User.ChangeBlockStatus")
 
 	query := "update users set blocked = not blocked where id = $1 returning blocked"
 	blocked := false
@@ -220,13 +220,14 @@ func (u User) ChangeBlockStatus(ctx context.Context, userId int) (bool, error) {
 	return blocked, nil
 }
 
-func (u User) Block(ctx context.Context, userId int) error {
-	sql_metrics.OperationLabelToContext(ctx, "User.Block")
+func (u User) Block(ctx context.Context, userId int) (*entity.User, error) {
+	ctx = sql_metrics.OperationLabelToContext(ctx, "User.Block")
 
-	query := "update users set blocked = true where id = $1"
-	_, err := u.db.Exec(ctx, query, userId)
+	var user entity.User
+	query := "update users set blocked = true where id = $1 returning *"
+	err := u.db.SelectRow(ctx, &user, query, userId)
 	if err != nil {
-		return errors.WithMessagef(err, "select row: %s", query)
+		return nil, errors.WithMessagef(err, "select row: %s", query)
 	}
-	return nil
+	return &user, nil
 }

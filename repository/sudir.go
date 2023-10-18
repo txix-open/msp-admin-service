@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/integration-system/isp-kit/http/httpcli"
+	"github.com/integration-system/isp-kit/metrics/http_metrics"
 	"github.com/pkg/errors"
 	"msp-admin-service/conf"
 	"msp-admin-service/entity"
@@ -29,9 +30,10 @@ func (s Sudir) GetToken(ctx context.Context, authCode string) (*entity.SudirToke
 		return nil, errors.WithMessage(err, "build url")
 	}
 
-	response := entity.SudirTokenResponse{}
+	ctx = http_metrics.ClientEndpointToContext(ctx, urlString)
 
-	res, err := s.httpCli.Post(urlString).
+	response := entity.SudirTokenResponse{}
+	err = s.httpCli.Post(urlString).
 		BasicAuth(httpcli.BasicAuth{
 			Username: s.cfg.ClientId,
 			Password: s.cfg.ClientSecret,
@@ -43,16 +45,11 @@ func (s Sudir) GetToken(ctx context.Context, authCode string) (*entity.SudirToke
 			"redirect_uri": s.cfg.RedirectURI,
 		}).
 		JsonResponseBody(&response).
-		Do(ctx)
+		StatusCodeToError().
+		DoWithoutResponse(ctx)
 
 	if err != nil {
 		return nil, errors.WithMessage(err, "http request")
-	}
-
-	defer res.Close()
-
-	if !res.IsSuccess() {
-		return nil, errors.Errorf("unexpected response: code: %d, status: %s", res.StatusCode(), res.Raw.Status)
 	}
 
 	return &response, nil
@@ -64,22 +61,17 @@ func (s Sudir) GetUser(ctx context.Context, accessToken string) (*entity.SudirUs
 		return nil, errors.WithMessage(err, "build url")
 	}
 
-	response := entity.SudirUserResponse{}
+	ctx = http_metrics.ClientEndpointToContext(ctx, urlString)
 
-	res, err := s.httpCli.
+	response := entity.SudirUserResponse{}
+	err = s.httpCli.
 		Get(urlString).
 		Header("Authorization", fmt.Sprintf("Bearer %s", accessToken)).
 		JsonResponseBody(&response).
-		Do(ctx)
-
+		StatusCodeToError().
+		DoWithoutResponse(ctx)
 	if err != nil {
 		return nil, errors.WithMessage(err, "http request")
-	}
-
-	defer res.Close()
-
-	if !res.IsSuccess() {
-		return nil, errors.Errorf("unexpected response: code: %d, status: %s", res.StatusCode(), res.Raw.Status)
 	}
 
 	return &response, nil

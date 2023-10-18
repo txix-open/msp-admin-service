@@ -1,6 +1,8 @@
 package domain
 
 import (
+	"fmt"
+
 	"github.com/pkg/errors"
 )
 
@@ -15,3 +17,11 @@ var (
 	ErrTokenNotFound        = errors.New("token not found")
 	ErrTooManyLoginRequests = errors.New("too many login requests")
 )
+
+type UnknownAuditEventError struct {
+	Event string
+}
+
+func (e UnknownAuditEventError) Error() string {
+	return fmt.Sprintf("unknown audit event: %s", e.Event)
+}

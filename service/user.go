@@ -144,7 +144,7 @@ func (u User) GetUsers(ctx context.Context, req domain.UsersRequest) (*domain.Us
 		items = append(items, u.toDomain(user, roles, lastSessionsByUsers[user.Id]))
 	}
 
-	return &domain.UsersResponse{Items: items}, err
+	return &domain.UsersResponse{Items: items}, nil
 }
 
 func (u User) CreateUser(ctx context.Context, req domain.CreateUserRequest, adminId int64) (*domain.User, error) {
@@ -186,7 +186,7 @@ func (u User) CreateUser(ctx context.Context, req domain.CreateUserRequest, admi
 		if len(req.Roles) != 0 {
 			err = tx.InsertUserRoleLinks(ctx, id, req.Roles)
 			if err != nil {
-				return err
+				return errors.WithMessage(err, "insert user role links")
 			}
 		}
 
@@ -198,6 +198,7 @@ func (u User) CreateUser(ctx context.Context, req domain.CreateUserRequest, admi
 
 	u.auditService.SaveAuditAsync(ctx, adminId,
 		fmt.Sprintf("Пользователь. Создание пользователя %s.", usr.Email),
+		entity.EventUserChanged,
 	)
 
 	result := u.toDomain(usr, req.Roles, nil)
@@ -214,7 +215,7 @@ func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, admi
 		_, err := tx.GetUserById(ctx, req.Id)
 		switch {
 		case errors.Is(err, domain.ErrNotFound):
-			return err
+			return err // nolint:wrapcheck
 		case err != nil:
 			return errors.WithMessage(err, "get user by id")
 		}
@@ -261,6 +262,7 @@ func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, admi
 
 	u.auditService.SaveAuditAsync(ctx, adminId,
 		fmt.Sprintf("Пользователь. Изменение пользователя %s.", user.Email),
+		entity.EventUserChanged,
 	)
 
 	result := u.toDomain(*user, req.Roles, lastSessionCreatedAt)
@@ -278,9 +280,10 @@ func (u User) DeleteUsers(ctx context.Context, ids []int64, adminId int64) (int,
 
 	u.auditService.SaveAuditAsync(ctx, adminId,
 		fmt.Sprintf("Пользователь. Удаление пользователей %d.", ids),
+		entity.EventUserChanged,
 	)
 
-	return count, err
+	return count, nil
 }
 
 func (u User) GetById(ctx context.Context, userId int) (*domain.User, error) {
@@ -331,6 +334,7 @@ func (u User) Block(ctx context.Context, adminId int64, userId int) error {
 
 	u.auditService.SaveAuditAsync(ctx, adminId,
 		fmt.Sprintf("Пользователь. %s пользователя ID %d.", userBlocked, userId),
+		entity.EventUserChanged,
 	)
 
 	return nil

@@ -25,7 +25,7 @@ func NewToken(db db.DB) Token {
 }
 
 func (r Token) Save(ctx context.Context, token entity.Token) error {
-	sql_metrics.OperationLabelToContext(ctx, "Token.Save")
+	ctx = sql_metrics.OperationLabelToContext(ctx, "Token.Save")
 
 	q := `
 	INSERT INTO tokens
@@ -41,7 +41,7 @@ func (r Token) Save(ctx context.Context, token entity.Token) error {
 }
 
 func (r Token) GetEntity(ctx context.Context, token string) (*entity.Token, error) {
-	sql_metrics.OperationLabelToContext(ctx, "Token.GetEntity")
+	ctx = sql_metrics.OperationLabelToContext(ctx, "Token.GetEntity")
 
 	result := entity.Token{}
 	q := `
@@ -61,7 +61,7 @@ func (r Token) GetEntity(ctx context.Context, token string) (*entity.Token, erro
 }
 
 func (r Token) RevokeByUserId(ctx context.Context, userId int64, updatedAt time.Time) error {
-	sql_metrics.OperationLabelToContext(ctx, "Token.RevokeByUserId")
+	ctx = sql_metrics.OperationLabelToContext(ctx, "Token.RevokeByUserId")
 
 	q := `
 	UPDATE tokens
@@ -77,7 +77,7 @@ func (r Token) RevokeByUserId(ctx context.Context, userId int64, updatedAt time.
 }
 
 func (r Token) All(ctx context.Context, limit int, offset int) ([]entity.Token, error) {
-	sql_metrics.OperationLabelToContext(ctx, "Token.All")
+	ctx = sql_metrics.OperationLabelToContext(ctx, "Token.All")
 
 	query, args, err := query.New().
 		Select("*").
@@ -100,7 +100,7 @@ func (r Token) All(ctx context.Context, limit int, offset int) ([]entity.Token, 
 }
 
 func (r Token) UpdateStatus(ctx context.Context, id int, status string) error {
-	sql_metrics.OperationLabelToContext(ctx, "Token.UpdateStatus")
+	ctx = sql_metrics.OperationLabelToContext(ctx, "Token.UpdateStatus")
 
 	q := `
 	UPDATE tokens SET status = $1, updated_at = $2 where id = $3;
@@ -114,7 +114,7 @@ func (r Token) UpdateStatus(ctx context.Context, id int, status string) error {
 }
 
 func (r Token) Count(ctx context.Context) (int64, error) {
-	sql_metrics.OperationLabelToContext(ctx, "Token.Count")
+	ctx = sql_metrics.OperationLabelToContext(ctx, "Token.Count")
 
 	count := int64(0)
 	err := r.db.SelectRow(ctx, &count, "select count(*) from tokens")
@@ -125,7 +125,7 @@ func (r Token) Count(ctx context.Context) (int64, error) {
 }
 
 func (r Token) UpdateStatusByUserId(ctx context.Context, userId int, status string) error {
-	sql_metrics.OperationLabelToContext(ctx, "Token.UpdateStatusByUserId")
+	ctx = sql_metrics.OperationLabelToContext(ctx, "Token.UpdateStatusByUserId")
 
 	q := `
 	UPDATE tokens SET status = $1, updated_at = $2 where user_id = $3;
@@ -139,7 +139,7 @@ func (r Token) UpdateStatusByUserId(ctx context.Context, userId int, status stri
 }
 
 func (r Token) LastAccessNotBlockedUsers(ctx context.Context) (map[int64]time.Time, error) {
-	sql_metrics.OperationLabelToContext(ctx, "Token.LastAccessNotBlockedUsers")
+	ctx = sql_metrics.OperationLabelToContext(ctx, "Token.LastAccessNotBlockedUsers")
 
 	query := `
 	select t.user_id, max(t.created_at) as created_at from tokens t 
@@ -162,7 +162,7 @@ func (r Token) LastAccessNotBlockedUsers(ctx context.Context) (map[int64]time.Ti
 }
 
 func (r Token) LastAccessByUserIds(ctx context.Context, userIds []int) (map[int64]*time.Time, error) {
-	sql_metrics.OperationLabelToContext(ctx, "Token.LastAccessNotBlockedUsers")
+	ctx = sql_metrics.OperationLabelToContext(ctx, "Token.LastAccessNotBlockedUsers")
 
 	q, args, err := query.New().
 		Select("user_id", "max(created_at) as created_at").

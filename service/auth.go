@@ -24,7 +24,7 @@ type AuthTransactionRunner interface {
 }
 
 type auditService interface {
-	SaveAuditAsync(ctx context.Context, userId int64, message string)
+	SaveAuditAsync(ctx context.Context, userId int64, message string, event string)
 }
 
 type userRepository interface {
@@ -103,13 +103,13 @@ func (a Auth) Login(ctx context.Context, request domain.LoginRequest) (*domain.L
 		}
 
 		if user.Blocked {
-			a.auditService.SaveAuditAsync(ctx, user.Id, "Неуспешный вход. Пользователь заблокирован")
+			a.auditService.SaveAuditAsync(ctx, user.Id, "Неуспешный вход. Пользователь заблокирован", entity.EventErrorLogin)
 			return errors.WithMessagef(domain.ErrUnauthenticated, "user '%d' is blocked", user.Id)
 		}
 
 		err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(request.Password))
 		if err != nil {
-			a.auditService.SaveAuditAsync(ctx, user.Id, "Неуспешный вход. Неверный пароль")
+			a.auditService.SaveAuditAsync(ctx, user.Id, "Неуспешный вход. Неверный пароль", entity.EventErrorLogin)
 			return errors.WithMessage(domain.ErrUnauthenticated, "wrong password")
 		}
 
@@ -118,7 +118,7 @@ func (a Auth) Login(ctx context.Context, request domain.LoginRequest) (*domain.L
 			return errors.WithMessage(err, "generate token")
 		}
 
-		a.auditService.SaveAuditAsync(ctx, user.Id, "Успешный вход через форму входа")
+		a.auditService.SaveAuditAsync(ctx, user.Id, "Успешный вход через форму входа", entity.EventSuccessLogin)
 
 		updateEntity := entity.UpdateUser{
 			FirstName:   user.FirstName,
@@ -135,7 +135,7 @@ func (a Auth) Login(ctx context.Context, request domain.LoginRequest) (*domain.L
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "auth transaction")
 	}
 
 	return &domain.LoginResponse{
@@ -208,10 +208,10 @@ func (a Auth) LoginWithSudir(ctx context.Context, request domain.LoginSudirReque
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "auth transaction")
 	}
 
-	a.auditService.SaveAuditAsync(ctx, user.Id, "Успешный вход через СУДИР")
+	a.auditService.SaveAuditAsync(ctx, user.Id, "Успешный вход через СУДИР", entity.EventSuccessLogin)
 
 	return &domain.LoginResponse{
 		Token:      tokenString,
@@ -226,7 +226,7 @@ func (a Auth) Logout(ctx context.Context, adminId int64) error {
 		return errors.WithMessage(err, "revoke all tokens by user id")
 	}
 
-	a.auditService.SaveAuditAsync(ctx, adminId, "Выход")
+	a.auditService.SaveAuditAsync(ctx, adminId, "Выход", entity.EventSuccessLogout)
 
 	return nil
 }

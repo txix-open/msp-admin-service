@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/integration-system/isp-kit/db"
 	"github.com/integration-system/isp-kit/db/query"
@@ -21,12 +22,12 @@ func NewAudit(db db.DB) Audit {
 }
 
 func (r Audit) Insert(ctx context.Context, log entity.Audit) (int, error) {
-	sql_metrics.OperationLabelToContext(ctx, "Audit.Insert")
+	ctx = sql_metrics.OperationLabelToContext(ctx, "Audit.Insert")
 
 	query, args, err := query.New().
 		Insert("audit").
-		Columns("user_id", "message", "created_at").
-		Values(log.UserId, log.Message, log.CreatedAt).
+		Columns("user_id", "message", "event", "created_at").
+		Values(log.UserId, log.Message, log.Event, log.CreatedAt).
 		Suffix("returning id").
 		ToSql()
 	if err != nil {
@@ -43,7 +44,7 @@ func (r Audit) Insert(ctx context.Context, log entity.Audit) (int, error) {
 }
 
 func (r Audit) All(ctx context.Context, limit int, offset int) ([]entity.Audit, error) {
-	sql_metrics.OperationLabelToContext(ctx, "Audit.All")
+	ctx = sql_metrics.OperationLabelToContext(ctx, "Audit.All")
 
 	query, args, err := query.New().
 		Select("*").
@@ -66,7 +67,7 @@ func (r Audit) All(ctx context.Context, limit int, offset int) ([]entity.Audit, 
 }
 
 func (r Audit) Count(ctx context.Context) (int64, error) {
-	sql_metrics.OperationLabelToContext(ctx, "Audit.Count")
+	ctx = sql_metrics.OperationLabelToContext(ctx, "Audit.Count")
 
 	count := int64(0)
 	err := r.db.SelectRow(ctx, &count, "select count(*) from audit")
@@ -74,4 +75,23 @@ func (r Audit) Count(ctx context.Context) (int64, error) {
 		return 0, errors.WithMessage(err, "select count")
 	}
 	return count, nil
+}
+
+func (r Audit) DeleteUpToCreatedAt(ctx context.Context, createdAt time.Time) error {
+	ctx = sql_metrics.OperationLabelToContext(ctx, "Audit.DeleteUpToCreatedAt")
+
+	q, args, err := query.New().
+		Delete("audit").
+		Where("created_at < ?", createdAt).
+		ToSql()
+	if err != nil {
+		return errors.WithMessage(err, "build query")
+	}
+
+	_, err = r.db.Exec(ctx, q, args...)
+	if err != nil {
+		return errors.WithMessagef(err, "delete audit")
+	}
+
+	return nil
 }

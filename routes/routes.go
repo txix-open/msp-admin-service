@@ -23,7 +23,7 @@ func EndpointDescriptors() []cluster.EndpointDescriptor {
 	return endpointDescriptors(Controllers{})
 }
 
-func Handler(wrapper endpoint.Wrapper, c Controllers) isp.BackendServiceServer {
+func Handler(wrapper endpoint.Wrapper, c Controllers) isp.BackendServiceServer { // nolint:ireturn
 	muxer := grpc.NewMux()
 	for _, descriptor := range endpointDescriptors(c) {
 		muxer.Handle(descriptor.Path, wrapper.Endpoint(descriptor.Handler))
@@ -147,6 +147,18 @@ func endpointDescriptors(c Controllers) []cluster.EndpointDescriptor {
 			Inner:            true,
 			UserAuthRequired: false,
 			Handler:          c.Audit.All,
+		},
+		{
+			Path:             "admin/log/events",
+			Inner:            true,
+			UserAuthRequired: false,
+			Handler:          c.Audit.Events,
+		},
+		{
+			Path:             "admin/log/set_events",
+			Inner:            true,
+			UserAuthRequired: false,
+			Handler:          c.Audit.SetEvents,
 		},
 		{
 			Path:             "admin/secure/authenticate",
