@@ -68,8 +68,9 @@ func NewAudit(
 }
 
 func (s Audit) SaveAuditAsync(ctx context.Context, userId int64, message string, event string) {
+	ctx = context.WithoutCancel(ctx)
 	go func() {
-		isEnable, err := s.auditEventRep.IsEnable(context.Background(), event)
+		isEnable, err := s.auditEventRep.IsEnable(ctx, event)
 		if err != nil {
 			s.logger.Error(ctx, "check is enable audit event", log.Any("error", err))
 			return

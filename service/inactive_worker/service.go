@@ -28,35 +28,42 @@ type UserRepo interface {
 }
 
 type LdapService interface {
-	RemoveGroups(ctx context.Context, user entity.User) error
+	SyncGroups(ctx context.Context, user entity.User) error
+}
+
+type UserRoleRepo interface {
+	UpsertUserRoleLinks(ctx context.Context, id int, roleIds []int) error
 }
 
 type Service struct {
-	tokenRepo   TokenRepo
-	userRepo    UserRepo
-	auditRepo   AuditRepo
-	ldapService LdapService
-	threshold   time.Duration
-	syncPeriod  time.Duration
-	logger      log.Logger
+	tokenRepo    TokenRepo
+	userRepo     UserRepo
+	auditRepo    AuditRepo
+	userRoleRepo UserRoleRepo
+	ldapService  LdapService
+	threshold    time.Duration
+	syncPeriod   time.Duration
+	logger       log.Logger
 }
 
 func NewInactiveBlocker(
 	tokensRepo TokenRepo,
 	userRepo UserRepo,
 	auditRepo AuditRepo,
+	userRoleRepo UserRoleRepo,
 	ldapService LdapService,
 	config conf.BlockInactiveWorker,
 	logger log.Logger,
 ) Service {
 	return Service{
-		tokenRepo:   tokensRepo,
-		userRepo:    userRepo,
-		auditRepo:   auditRepo,
-		ldapService: ldapService,
-		threshold:   time.Duration(config.DaysThreshold) * 24 * time.Hour,
-		syncPeriod:  time.Minute * time.Duration(config.RunIntervalInMinutes),
-		logger:      logger,
+		tokenRepo:    tokensRepo,
+		userRepo:     userRepo,
+		auditRepo:    auditRepo,
+		userRoleRepo: userRoleRepo,
+		ldapService:  ldapService,
+		threshold:    time.Duration(config.DaysThreshold) * 24 * time.Hour,
+		syncPeriod:   time.Minute * time.Duration(config.RunIntervalInMinutes),
+		logger:       logger,
 	}
 }
 
@@ -90,7 +97,12 @@ func (w Service) do(ctx context.Context) error {
 			return errors.WithMessagef(err, "block user %d", userId)
 		}
 
-		err = w.ldapService.RemoveGroups(ctx, *user)
+		err = w.userRoleRepo.UpsertUserRoleLinks(ctx, int(userId), []int{})
+		if err != nil {
+			return errors.WithMessage(err, "empty user roles links")
+		}
+
+		err = w.ldapService.SyncGroups(ctx, *user)
 		if err != nil {
 			w.logger.Error(ctx, errors.WithMessage(err, "remove ldap groups"))
 		}

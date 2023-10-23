@@ -92,7 +92,7 @@ func (u User) UpsertBySudirUserId(ctx context.Context, user entity.User) (*entit
 		user.FirstName, user.LastName, user.Email, user.CreatedAt, user.UpdatedAt, user.SudirUserId,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, domain.ErrNotFound
+		return nil, domain.ErrUserIsBlocked
 	}
 	if err != nil {
 		return nil, errors.WithMessagef(err, "select row: %s", selectQ)

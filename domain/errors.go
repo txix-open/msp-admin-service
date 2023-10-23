@@ -16,6 +16,7 @@ var (
 	ErrTokenExpired         = errors.New("token expired")
 	ErrTokenNotFound        = errors.New("token not found")
 	ErrTooManyLoginRequests = errors.New("too many login requests")
+	ErrUserIsBlocked        = errors.New("user is blocked")
 )
 
 type UnknownAuditEventError struct {

@@ -180,24 +180,16 @@ func (a Auth) LoginWithSudir(ctx context.Context, request domain.LoginSudirReque
 			UpdatedAt:   time.Now().UTC(),
 			CreatedAt:   time.Now().UTC(),
 		})
-		if errors.Is(err, domain.ErrNotFound) {
+		if errors.Is(err, domain.ErrUserIsBlocked) {
 			return errors.Errorf("user with sudir user id = %s is blocked", sudirUser.SudirUserId)
 		}
 		if err != nil {
 			return errors.WithMessage(err, "upsert by sudir user id")
 		}
 
-		userRoles, err := tx.GetRolesByUserIds(ctx, []int{int(user.Id)})
+		err = tx.UpsertUserRoleLinks(ctx, int(user.Id), sudirUser.RoleIds)
 		if err != nil {
-			return errors.WithMessage(err, "select user roles")
-		}
-
-		// при создании юзера СУДИР первоначально роли не указаны
-		if len(userRoles) == 0 {
-			err = tx.InsertUserRoleLinks(ctx, int(user.Id), sudirUser.RoleIds)
-			if err != nil {
-				return errors.WithMessage(err, "insert sudir roles")
-			}
+			return errors.WithMessage(err, "upsert user role links")
 		}
 
 		tokenString, expired, err = a.tokenService.GenerateToken(ctx, tx, user.Id)

@@ -9,6 +9,7 @@ import (
 	"github.com/go-ldap/ldap/v3"
 	"github.com/pkg/errors"
 	"msp-admin-service/conf"
+	"msp-admin-service/entity"
 )
 
 const (
@@ -79,12 +80,18 @@ func (r Repository) DnByUserPrincipalName(ctx context.Context, principalName str
 	return result.Entries[0].DN, nil
 }
 
-func (r Repository) RemoveFromGroup(ctx context.Context, userDn string, groupDn string) error {
+func (r Repository) ModifyMemberAttr(ctx context.Context, userDn string, groupDn string, operation string) error {
 	modifyReq := ldap.NewModifyRequest(groupDn, nil)
-	modifyReq.Delete("member", []string{userDn})
+	switch operation {
+	case entity.GroupOperationAdd:
+		modifyReq.Add("member", []string{userDn})
+	case entity.GroupOperationDelete:
+		modifyReq.Delete("member", []string{userDn})
+	}
+
 	err := r.conn.Modify(modifyReq)
 	if err != nil {
-		return errors.WithMessagef(err, "modify entity by dn %s", groupDn)
+		return errors.WithMessagef(err, "modify entity by dn %s, operation: %s member from group", groupDn, operation)
 	}
 	return nil
 }

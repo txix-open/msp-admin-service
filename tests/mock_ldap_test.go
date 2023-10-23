@@ -18,7 +18,7 @@ func (m mockLdap) DnByUserPrincipalName(ctx context.Context, principalName strin
 	return principalName, nil
 }
 
-func (m mockLdap) RemoveFromGroup(ctx context.Context, userDn string, groupDn string) error {
+func (m mockLdap) ModifyMemberAttr(ctx context.Context, userDn string, groupDn string, operation string) error {
 	return nil
 }
 

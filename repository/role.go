@@ -69,29 +69,25 @@ func (r Role) GetRoleByName(ctx context.Context, name string) (*entity.Role, err
 	}
 }
 
-func (r Role) GetRoleByExternalGroup(ctx context.Context, group string) (*entity.Role, error) {
-	ctx = sql_metrics.OperationLabelToContext(ctx, "Role.GetRoleByExternalGroup")
+func (r Role) GetRolesByExternalGroup(ctx context.Context, groups []string) ([]entity.Role, error) {
+	ctx = sql_metrics.OperationLabelToContext(ctx, "Role.GetRolesByExternalGroup")
 
 	q, args, err := query.New().
 		Select("*").
 		From("roles").
-		Where(squirrel.Eq{"external_group": group}).
+		Where(squirrel.Eq{"external_group": groups}).
 		ToSql()
 	if err != nil {
 		return nil, errors.WithMessage(err, "build query")
 	}
 
-	role := entity.Role{}
-	err = r.db.SelectRow(ctx, &role, q, args...)
-
-	switch {
-	case errors.Is(err, sql.ErrNoRows):
-		return nil, domain.ErrNotFound
-	case err != nil:
-		return nil, errors.WithMessagef(err, "db select: %s", q)
-	default:
-		return &role, nil
+	roles := make([]entity.Role, 0)
+	err = r.db.Select(ctx, &roles, q, args...)
+	if err != nil {
+		return nil, errors.WithMessagef(err, "select: %s", q)
 	}
+
+	return roles, nil
 }
 
 func (r Role) All(ctx context.Context) ([]entity.Role, error) {
