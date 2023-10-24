@@ -8,6 +8,7 @@ import (
 	"github.com/integration-system/isp-kit/log"
 	"github.com/pkg/errors"
 	"msp-admin-service/conf"
+	"msp-admin-service/domain"
 	"msp-admin-service/entity"
 )
 
@@ -102,6 +103,10 @@ func (s Service) SyncGroups(ctx context.Context, user entity.User) error {
 		}
 
 		err := s.handleRole(ctx, role, userDn, operation, ldapRepo)
+		if errors.Is(err, domain.ErrNoActionRequired) {
+			s.logger.Info(ctx, "no action required, role is already synced")
+			continue
+		}
 		if err != nil {
 			s.logger.Error(ctx, errors.WithMessage(err, "handle role"))
 			continue
@@ -119,7 +124,7 @@ func (s Service) handleRole(
 	ldapRepo Repo,
 ) error {
 	if role.ExternalGroup == "" {
-		s.logger.Info(ctx, "role has not external group mapping, skip", log.Int("roleId", role.Id))
+		s.logger.Info(ctx, "role has no external group mapping, skip", log.Int("roleId", role.Id))
 		return nil
 	}
 

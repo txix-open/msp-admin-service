@@ -9,6 +9,7 @@ import (
 	"github.com/go-ldap/ldap/v3"
 	"github.com/pkg/errors"
 	"msp-admin-service/conf"
+	"msp-admin-service/domain"
 	"msp-admin-service/entity"
 )
 
@@ -90,6 +91,9 @@ func (r Repository) ModifyMemberAttr(ctx context.Context, userDn string, groupDn
 	}
 
 	err := r.conn.Modify(modifyReq)
+	if ldap.IsErrorAnyOf(err, ldap.LDAPResultUnwillingToPerform, ldap.LDAPResultEntryAlreadyExists) {
+		return errors.WithMessage(domain.ErrNoActionRequired, err.Error())
+	}
 	if err != nil {
 		return errors.WithMessagef(err, "modify entity by dn %s, operation: %s member from group", groupDn, operation)
 	}
