@@ -43,7 +43,7 @@ func NewUser(userService userService) User {
 // @Failure 500 {object} domain.GrpcError
 // @Router /user/get_profile [POST]
 func (u User) GetProfile(ctx context.Context, authData grpc.AuthData) (*domain.AdminUserShort, error) {
-	adminId, err := getUserToken(authData)
+	adminId, err := getAdminId(authData)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +96,7 @@ func (u User) GetUsers(ctx context.Context, identities domain.UsersRequest) (*do
 // @Failure 500 {object} domain.GrpcError
 // @Router /user/create_user [POST]
 func (u User) CreateUser(ctx context.Context, authData grpc.AuthData, req domain.CreateUserRequest) (*domain.User, error) {
-	adminId, err := getUserToken(authData)
+	adminId, err := getAdminId(authData)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +127,7 @@ func (u User) CreateUser(ctx context.Context, authData grpc.AuthData, req domain
 // @Failure 500 {object} domain.GrpcError
 // @Router /user/update_user [POST]
 func (u User) UpdateUser(ctx context.Context, authData grpc.AuthData, req domain.UpdateUserRequest) (*domain.User, error) {
-	adminId, err := getUserToken(authData)
+	adminId, err := getAdminId(authData)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +160,7 @@ func (u User) UpdateUser(ctx context.Context, authData grpc.AuthData, req domain
 // @Failure 500 {object} domain.GrpcError
 // @Router /user/delete_user [POST]
 func (u User) DeleteUser(ctx context.Context, authData grpc.AuthData, identities domain.IdentitiesRequest) (*domain.DeleteResponse, error) {
-	adminId, err := getUserToken(authData)
+	adminId, err := getAdminId(authData)
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +185,7 @@ func (u User) DeleteUser(ctx context.Context, authData grpc.AuthData, identities
 // @Failure 500 {object} domain.GrpcError
 // @Router /user/block_user [POST]
 func (u User) Block(ctx context.Context, authData grpc.AuthData, identities domain.IdRequest) error {
-	adminId, err := getUserToken(authData)
+	adminId, err := getAdminId(authData)
 	if err != nil {
 		return err
 	}

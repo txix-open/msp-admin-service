@@ -51,7 +51,7 @@ type Auth struct {
 	logger                   log.Logger
 	maxInFlightLoginRequests int
 	delayLoginRequest        time.Duration
-	inFlight                 *atomic.Int32
+	inFlightLoginRequests    *atomic.Int32
 }
 
 func NewAuth(
@@ -73,13 +73,13 @@ func NewAuth(
 		logger:                   logger,
 		delayLoginRequest:        time.Duration(delayLoginRequestInSec) * time.Second,
 		maxInFlightLoginRequests: maxInFlightLoginRequests,
-		inFlight:                 &atomic.Int32{},
+		inFlightLoginRequests:    &atomic.Int32{},
 	}
 }
 
 func (a Auth) Login(ctx context.Context, request domain.LoginRequest) (*domain.LoginResponse, error) {
-	value := a.inFlight.Add(1)
-	defer a.inFlight.Add(-1)
+	value := a.inFlightLoginRequests.Add(1)
+	defer a.inFlightLoginRequests.Add(-1)
 
 	if value > int32(a.maxInFlightLoginRequests) {
 		return nil, domain.ErrTooManyLoginRequests
@@ -120,20 +120,8 @@ func (a Auth) Login(ctx context.Context, request domain.LoginRequest) (*domain.L
 
 		a.auditService.SaveAuditAsync(ctx, user.Id, "Успешный вход через форму входа", entity.EventSuccessLogin)
 
-		updateEntity := entity.UpdateUser{
-			FirstName:   user.FirstName,
-			LastName:    user.LastName,
-			Email:       user.Email,
-			Description: user.Description,
-		}
-		_, err = tx.UpdateUser(ctx, user.Id, updateEntity)
-		if err != nil {
-			return errors.WithMessage(err, "update session info")
-		}
-
 		return nil
 	})
-
 	if err != nil {
 		return nil, errors.WithMessage(err, "auth transaction")
 	}
@@ -180,24 +168,16 @@ func (a Auth) LoginWithSudir(ctx context.Context, request domain.LoginSudirReque
 			UpdatedAt:   time.Now().UTC(),
 			CreatedAt:   time.Now().UTC(),
 		})
-		if errors.Is(err, domain.ErrNotFound) {
+		if errors.Is(err, domain.ErrUserIsBlocked) {
 			return errors.Errorf("user with sudir user id = %s is blocked", sudirUser.SudirUserId)
 		}
 		if err != nil {
 			return errors.WithMessage(err, "upsert by sudir user id")
 		}
 
-		userRoles, err := tx.GetRolesByUserIds(ctx, []int{int(user.Id)})
+		err = tx.UpsertUserRoleLinks(ctx, int(user.Id), sudirUser.RoleIds)
 		if err != nil {
-			return errors.WithMessage(err, "select user roles")
-		}
-
-		// при создании юзера СУДИР первоначально роли не указаны
-		if len(userRoles) == 0 {
-			err = tx.InsertUserRoleLinks(ctx, int(user.Id), sudirUser.RoleIds)
-			if err != nil {
-				return errors.WithMessage(err, "insert sudir roles")
-			}
+			return errors.WithMessage(err, "upsert user role links")
 		}
 
 		tokenString, expired, err = a.tokenService.GenerateToken(ctx, tx, user.Id)

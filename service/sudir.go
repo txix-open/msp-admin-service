@@ -2,16 +2,11 @@ package service
 
 import (
 	"context"
-	"strings"
 
 	"github.com/pkg/errors"
 	"msp-admin-service/conf"
 	"msp-admin-service/domain"
 	"msp-admin-service/entity"
-)
-
-const (
-	sudirRolePrefix = "CN=" // nolint:unused
 )
 
 type sudirRepo interface {
@@ -20,7 +15,7 @@ type sudirRepo interface {
 }
 
 type roleRepo interface {
-	GetRoleByExternalGroup(ctx context.Context, group string) (*entity.Role, error)
+	GetRolesByExternalGroup(ctx context.Context, groups []string) ([]entity.Role, error)
 	InsertRole(ctx context.Context, role entity.Role) (*entity.Role, error)
 }
 
@@ -61,39 +56,22 @@ func (s Sudir) Authenticate(ctx context.Context, authCode string, roleRepo roleR
 		email = user.Sub
 	}
 
-	var role *entity.Role
-	role, err = roleRepo.GetRoleByExternalGroup(ctx, user.GivenName)
-	if errors.Is(err, domain.ErrNotFound) {
-		role, err = roleRepo.InsertRole(ctx, entity.Role{
-			Name:          user.GivenName,
-			ExternalGroup: user.GivenName, // TODO take group name correctly from user.Group
-			Permissions:   []string{},
-		})
+	rolesIds := make([]int, 0)
+	if len(user.Groups) > 0 {
+		roles, err := roleRepo.GetRolesByExternalGroup(ctx, user.Groups)
 		if err != nil {
-			return nil, errors.WithMessage(err, "insert role")
+			return nil, errors.WithMessage(err, "get roles by external groups")
 		}
-	}
-	if err != nil {
-		return nil, errors.WithMessage(err, "get role by external group")
+		for _, role := range roles {
+			rolesIds = append(rolesIds, role.Id)
+		}
 	}
 
 	return &entity.SudirUser{
-		RoleIds:     []int{role.Id},
+		RoleIds:     rolesIds,
 		SudirUserId: user.Sub,
 		FirstName:   user.GivenName,
 		LastName:    user.FamilyName,
 		Email:       email,
 	}, nil
-}
-
-// nolint
-func getRole(groups []string) string {
-	for _, group := range groups {
-		part := strings.Split(group, ",")
-		for _, p := range part {
-			sudirRole := strings.TrimPrefix(p, sudirRolePrefix)
-			return sudirRole
-		}
-	}
-	return ""
 }

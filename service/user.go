@@ -39,12 +39,15 @@ type TokenRepo interface {
 
 type UserRoleRepo interface {
 	GetRolesByUserIds(ctx context.Context, identity []int) ([]entity.UserRole, error)
-	InsertUserRoleLinks(ctx context.Context, id int, roleIds []int) error
-	UpdateUserRoleLinks(ctx context.Context, id int, roleIds []int) error
+	UpsertUserRoleLinks(ctx context.Context, id int, roleIds []int) error
 }
 
 type roleRepoUser interface {
 	GetRoleByIds(ctx context.Context, id []int) ([]entity.Role, error)
+}
+
+type LdapService interface {
+	SyncGroupsAsync(ctx context.Context, user entity.User)
 }
 
 type User struct {
@@ -54,6 +57,7 @@ type User struct {
 	tokenRepo    TokenRepo
 	auditService auditService
 	txRunner     UserTransactionRunner
+	ldapService  LdapService
 	logger       log.Logger
 }
 
@@ -64,6 +68,7 @@ func NewUser(
 	tokenRepo TokenRepo,
 	service auditService,
 	txRunner UserTransactionRunner,
+	ldapService LdapService,
 	logger log.Logger,
 ) User {
 	return User{
@@ -73,6 +78,7 @@ func NewUser(
 		tokenRepo:    tokenRepo,
 		auditService: service,
 		txRunner:     txRunner,
+		ldapService:  ldapService,
 		logger:       logger,
 	}
 }
@@ -90,7 +96,7 @@ func (u User) GetProfileById(ctx context.Context, userId int64) (*domain.AdminUs
 	if err != nil {
 		return nil, errors.WithMessagef(err, "get role by user id %d", userId)
 	}
-	roleIds := getRoleIds(roles)
+	roleIds := RolesIds(roles)
 
 	var roleList []entity.Role
 	if len(roleIds) != 0 {
@@ -183,11 +189,9 @@ func (u User) CreateUser(ctx context.Context, req domain.CreateUserRequest, admi
 			return errors.WithMessage(err, "create user")
 		}
 
-		if len(req.Roles) != 0 {
-			err = tx.InsertUserRoleLinks(ctx, id, req.Roles)
-			if err != nil {
-				return errors.WithMessage(err, "insert user role links")
-			}
+		err = tx.UpsertUserRoleLinks(ctx, id, req.Roles)
+		if err != nil {
+			return errors.WithMessage(err, "insert user role links")
 		}
 
 		return nil
@@ -195,6 +199,8 @@ func (u User) CreateUser(ctx context.Context, req domain.CreateUserRequest, admi
 	if err != nil {
 		return nil, errors.WithMessage(err, "create user transaction")
 	}
+
+	u.ldapService.SyncGroupsAsync(ctx, usr)
 
 	u.auditService.SaveAuditAsync(ctx, adminId,
 		fmt.Sprintf("Пользователь. Создание пользователя %s.", usr.Email),
@@ -236,13 +242,12 @@ func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, admi
 			Email:       req.Email,
 			Description: req.Description,
 		}
-
 		user, err = tx.UpdateUser(ctx, req.Id, updateEntity)
 		if err != nil {
 			return errors.WithMessage(err, "update user")
 		}
 
-		err = tx.UpdateUserRoleLinks(ctx, int(user.Id), req.Roles)
+		err = tx.UpsertUserRoleLinks(ctx, int(user.Id), req.Roles)
 		if err != nil {
 			return errors.WithMessage(err, "update user role links")
 		}
@@ -251,7 +256,6 @@ func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, admi
 		if err != nil {
 			return errors.WithMessage(err, "get last user session")
 		}
-
 		lastSessionCreatedAt = userLastSession[user.Id]
 
 		return nil
@@ -259,6 +263,8 @@ func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, admi
 	if err != nil {
 		return nil, errors.WithMessage(err, "update user transaction")
 	}
+
+	u.ldapService.SyncGroupsAsync(ctx, *user)
 
 	u.auditService.SaveAuditAsync(ctx, adminId,
 		fmt.Sprintf("Пользователь. Изменение пользователя %s.", user.Email),
@@ -273,6 +279,7 @@ func (u User) DeleteUsers(ctx context.Context, ids []int64, adminId int64) (int,
 	if len(ids) == 0 {
 		return 0, nil
 	}
+
 	count, err := u.userRepo.DeleteUser(ctx, ids)
 	if err != nil {
 		return 0, errors.WithMessage(err, "delete users")
@@ -302,7 +309,7 @@ func (u User) GetById(ctx context.Context, userId int) (*domain.User, error) {
 		return nil, errors.WithMessage(err, "get last sessions by user id")
 	}
 
-	result := u.toDomain(*user, getRoleIds(roles), lastSessions[int64(userId)])
+	result := u.toDomain(*user, RolesIds(roles), lastSessions[int64(userId)])
 	return &result, nil
 }
 
@@ -365,7 +372,7 @@ func (u User) toDomain(user entity.User, roleIds []int, lastSessionCreatedAt *ti
 	}
 }
 
-func getRoleIds(roles []entity.UserRole) []int {
+func RolesIds(roles []entity.UserRole) []int {
 	roleList := make([]int, 0)
 
 	for _, role := range roles {

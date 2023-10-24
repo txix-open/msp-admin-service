@@ -38,32 +38,8 @@ func (u UserRole) GetRolesByUserIds(ctx context.Context, identity []int) ([]enti
 	}
 }
 
-func (u UserRole) InsertUserRoleLinks(ctx context.Context, id int, roleIds []int) error {
-	ctx = sql_metrics.OperationLabelToContext(ctx, "UserRole.InsertUserRoleLinks")
-
-	rolesQ := query.New().
-		Insert("user_roles").
-		Columns("user_id", "role_id")
-
-	for _, roleId := range roleIds {
-		rolesQ = rolesQ.Values(id, roleId)
-	}
-	rolesQ = rolesQ.Suffix("ON CONFLICT DO NOTHING")
-	rolesQResult, args, err := rolesQ.ToSql()
-	if err != nil {
-		return errors.WithMessage(err, "build query")
-	}
-
-	_, err = u.db.Exec(ctx, rolesQResult, args...)
-	if err != nil {
-		return errors.WithMessagef(err, "exec: %s", rolesQResult)
-	}
-
-	return nil
-}
-
-func (u UserRole) UpdateUserRoleLinks(ctx context.Context, id int, roleIds []int) error {
-	ctx = sql_metrics.OperationLabelToContext(ctx, "UserRole.UpdateUserRoleLinks")
+func (u UserRole) UpsertUserRoleLinks(ctx context.Context, id int, roleIds []int) error {
+	ctx = sql_metrics.OperationLabelToContext(ctx, "UserRole.UpsertUserRoleLinks")
 
 	deleteQ, args, err := query.New().
 		Delete("user_roles").Where(squirrel.Eq{"user_id": id}).ToSql()
@@ -83,11 +59,9 @@ func (u UserRole) UpdateUserRoleLinks(ctx context.Context, id int, roleIds []int
 	rolesQ := query.New().
 		Insert("user_roles").
 		Columns("user_id", "role_id")
-
 	for _, roleId := range roleIds {
 		rolesQ = rolesQ.Values(id, roleId)
 	}
-
 	rolesQResult, args, err := rolesQ.ToSql()
 	if err != nil {
 		return errors.WithMessage(err, "build query")

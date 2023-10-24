@@ -61,7 +61,7 @@ func (u Role) All(ctx context.Context) ([]domain.Role, error) {
 // @Failure 500 {object} domain.GrpcError
 // @Router /role/create [POST]
 func (u Role) CreateRole(ctx context.Context, authData grpc.AuthData, req domain.CreateRoleRequest) (*domain.Role, error) {
-	adminId, err := getUserToken(authData)
+	adminId, err := getAdminId(authData)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +91,7 @@ func (u Role) CreateRole(ctx context.Context, authData grpc.AuthData, req domain
 // @Failure 500 {object} domain.GrpcError
 // @Router /role/update [POST]
 func (u Role) UpdateRole(ctx context.Context, authData grpc.AuthData, req domain.UpdateRoleRequest) (*domain.Role, error) {
-	adminId, err := getUserToken(authData)
+	adminId, err := getAdminId(authData)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +122,7 @@ func (u Role) UpdateRole(ctx context.Context, authData grpc.AuthData, req domain
 // @Failure 500 {object} domain.GrpcError
 // @Router /role/delete [POST]
 func (u Role) DeleteRole(ctx context.Context, authData grpc.AuthData, req domain.DeleteRoleRequest) error {
-	adminId, err := getUserToken(authData)
+	adminId, err := getAdminId(authData)
 	if err != nil {
 		return err
 	}

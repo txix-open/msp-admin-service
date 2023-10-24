@@ -40,8 +40,8 @@ func (r Token) Save(ctx context.Context, token entity.Token) error {
 	return nil
 }
 
-func (r Token) GetEntity(ctx context.Context, token string) (*entity.Token, error) {
-	ctx = sql_metrics.OperationLabelToContext(ctx, "Token.GetEntity")
+func (r Token) Get(ctx context.Context, token string) (*entity.Token, error) {
+	ctx = sql_metrics.OperationLabelToContext(ctx, "Token.Get")
 
 	result := entity.Token{}
 	q := `

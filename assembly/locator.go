@@ -49,6 +49,7 @@ type Config struct {
 	BgJobCfg []bgjobx.WorkerConfig
 }
 
+//nolint:funlen
 func (l Locator) Config(ctx context.Context, ldapRepoSupplier ldap.RepoSupplier, cfg conf.Remote) Config {
 	sudirRepo := repository.NewSudir(l.httpCli, cfg.SudirAuth)
 	roleRepo := repository.NewRole(l.db)
@@ -64,7 +65,18 @@ func (l Locator) Config(ctx context.Context, ldapRepoSupplier ldap.RepoSupplier,
 
 	txManager := transaction.NewManager(l.db)
 
-	userService := service.NewUser(userRepo, userRoleRepo, roleRepo, tokenRepo, auditService, txManager, l.logger)
+	ldapService := ldap.NewService(cfg.Ldap, ldapRepoSupplier, userRoleRepo, roleRepo, l.logger)
+
+	userService := service.NewUser(
+		userRepo,
+		userRoleRepo,
+		roleRepo,
+		tokenRepo,
+		auditService,
+		txManager,
+		ldapService,
+		l.logger,
+	)
 	authService := service.NewAuth(
 		userRepo, txManager, tokenService, sudirService, auditService, l.logger,
 		cfg.AntiBruteforce.DelayLoginRequestInSec,
@@ -97,13 +109,15 @@ func (l Locator) Config(ctx context.Context, ldapRepoSupplier ldap.RepoSupplier,
 		},
 	)
 
-	ldapService := ldap.NewService(cfg.Ldap, ldapRepoSupplier, userRoleRepo, roleRepo, l.logger)
 	inactiveBlocker := inactive_worker.NewInactiveBlocker(
-		tokenRepo, userRepo, auditService, ldapService,
+		tokenRepo,
+		userRepo,
+		auditService,
+		userRoleRepo,
+		ldapService,
 		cfg.BlockInactiveWorker,
 		l.logger,
 	)
-
 	deleteOldAuditWorker := delete_old_audit_worker.NewService(l.logger, auditRepo, cfg.Audit.AuditTTl)
 
 	return Config{

@@ -7,6 +7,11 @@ import (
 	"github.com/integration-system/isp-kit/json"
 )
 
+const (
+	GroupOperationAdd    = "ADD"
+	GroupOperationDelete = "DELETE"
+)
+
 type Role struct {
 	Id            int
 	Name          string

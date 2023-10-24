@@ -14,7 +14,7 @@ import (
 
 type TokenRep interface {
 	TokenSaver
-	GetEntity(ctx context.Context, token string) (*entity.Token, error)
+	Get(ctx context.Context, token string) (*entity.Token, error)
 	RevokeByUserId(ctx context.Context, userId int64, updatedAt time.Time) error
 	All(ctx context.Context, limit int, offset int) ([]entity.Token, error)
 	Count(ctx context.Context) (int64, error)
@@ -64,7 +64,7 @@ func (s Token) GenerateToken(ctx context.Context, repo TokenSaver, id int64) (st
 }
 
 func (s Token) GetUserId(ctx context.Context, token string) (int64, error) {
-	tokenInfo, err := s.tokenRep.GetEntity(ctx, token)
+	tokenInfo, err := s.tokenRep.Get(ctx, token)
 	if err != nil {
 		return 0, errors.WithMessage(err, "get token entity")
 	}
