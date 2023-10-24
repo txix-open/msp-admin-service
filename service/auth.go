@@ -51,7 +51,7 @@ type Auth struct {
 	logger                   log.Logger
 	maxInFlightLoginRequests int
 	delayLoginRequest        time.Duration
-	inFlight                 *atomic.Int32
+	inFlightLoginRequests    *atomic.Int32
 }
 
 func NewAuth(
@@ -73,13 +73,13 @@ func NewAuth(
 		logger:                   logger,
 		delayLoginRequest:        time.Duration(delayLoginRequestInSec) * time.Second,
 		maxInFlightLoginRequests: maxInFlightLoginRequests,
-		inFlight:                 &atomic.Int32{},
+		inFlightLoginRequests:    &atomic.Int32{},
 	}
 }
 
 func (a Auth) Login(ctx context.Context, request domain.LoginRequest) (*domain.LoginResponse, error) {
-	value := a.inFlight.Add(1)
-	defer a.inFlight.Add(-1)
+	value := a.inFlightLoginRequests.Add(1)
+	defer a.inFlightLoginRequests.Add(-1)
 
 	if value > int32(a.maxInFlightLoginRequests) {
 		return nil, domain.ErrTooManyLoginRequests
@@ -120,20 +120,8 @@ func (a Auth) Login(ctx context.Context, request domain.LoginRequest) (*domain.L
 
 		a.auditService.SaveAuditAsync(ctx, user.Id, "Успешный вход через форму входа", entity.EventSuccessLogin)
 
-		updateEntity := entity.UpdateUser{
-			FirstName:   user.FirstName,
-			LastName:    user.LastName,
-			Email:       user.Email,
-			Description: user.Description,
-		}
-		_, err = tx.UpdateUser(ctx, user.Id, updateEntity)
-		if err != nil {
-			return errors.WithMessage(err, "update session info")
-		}
-
 		return nil
 	})
-
 	if err != nil {
 		return nil, errors.WithMessage(err, "auth transaction")
 	}

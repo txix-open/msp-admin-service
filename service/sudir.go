@@ -56,13 +56,15 @@ func (s Sudir) Authenticate(ctx context.Context, authCode string, roleRepo roleR
 		email = user.Sub
 	}
 
-	roles, err := roleRepo.GetRolesByExternalGroup(ctx, user.Groups)
-	if err != nil {
-		return nil, errors.WithMessage(err, "get roles by external groups")
-	}
 	rolesIds := make([]int, 0)
-	for _, role := range roles {
-		rolesIds = append(rolesIds, role.Id)
+	if len(user.Groups) > 0 {
+		roles, err := roleRepo.GetRolesByExternalGroup(ctx, user.Groups)
+		if err != nil {
+			return nil, errors.WithMessage(err, "get roles by external groups")
+		}
+		for _, role := range roles {
+			rolesIds = append(rolesIds, role.Id)
+		}
 	}
 
 	return &entity.SudirUser{

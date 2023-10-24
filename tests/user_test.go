@@ -340,7 +340,7 @@ func (s *UserTestSuite) TestBlockUser() {
 	s.Require().NoError(err)
 	s.Require().True(user.Blocked)
 
-	t, err := repository.NewToken(s.db).GetEntity(context.Background(), token)
+	t, err := repository.NewToken(s.db).Get(context.Background(), token)
 	s.Require().NoError(err)
 	s.EqualValues(entity.TokenStatusRevoked, t.Status)
 }

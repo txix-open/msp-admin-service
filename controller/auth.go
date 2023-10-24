@@ -43,7 +43,7 @@ func NewAuth(authService authService, logger log.Logger) Auth {
 // @Failure 500 {object} domain.GrpcError
 // @Router /auth/logout [POST]
 func (a Auth) Logout(ctx context.Context, authData grpc.AuthData) error {
-	adminId, err := getUserToken(authData)
+	adminId, err := getAdminId(authData)
 	if err != nil {
 		return err
 	}
@@ -113,7 +113,7 @@ func (a Auth) LoginWithSudir(ctx context.Context, request domain.LoginSudirReque
 	}
 }
 
-func getUserToken(authData grpc.AuthData) (int64, error) {
+func getAdminId(authData grpc.AuthData) (int64, error) {
 	token, err := grpc.StringFromMd(domain.AdminAuthIdHeader, metadata.MD(authData))
 	if err != nil {
 		return 0, status.Error(codes.InvalidArgument, err.Error())
