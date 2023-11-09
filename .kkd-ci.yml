@@ -1,3 +1,0 @@
-include:
-  - project: 'bgdt/kkd20/dev/kkd3-cicd'
-    file: '/servicesOfTheGo.yml'
