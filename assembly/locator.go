@@ -18,6 +18,7 @@ import (
 	"msp-admin-service/service/delete_old_audit_worker"
 	"msp-admin-service/service/inactive_worker"
 	"msp-admin-service/service/ldap"
+	"msp-admin-service/service/secure"
 	"msp-admin-service/transaction"
 )
 
@@ -62,6 +63,7 @@ func (l Locator) Config(ctx context.Context, ldapRepoSupplier ldap.RepoSupplier,
 	auditService := service.NewAudit(ctx, l.logger, auditRepo, auditEventRepo, cfg.Audit.EventSettings)
 	tokenService := service.NewToken(tokenRepo, cfg.ExpireSec)
 	sudirService := service.NewSudir(cfg.SudirAuth, sudirRepo)
+	secureService := secure.NewService(tokenRepo, userRoleRepo)
 
 	txManager := transaction.NewManager(l.db)
 
@@ -75,6 +77,7 @@ func (l Locator) Config(ctx context.Context, ldapRepoSupplier ldap.RepoSupplier,
 		auditService,
 		txManager,
 		ldapService,
+		cfg.IdleTimeoutMs,
 		l.logger,
 	)
 	authService := service.NewAuth(
@@ -89,7 +92,7 @@ func (l Locator) Config(ctx context.Context, ldapRepoSupplier ldap.RepoSupplier,
 	userController := controller.NewUser(userService)
 	customizationController := controller.NewCustomization(cfg.UiDesign)
 	authController := controller.NewAuth(authService, l.logger)
-	secureController := controller.NewSecure(tokenService)
+	secureController := controller.NewSecure(secureService)
 	sessionController := controller.NewSession(tokenService)
 	auditController := controller.NewAudit(auditService)
 	roleController := controller.NewRole(roleService)

@@ -63,20 +63,6 @@ func (s Token) GenerateToken(ctx context.Context, repo TokenSaver, id int64) (st
 	return random, expiredAt.String(), nil
 }
 
-func (s Token) GetUserId(ctx context.Context, token string) (int64, error) {
-	tokenInfo, err := s.tokenRep.Get(ctx, token)
-	if err != nil {
-		return 0, errors.WithMessage(err, "get token entity")
-	}
-
-	if time.Now().UTC().After(tokenInfo.ExpiredAt) ||
-		tokenInfo.Status != entity.TokenStatusAllowed {
-		return 0, domain.ErrTokenExpired
-	}
-
-	return tokenInfo.UserId, nil
-}
-
 func (s Token) RevokeAllByUserId(ctx context.Context, userId int64) error {
 	updatedAt := time.Now().UTC()
 	err := s.tokenRep.RevokeByUserId(ctx, userId, updatedAt)

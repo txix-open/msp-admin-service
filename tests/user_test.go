@@ -73,19 +73,17 @@ func (s *UserTestSuite) TestGetProfileHappyPath() {
 		Password:  "password",
 	})
 
-	roleId, err := InsertRole(s.db, entity.Role{
+	roleId := InsertRole(s.db, entity.Role{
 		Name: "admin",
 	})
-	s.Require().NoError(err)
 
-	err = InsertUserRole(s.db, entity.UserRole{
+	InsertUserRole(s.db, entity.UserRole{
 		UserId: int(id),
 		RoleId: int(roleId),
 	})
-	s.Require().NoError(err)
 
 	response := domain.AdminUserShort{}
-	err = s.grpcCli.Invoke("admin/user/get_profile").
+	err := s.grpcCli.Invoke("admin/user/get_profile").
 		JsonResponseBody(&response).
 		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(id))).
 		Do(context.Background())
@@ -119,27 +117,24 @@ func (s *UserTestSuite) TestGetProfileNotFound() {
 }
 
 func (s *UserTestSuite) TestGetProfileSudir() {
-	id, err := InsertSudirUser(s.db, entity.SudirUser{
+	id := InsertSudirUser(s.db, entity.SudirUser{
 		SudirUserId: "sudirUser1",
 		FirstName:   "name",
 		LastName:    "surname",
 		Email:       "a@b.ru",
 	})
-	s.Require().NoError(err)
 
-	roleId, err := InsertRole(s.db, entity.Role{
+	roleId := InsertRole(s.db, entity.Role{
 		Name: "admin",
 	})
-	s.Require().NoError(err)
 
-	err = InsertUserRole(s.db, entity.UserRole{
+	InsertUserRole(s.db, entity.UserRole{
 		UserId: int(id),
 		RoleId: int(roleId),
 	})
-	s.Require().NoError(err)
 
 	response := domain.AdminUserShort{}
-	err = s.grpcCli.
+	err := s.grpcCli.
 		Invoke("admin/user/get_profile").
 		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(id))).
 		JsonResponseBody(&response).
@@ -249,8 +244,7 @@ func (s *AuthTestSuite) TestUpdateUserHappyPath() {
 }
 
 func (s *AuthTestSuite) TestUpdateSudirUserHappyPath() {
-	id, err := InsertSudirUser(s.db, entity.SudirUser{Email: "sudir@a.ru"})
-	s.Require().NoError(err)
+	id := InsertSudirUser(s.db, entity.SudirUser{Email: "sudir@a.ru"})
 	req := domain.UpdateUserRequest{
 		Id:        id,
 		FirstName: "name",
@@ -258,7 +252,7 @@ func (s *AuthTestSuite) TestUpdateSudirUserHappyPath() {
 		Email:     "sudir@a.ru",
 	}
 	response := domain.User{}
-	err = s.grpcCli.
+	err := s.grpcCli.
 		Invoke("admin/user/update_user").
 		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(id))).
 		JsonRequestBody(req).

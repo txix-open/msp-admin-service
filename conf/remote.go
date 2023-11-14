@@ -18,10 +18,12 @@ func init() { //
 }
 
 type Remote struct {
-	Audit               Audit
-	Database            dbx.Config
-	ExpireSec           int                 `valid:"required" schema:"Время жизни токена в секундах,in seconds"`
-	UiDesign            UIDesign            `schema:"Кастомизация интерфейса"`
+	Audit     Audit
+	Database  dbx.Config
+	ExpireSec int      `valid:"required" schema:"Время жизни токена в секундах,in seconds"`
+	UiDesign  UIDesign `schema:"Кастомизация интерфейса"`
+	//nolint:lll
+	IdleTimeoutMs       int                 `schema:"Время бездействия пользователя,в милисекундах, после указанного времени пользователь будет разлогирован из интерфейса в браузере, по умолчанию отключено"`
 	SudirAuth           *SudirAuth          `schema:"СУДИР авторизация"`
 	LogLevel            log.Level           `schemaGen:"logLevel" schema:"Уровень логирования"`
 	AntiBruteforce      AntiBruteforce      `schema:"Настройки антибрут для admin login"`

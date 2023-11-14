@@ -70,8 +70,8 @@ github.com/integration-system/grmq v1.4.2 h1:BFO9ahqnb3SpMCt5zxaRAh1iiILkC8tqmNc
 github.com/integration-system/grmq v1.4.2/go.mod h1:DeE6Ceo/A+MuvzdPkuZzqajy0VJhOyH7rRxksQqhEYk=
 github.com/integration-system/isp-etp-go/v2 v2.1.3 h1:vcHP/PE7p1G3rxqoVKrKtXzoSxFA4ryxigd+zPkAb3w=
 github.com/integration-system/isp-etp-go/v2 v2.1.3/go.mod h1:ZpB+FIH3hy7md+f8ylVSQx5zwZVjczhkc45f1B2z9nw=
-github.com/integration-system/isp-kit v1.24.2 h1:ejjSv+CFlPUGV80lxAAleLSa6T/LRoto7evRjSSUF7c=
-github.com/integration-system/isp-kit v1.24.2/go.mod h1:LvqQyw8PCuuo9O8jgvhKBlOP4UEIYRxb9cHWHuYddcQ=
+github.com/integration-system/isp-kit v1.24.3 h1:kBy5jtzhQvtju5kAyjm+ABtt5usWwUkMe+4ewtsZufA=
+github.com/integration-system/isp-kit v1.24.3/go.mod h1:LvqQyw8PCuuo9O8jgvhKBlOP4UEIYRxb9cHWHuYddcQ=
 github.com/integration-system/jsonschema v1.0.1 h1:nR78BEDG9djX2uXQ1YP66a/9yQOMmp2HFmw8VPUdAa8=
 github.com/integration-system/jsonschema v1.0.1/go.mod h1:EoqDH7RmC8Epg5EgjboIxDo7Udv3WX2exGqtIVB4hI0=
 github.com/jackc/chunkreader/v2 v2.0.1 h1:i+RDz65UE+mmpjTfyz0MoVTnzeYxroil2G82ki7MGG8=

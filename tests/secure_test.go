@@ -136,3 +136,62 @@ func (s *SecureSuite) Test_Authenticate_NotFound() {
 		AdminId:       0,
 	}, result)
 }
+
+func (s *SecureSuite) Test_Authorize_HappyPath() {
+	role1Id := InsertRole(s.db, entity.Role{
+		Name: "role1",
+		Permissions: []string{
+			"perm1",
+		},
+	})
+	role2Id := InsertRole(s.db, entity.Role{
+		Name: "role2",
+		Permissions: []string{
+			"perm2",
+		},
+	})
+	userId := InsertUser(s.db, entity.User{
+		Email: "test",
+	})
+	InsertUserRole(s.db, entity.UserRole{
+		UserId: int(userId),
+		RoleId: int(role1Id),
+	})
+	InsertUserRole(s.db, entity.UserRole{
+		UserId: int(userId),
+		RoleId: int(role2Id),
+	})
+
+	result := domain.SecureAuthzResponse{}
+	err := s.grpcCli.Invoke("admin/secure/authorize").
+		JsonRequestBody(domain.SecureAuthzRequest{
+			AdminId:    int(userId),
+			Permission: "perm1",
+		}).
+		JsonResponseBody(&result).
+		Do(context.Background())
+	s.require.NoError(err)
+	s.require.True(result.Authorized)
+
+	result = domain.SecureAuthzResponse{}
+	err = s.grpcCli.Invoke("admin/secure/authorize").
+		JsonRequestBody(domain.SecureAuthzRequest{
+			AdminId:    int(userId),
+			Permission: "perm2",
+		}).
+		JsonResponseBody(&result).
+		Do(context.Background())
+	s.require.NoError(err)
+	s.require.True(result.Authorized)
+
+	result = domain.SecureAuthzResponse{}
+	err = s.grpcCli.Invoke("admin/secure/authorize").
+		JsonRequestBody(domain.SecureAuthzRequest{
+			AdminId:    int(userId),
+			Permission: "perm3",
+		}).
+		JsonResponseBody(&result).
+		Do(context.Background())
+	s.require.NoError(err)
+	s.require.False(result.Authorized)
+}
