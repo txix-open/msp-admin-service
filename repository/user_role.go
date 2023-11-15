@@ -38,6 +38,30 @@ func (u UserRole) GetRolesByUserIds(ctx context.Context, identity []int) ([]enti
 	}
 }
 
+func (u UserRole) GetRoleEntitiesByUserId(ctx context.Context, userId int) ([]entity.Role, error) {
+	ctx = sql_metrics.OperationLabelToContext(ctx, "UserRole.GetRoleEntitiesByUserId")
+
+	query, args, err := query.New().
+		Select("r.*").
+		From("user_roles ur").
+		Join("roles r on ur.role_id = r.id").
+		Where(squirrel.Eq{
+			"ur.user_id": userId,
+		}).OrderBy("r.id").
+		ToSql()
+	if err != nil {
+		return nil, errors.WithMessage(err, "build query")
+	}
+
+	result := make([]entity.Role, 0)
+	err = u.db.Select(ctx, &result, query, args...)
+	if err != nil {
+		return nil, errors.WithMessagef(err, "db select: %s", query)
+	}
+
+	return result, nil
+}
+
 func (u UserRole) UpsertUserRoleLinks(ctx context.Context, id int, roleIds []int) error {
 	ctx = sql_metrics.OperationLabelToContext(ctx, "UserRole.UpsertUserRoleLinks")
 

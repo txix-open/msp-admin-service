@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/pkg/errors"
 	"msp-admin-service/domain"
@@ -65,8 +66,18 @@ func (u Role) Create(ctx context.Context, req domain.CreateRoleRequest, adminId 
 		return nil, errors.WithMessage(err, "create role")
 	}
 
+	slices.Sort(role.Permissions)
+	diff := diffToString(map[string]any{
+		"Название":   "",
+		"Группа ЕСК": "",
+		"Разрешения": []int{},
+	}, map[string]any{
+		"Название":   role.Name,
+		"Группа ЕСК": role.ExternalGroup,
+		"Разрешения": role.Permissions,
+	})
 	u.auditService.SaveAuditAsync(ctx, adminId,
-		fmt.Sprintf("Роль. Создание новой роли %s. Причина: %s", req.Name, req.ChangeMessage),
+		fmt.Sprintf("Роль. Создание новой роли %s. Причина: %s. \n %s", req.Name, req.ChangeMessage, diff),
 		entity.EventRoleChanged,
 	)
 
@@ -92,6 +103,7 @@ func (u Role) Update(ctx context.Context, req domain.UpdateRoleRequest, adminId 
 	case roleByName != nil && roleByName.Id != roles[0].Id:
 		return nil, domain.ErrAlreadyExists
 	}
+	oldRole := roles[0]
 
 	role, err := u.roleRepo.Update(ctx, entity.Role{
 		Id:            req.Id,
@@ -104,8 +116,19 @@ func (u Role) Update(ctx context.Context, req domain.UpdateRoleRequest, adminId 
 		return nil, errors.WithMessage(err, "update role")
 	}
 
+	slices.Sort(oldRole.Permissions)
+	slices.Sort(role.Permissions)
+	diff := diffToString(map[string]any{
+		"Название":   oldRole.Name,
+		"Группа ЕСК": oldRole.ExternalGroup,
+		"Разрешения": oldRole.Permissions,
+	}, map[string]any{
+		"Название":   role.Name,
+		"Группа ЕСК": role.ExternalGroup,
+		"Разрешения": role.Permissions,
+	})
 	u.auditService.SaveAuditAsync(ctx, adminId,
-		fmt.Sprintf("Роль. Изменение роли %s. Причина: %s", req.Name, req.ChangeMessage),
+		fmt.Sprintf("Роль. Изменение роли %s. Причина: %s. \n %s", req.Name, req.ChangeMessage, diff),
 		entity.EventRoleChanged,
 	)
 	result := u.toDomain(*role)

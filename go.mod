@@ -7,7 +7,7 @@ require (
 	github.com/go-ldap/ldap/v3 v3.4.6
 	github.com/google/uuid v1.3.1
 	github.com/integration-system/bgjob v1.3.0
-	github.com/integration-system/isp-kit v1.24.2
+	github.com/integration-system/isp-kit v1.24.3
 	github.com/integration-system/jsonschema v1.0.1
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.8.4

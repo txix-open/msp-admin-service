@@ -29,12 +29,13 @@ type UsersRequest struct {
 }
 
 type AdminUserShort struct {
-	FirstName   string
-	LastName    string
-	Email       string `valid:"required"`
-	Role        string
-	Roles       []int
-	Permissions []string
+	FirstName     string
+	LastName      string
+	Email         string `valid:"required"`
+	Role          string
+	Roles         []int
+	Permissions   []string
+	IdleTimeoutMs int
 }
 
 type CreateUserRequest struct {

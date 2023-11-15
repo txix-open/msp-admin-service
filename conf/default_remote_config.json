@@ -27,6 +27,64 @@
       "expireSyncPeriodInMin": 1440
     }
   },
+  "permissions": [
+    {
+      "key": "user_view",
+      "name": "Просмотр списка пользователей"
+    },
+    {
+      "key": "user_block",
+      "name": "Блокировка пользователя"
+    },
+    {
+      "key": "user_create",
+      "name": "Создать пользователя"
+    },
+    {
+      "key": "user_update",
+      "name": "Обновить пользователя"
+    },
+    {
+      "key": "user_delete",
+      "name": "Удаление пользователя"
+    },
+    {
+      "key": "session_view",
+      "name": "Просмотр списка пользовательских сессий"
+    },
+    {
+      "key": "session_revoke",
+      "name": "Отзыв сессии"
+    },
+    {
+      "key": "session_delete",
+      "name": "Удаление пользовательских сессий"
+    },
+    {
+      "key": "role_view",
+      "name": "Просмотр экрана ролей"
+    },
+    {
+      "key": "role_add",
+      "name": "Создание роли"
+    },
+    {
+      "key": "role_update",
+      "name": "Обновление роли"
+    },
+    {
+      "key": "role_delete",
+      "name": "Удаление роли"
+    },
+    {
+      "key": "security_log_view",
+      "name": "Просмотр журналов ИБ"
+    },
+    {
+      "key": "audit_management_view",
+      "name": "Упраление событиями аудита"
+    }
+  ],
   "database": {
     "host": "{{ msp_pgsql_address }}",
     "port": 5432,
@@ -41,6 +99,7 @@
     "delayLoginRequestInSec": 3
   },
   "expireSec": 3600,
+  "idleTimeoutMs": 0,
   "blockInactiveWorker": {
     "daysThreshold": 90,
     "runIntervalInMinutes": 60

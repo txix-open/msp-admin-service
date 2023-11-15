@@ -9,3 +9,12 @@ type SecureAuthResponse struct {
 	ErrorReason   string
 	AdminId       int64
 }
+
+type SecureAuthzRequest struct {
+	AdminId    int
+	Permission string
+}
+
+type SecureAuthzResponse struct {
+	Authorized bool
+}

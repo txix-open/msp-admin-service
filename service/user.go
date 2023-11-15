@@ -3,6 +3,9 @@ package service
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/integration-system/isp-kit/log"
@@ -51,14 +54,15 @@ type LdapService interface {
 }
 
 type User struct {
-	userRepo     UserRepo
-	userRoleRepo UserRoleRepo
-	roleRepoUser roleRepoUser
-	tokenRepo    TokenRepo
-	auditService auditService
-	txRunner     UserTransactionRunner
-	ldapService  LdapService
-	logger       log.Logger
+	userRepo      UserRepo
+	userRoleRepo  UserRoleRepo
+	roleRepoUser  roleRepoUser
+	tokenRepo     TokenRepo
+	auditService  auditService
+	txRunner      UserTransactionRunner
+	ldapService   LdapService
+	idleTimeoutMs int
+	logger        log.Logger
 }
 
 func NewUser(
@@ -69,17 +73,19 @@ func NewUser(
 	service auditService,
 	txRunner UserTransactionRunner,
 	ldapService LdapService,
+	idleTimeoutMs int,
 	logger log.Logger,
 ) User {
 	return User{
-		userRepo:     userRepo,
-		userRoleRepo: userRoleRepo,
-		roleRepoUser: roleRepoUser,
-		tokenRepo:    tokenRepo,
-		auditService: service,
-		txRunner:     txRunner,
-		ldapService:  ldapService,
-		logger:       logger,
+		userRepo:      userRepo,
+		userRoleRepo:  userRoleRepo,
+		roleRepoUser:  roleRepoUser,
+		tokenRepo:     tokenRepo,
+		auditService:  service,
+		txRunner:      txRunner,
+		ldapService:   ldapService,
+		idleTimeoutMs: idleTimeoutMs,
+		logger:        logger,
 	}
 }
 
@@ -107,12 +113,13 @@ func (u User) GetProfileById(ctx context.Context, userId int64) (*domain.AdminUs
 	}
 
 	return &domain.AdminUserShort{
-		FirstName:   user.FirstName,
-		LastName:    user.LastName,
-		Email:       user.Email,
-		Role:        roleList[0].Name,
-		Roles:       roleIds,
-		Permissions: mergePermissions(roleList),
+		FirstName:     user.FirstName,
+		LastName:      user.LastName,
+		Email:         user.Email,
+		Role:          roleList[0].Name,
+		Roles:         roleIds,
+		IdleTimeoutMs: u.idleTimeoutMs,
+		Permissions:   mergePermissions(roleList),
 	}, nil
 }
 
@@ -202,8 +209,22 @@ func (u User) CreateUser(ctx context.Context, req domain.CreateUserRequest, admi
 
 	u.ldapService.SyncGroupsAsync(ctx, usr)
 
+	slices.Sort(req.Roles)
+	diff := diffToString(map[string]any{
+		"Имя":       "",
+		"Фамилия":   "",
+		"Описание":  "",
+		"Email":     "",
+		"Роли (ID)": []int{},
+	}, map[string]any{
+		"Имя":       req.FirstName,
+		"Фамилия":   req.LastName,
+		"Описание":  req.Description,
+		"Email":     req.Email,
+		"Роли (ID)": req.Roles,
+	})
 	u.auditService.SaveAuditAsync(ctx, adminId,
-		fmt.Sprintf("Пользователь. Создание пользователя %s.", usr.Email),
+		fmt.Sprintf("Пользователь. Создание пользователя %d. \n %s", usr.Id, diff),
 		entity.EventUserChanged,
 	)
 
@@ -216,8 +237,11 @@ func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, admi
 		user                 *entity.User
 		lastSessionCreatedAt *time.Time
 	)
-
-	err := u.txRunner.UserTransaction(ctx, func(ctx context.Context, tx UserTransaction) error {
+	oldRoles, err := u.userRoleRepo.GetRolesByUserIds(ctx, []int{int(req.Id)})
+	if err != nil {
+		return nil, errors.WithMessage(err, "get user roles")
+	}
+	err = u.txRunner.UserTransaction(ctx, func(ctx context.Context, tx UserTransaction) error {
 		_, err := tx.GetUserById(ctx, req.Id)
 		switch {
 		case errors.Is(err, domain.ErrNotFound):
@@ -266,8 +290,22 @@ func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, admi
 
 	u.ldapService.SyncGroupsAsync(ctx, *user)
 
+	slices.Sort(req.Roles)
+	diff := diffToString(map[string]any{
+		"Имя":       user.FirstName,
+		"Фамилия":   user.LastName,
+		"Описание":  user.Description,
+		"Email":     user.Email,
+		"Роли (ID)": RolesIds(oldRoles),
+	}, map[string]any{
+		"Имя":       req.FirstName,
+		"Фамилия":   req.LastName,
+		"Описание":  req.Description,
+		"Email":     req.Email,
+		"Роли (ID)": req.Roles,
+	})
 	u.auditService.SaveAuditAsync(ctx, adminId,
-		fmt.Sprintf("Пользователь. Изменение пользователя %s.", user.Email),
+		fmt.Sprintf("Пользователь. Изменение пользователя %d.\n %s", user.Id, diff),
 		entity.EventUserChanged,
 	)
 
@@ -286,7 +324,7 @@ func (u User) DeleteUsers(ctx context.Context, ids []int64, adminId int64) (int,
 	}
 
 	u.auditService.SaveAuditAsync(ctx, adminId,
-		fmt.Sprintf("Пользователь. Удаление пользователей %d.", ids),
+		fmt.Sprintf("Пользователь. Удаление пользователей %v.", ids),
 		entity.EventUserChanged,
 	)
 
@@ -378,7 +416,7 @@ func RolesIds(roles []entity.UserRole) []int {
 	for _, role := range roles {
 		roleList = append(roleList, role.RoleId)
 	}
-
+	slices.Sort(roleList)
 	return roleList
 }
 
@@ -396,4 +434,26 @@ func mergePermissions(roles []entity.Role) []string {
 	}
 
 	return permList
+}
+
+func diffToString(a map[string]any, b map[string]any) string {
+	builder := strings.Builder{}
+	for key, aValue := range a {
+		bValue := b[key]
+		if reflect.DeepEqual(aValue, bValue) {
+			continue
+		}
+		if reflect.ValueOf(bValue).IsZero() {
+			builder.WriteString(fmt.Sprintf("%s: %v -> null\n", key, aValue))
+			continue
+		}
+		builder.WriteString(fmt.Sprintf("%s: %v -> %v\n", key, aValue, bValue))
+	}
+
+	if builder.Len() == 0 {
+		return "Нет изменений"
+	}
+
+	result := builder.String()
+	return result[:len(result)-1]
 }
