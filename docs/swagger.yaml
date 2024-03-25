@@ -1,0 +1,1017 @@
+basePath: /api/admin
+definitions:
+  conf.UIDesign:
+    properties:
+      name:
+        type: string
+      primaryColor:
+        type: string
+    type: object
+  domain.AdminUserShort:
+    properties:
+      email:
+        type: string
+      firstName:
+        type: string
+      lastName:
+        type: string
+      permissions:
+        items:
+          type: string
+        type: array
+      role:
+        type: string
+      roles:
+        items:
+          type: integer
+        type: array
+    required:
+    - email
+    type: object
+  domain.Audit:
+    properties:
+      createdAt:
+        type: string
+      id:
+        type: integer
+      message:
+        type: string
+      userId:
+        type: integer
+    type: object
+  domain.AuditEvent:
+    properties:
+      enabled:
+        type: boolean
+      event:
+        type: string
+      name:
+        type: string
+    type: object
+  domain.AuditResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/domain.Audit'
+        type: array
+      totalCount:
+        type: integer
+    type: object
+  domain.CreateRoleRequest:
+    properties:
+      changeMessage:
+        type: string
+      externalGroup:
+        type: string
+      name:
+        type: string
+      permissions:
+        items:
+          type: string
+        type: array
+    type: object
+  domain.CreateUserRequest:
+    properties:
+      description:
+        type: string
+      email:
+        type: string
+      firstName:
+        type: string
+      lastName:
+        type: string
+      password:
+        type: string
+      roles:
+        items:
+          type: integer
+        type: array
+    required:
+    - email
+    - password
+    type: object
+  domain.DeleteResponse:
+    properties:
+      deleted:
+        type: integer
+    type: object
+  domain.DeleteRoleRequest:
+    properties:
+      id:
+        type: integer
+    type: object
+  domain.GrpcError:
+    properties:
+      details:
+        items:
+          type: object
+        type: array
+      errorCode:
+        type: string
+      errorMessage:
+        type: string
+    type: object
+  domain.IdRequest:
+    properties:
+      userId:
+        type: integer
+    required:
+    - userId
+    type: object
+  domain.IdentitiesRequest:
+    properties:
+      ids:
+        items:
+          type: integer
+        type: array
+    required:
+    - ids
+    type: object
+  domain.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  domain.LoginResponse:
+    properties:
+      expired:
+        type: string
+      headerName:
+        type: string
+      token:
+        type: string
+    type: object
+  domain.LoginSudirRequest:
+    properties:
+      authCode:
+        type: string
+    required:
+    - authCode
+    type: object
+  domain.PageRequest:
+    properties:
+      limit:
+        type: integer
+      offset:
+        type: integer
+    required:
+    - limit
+    type: object
+  domain.Permission:
+    properties:
+      key:
+        type: string
+      name:
+        type: string
+    type: object
+  domain.RevokeRequest:
+    properties:
+      id:
+        type: integer
+    required:
+    - id
+    type: object
+  domain.Role:
+    properties:
+      changeMessage:
+        type: string
+      createdAt:
+        type: string
+      exclusive:
+        type: boolean
+      externalGroup:
+        type: string
+      id:
+        type: integer
+      immutable:
+        type: boolean
+      name:
+        type: string
+      permissions:
+        items:
+          type: string
+        type: array
+      updatedAt:
+        type: string
+    type: object
+  domain.SecureAuthRequest:
+    properties:
+      token:
+        type: string
+    type: object
+  domain.SecureAuthResponse:
+    properties:
+      adminId:
+        type: integer
+      authenticated:
+        type: boolean
+      errorReason:
+        type: string
+    type: object
+  domain.SessionRequest:
+    properties:
+      limit:
+        type: integer
+      offset:
+        type: integer
+    type: object
+  domain.SetAuditEvent:
+    properties:
+      enabled:
+        type: boolean
+      event:
+        type: string
+    type: object
+  domain.UpdateRoleRequest:
+    properties:
+      changeMessage:
+        type: string
+      externalGroup:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      permissions:
+        items:
+          type: string
+        type: array
+    type: object
+  domain.UpdateUserRequest:
+    properties:
+      blocked:
+        type: boolean
+      description:
+        type: string
+      email:
+        type: string
+      firstName:
+        type: string
+      id:
+        type: integer
+      lastName:
+        type: string
+      roles:
+        items:
+          type: integer
+        type: array
+    required:
+    - id
+    type: object
+  domain.User:
+    properties:
+      blocked:
+        type: boolean
+      createdAt:
+        type: string
+      description:
+        type: string
+      email:
+        type: string
+      firstName:
+        type: string
+      id:
+        type: integer
+      lastName:
+        type: string
+      lastSessionCreatedAt:
+        type: string
+      roles:
+        items:
+          type: integer
+        type: array
+      updatedAt:
+        type: string
+    type: object
+  domain.UsersRequest:
+    properties:
+      email:
+        type: string
+      ids:
+        items:
+          type: integer
+        type: array
+      limit:
+        type: integer
+      offset:
+        type: integer
+    type: object
+  domain.UsersResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/domain.User'
+        type: array
+    type: object
+host: localhost:9000
+info:
+  contact: {}
+  description: сервис управления администраторами
+  license:
+    name: GNU GPL v3.0
+  title: msp-admin-service
+  version: 1.0.0
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Авторизация с получением токена администратора
+      parameters:
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.LoginResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "401":
+          description: Данные для авторизации не верны
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Авторизация по логину и паролю
+      tags:
+      - auth
+  /auth/login_with_sudir:
+    post:
+      consumes:
+      - application/json
+      description: Авторизация с получением токена администратора
+      parameters:
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.LoginSudirRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.LoginResponse'
+        "401":
+          description: Некорректный код для авторизации
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "412":
+          description: Авторизация СУДИР не настроена на сервере
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Авторизация по авторизационному коду от СУДИР
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Выход из авторизованной сессии администрирования
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ""
+        "400":
+          description: Невалидный токен
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Выход из авторизованной сессии
+      tags:
+      - auth
+  /log/all:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.PageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.AuditResponse'
+        "400":
+          description: Невалидное тело запроса
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Получение списка логов
+      tags:
+      - log
+  /log/events:
+    post:
+      consumes:
+      - application/json
+      description: Возвращает полный список доступных событий аудита
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.AuditResponse'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.AuditEvent'
+            type: array
+        "400":
+          description: Невалидное тело запроса
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Получение списка логов
+      tags:
+      - log
+  /log/set_events:
+    post:
+      consumes:
+      - application/json
+      description: Всегда возвращает полный список доступных событий аудита
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.SetAuditEvent'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ""
+        "400":
+          description: Невалидное тело запроса
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Получение списка логов
+      tags:
+      - log
+  /role/all:
+    post:
+      consumes:
+      - application/json
+      description: Получить список ролей
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.Role'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Список ролей
+      tags:
+      - role
+  /role/create:
+    post:
+      consumes:
+      - application/json
+      description: Создать роль
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.CreateRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.User'
+        "400":
+          description: Невалидное тело запроса
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "409":
+          description: Роль с указанным именем уже существует
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Создать роль
+      tags:
+      - user
+  /role/delete:
+    post:
+      consumes:
+      - application/json
+      description: Удалить существующую роль
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.DeleteRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ""
+        "400":
+          description: Невалидное тело запроса
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Удалить роль
+      tags:
+      - role
+  /role/update:
+    post:
+      consumes:
+      - application/json
+      description: Обновить данные существующую роль
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.UpdateRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Role'
+        "404":
+          description: Роль с указанным id не существует
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "409":
+          description: Роль с указанным именем уже существует
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Обновить роль
+      tags:
+      - role
+  /secure/authenticate:
+    post:
+      consumes:
+      - application/json
+      description: Проверяет токен и возвращает идентификатор администратора
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.SecureAuthRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.SecureAuthResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Метод аутентификации токена
+      tags:
+      - secure
+  /session/all:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.SessionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.PageRequest'
+        "400":
+          description: Невалидное тело запроса
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Получение списка сессий
+      tags:
+      - session
+  /session/revoke:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.RevokeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ""
+        "400":
+          description: Невалидное тело запроса
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Отзыв сессии
+      tags:
+      - session
+  /user/block_user:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.IdRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ""
+        "400":
+          description: Невалидное тело запроса
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Метод блокировки/разблокировки пользователя
+      tags:
+      - user
+  /user/create_user:
+    post:
+      consumes:
+      - application/json
+      description: Создать пользователя
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.User'
+        "400":
+          description: Невалидное тело запроса
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "409":
+          description: Пользователь с указанным email уже существует
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Создать пользователя
+      tags:
+      - user
+  /user/delete_user:
+    post:
+      consumes:
+      - application/json
+      description: Удалить существующего пользователя
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.IdentitiesRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.DeleteResponse'
+        "400":
+          description: Невалидное тело запроса
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Удалить пользователя
+      tags:
+      - user
+  /user/get_by_id:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.IdRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.User'
+        "400":
+          description: Невалидное тело запроса
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Метод получения данных по пользователю
+      tags:
+      - user
+  /user/get_design:
+    post:
+      consumes:
+      - application/json
+      description: Получение внешнего вида (палитра и наименование) админ-интерфейса
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/conf.UIDesign'
+        "400":
+          description: Невалидный токен
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Получение внешнего вида
+      tags:
+      - user
+  /user/get_profile:
+    post:
+      consumes:
+      - application/json
+      description: Получить все разрашения
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.Permission'
+            type: array
+      summary: Получить все разрашения
+      tags:
+      - user
+  /user/get_users:
+    post:
+      consumes:
+      - application/json
+      description: Получить список пользователей
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.UsersRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.UsersResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Список пользователей
+      tags:
+      - user
+  /user/update_user:
+    post:
+      consumes:
+      - application/json
+      description: Обновить данные существующего пользователя
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.User'
+        "400":
+          description: Невалидное тело запроса
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "404":
+          description: Пользователь с указанным id не существует
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "409":
+          description: Пользователь с указанным email уже существует
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Обновить пользователя
+      tags:
+      - user
+swagger: "2.0"
