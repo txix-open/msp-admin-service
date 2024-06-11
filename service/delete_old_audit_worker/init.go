@@ -3,9 +3,9 @@ package delete_old_audit_worker
 import (
 	"context"
 
-	"github.com/integration-system/bgjob"
-	"github.com/integration-system/isp-kit/bgjobx"
 	"github.com/pkg/errors"
+	"github.com/txix-open/bgjob"
+	"github.com/txix-open/isp-kit/bgjobx"
 )
 
 const (

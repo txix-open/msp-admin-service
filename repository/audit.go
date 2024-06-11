@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/integration-system/isp-kit/db"
-	"github.com/integration-system/isp-kit/db/query"
-	"github.com/integration-system/isp-kit/metrics/sql_metrics"
 	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/db"
+	"github.com/txix-open/isp-kit/db/query"
+	"github.com/txix-open/isp-kit/metrics/sql_metrics"
 	"msp-admin-service/entity"
 )
 

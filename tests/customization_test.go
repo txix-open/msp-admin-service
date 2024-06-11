@@ -4,12 +4,12 @@ import (
 	"context"
 	"testing"
 
-	"github.com/integration-system/isp-kit/dbx"
-	"github.com/integration-system/isp-kit/grpc/client"
-	"github.com/integration-system/isp-kit/test"
-	"github.com/integration-system/isp-kit/test/dbt"
-	"github.com/integration-system/isp-kit/test/grpct"
 	"github.com/stretchr/testify/suite"
+	"github.com/txix-open/isp-kit/dbx"
+	"github.com/txix-open/isp-kit/grpc/client"
+	"github.com/txix-open/isp-kit/test"
+	"github.com/txix-open/isp-kit/test/dbt"
+	"github.com/txix-open/isp-kit/test/grpct"
 	"msp-admin-service/assembly"
 	"msp-admin-service/conf"
 )

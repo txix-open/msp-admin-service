@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/integration-system/isp-kit/log"
 	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/log"
 	"golang.org/x/sync/errgroup"
 	"msp-admin-service/conf"
 	"msp-admin-service/domain"

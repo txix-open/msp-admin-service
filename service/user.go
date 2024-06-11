@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/integration-system/isp-kit/log"
 	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/log"
 	"golang.org/x/crypto/bcrypt"
 	"msp-admin-service/domain"
 	"msp-admin-service/entity"

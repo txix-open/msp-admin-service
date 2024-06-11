@@ -4,7 +4,7 @@ import (
 	"database/sql/driver"
 	"time"
 
-	"github.com/integration-system/isp-kit/json"
+	"github.com/txix-open/isp-kit/json"
 )
 
 const (

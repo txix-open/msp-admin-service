@@ -3,8 +3,8 @@ package controller
 import (
 	"context"
 
-	"github.com/integration-system/isp-kit/grpc"
 	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"msp-admin-service/domain"
@@ -209,4 +209,8 @@ func (u User) Block(ctx context.Context, authData grpc.AuthData, identities doma
 // @Router /user/get_by_id [POST]
 func (u User) GetById(ctx context.Context, identities domain.IdRequest) (*domain.User, error) {
 	return u.userService.GetById(ctx, identities.UserId)
+}
+
+func (u User) ChangePassword(ctx context.Context, req domain.ChangePasswordRequest) error {
+	return u.userService.ChangePassword(ctx, req)
 }

@@ -3,10 +3,10 @@ package conf
 import (
 	"reflect"
 
-	"github.com/integration-system/isp-kit/dbx"
-	"github.com/integration-system/isp-kit/log"
-	"github.com/integration-system/isp-kit/rc/schema"
-	"github.com/integration-system/jsonschema"
+	"github.com/txix-open/isp-kit/dbx"
+	"github.com/txix-open/isp-kit/log"
+	"github.com/txix-open/isp-kit/rc/schema"
+	"github.com/txix-open/jsonschema"
 )
 
 // nolint: gochecknoinits

@@ -68,3 +68,8 @@ type IdentitiesRequest struct {
 type IdRequest struct {
 	UserId int `valid:"required"`
 }
+
+type ChangePasswordRequest struct {
+	OldPassword string `valid:"required"`
+	NewPassword string `valid:"required"`
+}

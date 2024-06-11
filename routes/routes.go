@@ -1,10 +1,10 @@
 package routes
 
 import (
-	"github.com/integration-system/isp-kit/cluster"
-	"github.com/integration-system/isp-kit/grpc"
-	"github.com/integration-system/isp-kit/grpc/endpoint"
-	"github.com/integration-system/isp-kit/grpc/isp"
+	"github.com/txix-open/isp-kit/cluster"
+	"github.com/txix-open/isp-kit/grpc"
+	"github.com/txix-open/isp-kit/grpc/endpoint"
+	"github.com/txix-open/isp-kit/grpc/isp"
 	"msp-admin-service/controller"
 )
 
