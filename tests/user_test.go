@@ -353,7 +353,7 @@ func (s *UserTestSuite) TestChangePasswordUser() {
 		Do(context.Background())
 	s.Require().Error(err)
 	err = apierrors.FromError(err)
-	s.Require().Contains(err.Error(), domain.ErrCodeInvalidPassword)
+	s.Require().Contains(err.Error(), strconv.Itoa(domain.ErrCodeInvalidPassword))
 
 	// change password
 	changePswReq := domain.ChangePasswordRequest{OldPassword: "password", NewPassword: "new_password"}
