@@ -34,7 +34,7 @@ type SecureSuite struct {
 
 func (s *SecureSuite) SetupTest() {
 	s.test, s.require = test.New(s.T())
-	s.db = dbt.New(s.test, dbx.WithMigration("../migrations"))
+	s.db = dbt.New(s.test, dbx.WithMigrationRunner("../migrations", s.test.Logger()))
 	httpCli := httpcli.New()
 	remote := conf.Remote{
 		ExpireSec: 3600,

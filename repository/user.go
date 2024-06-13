@@ -231,3 +231,23 @@ func (u User) Block(ctx context.Context, userId int) (*entity.User, error) {
 	}
 	return &user, nil
 }
+
+func (u User) ChangePassword(ctx context.Context, userId int64, newPassword string) error {
+	ctx = sql_metrics.OperationLabelToContext(ctx, "User.ChangePassword")
+
+	q, args, err := query.New().
+		Update("users").
+		Where(squirrel.Eq{"id": userId}).
+		Set("password", newPassword).
+		ToSql()
+	if err != nil {
+		return errors.WithMessage(err, "user.repo.ChangePassword: build query")
+	}
+
+	_, err = u.db.Exec(ctx, q, args...)
+	if err != nil {
+		return errors.WithMessage(err, "user.repo.ChangePassword: exec query")
+	}
+
+	return nil
+}

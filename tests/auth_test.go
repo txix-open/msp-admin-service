@@ -46,7 +46,7 @@ type AuthTestSuite struct {
 func (s *AuthTestSuite) SetupTest() {
 	testInstance, _ := test.New(s.T())
 	s.test = testInstance
-	s.db = dbt.New(testInstance, dbx.WithMigration("../migrations"))
+	s.db = dbt.New(testInstance, dbx.WithMigrationRunner("../migrations", testInstance.Logger()))
 	s.httpCli = httpcli.New()
 
 	mocksrv, host := s.initMockSudir()

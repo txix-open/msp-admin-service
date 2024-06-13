@@ -20,7 +20,7 @@ func TestInactiveWorker(t *testing.T) {
 	t.Parallel()
 
 	test, require := test.New(t)
-	db := dbt.New(test, dbx.WithMigration("../migrations"))
+	db := dbt.New(test, dbx.WithMigrationRunner("../migrations", test.Logger()))
 
 	userId := InsertUser(db, entity.User{Email: "a@test"})
 	InsertUser(db, entity.User{Email: "b@test"})

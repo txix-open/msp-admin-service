@@ -18,6 +18,7 @@ var (
 	ErrTooManyLoginRequests = errors.New("too many login requests")
 	ErrUserIsBlocked        = errors.New("user is blocked")
 	ErrNoActionRequired     = errors.New("no action required")
+	ErrInvalidPassword      = errors.New("invalid password")
 )
 
 type UnknownAuditEventError struct {

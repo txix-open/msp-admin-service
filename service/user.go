@@ -33,6 +33,7 @@ type UserRepo interface {
 	DeleteUser(ctx context.Context, ids []int64) (int, error)
 	Insert(ctx context.Context, user entity.User) (int, error)
 	ChangeBlockStatus(ctx context.Context, userId int) (bool, error)
+	ChangePassword(ctx context.Context, userId int64, newPassword string) error
 }
 
 type TokenRepo interface {
@@ -456,4 +457,27 @@ func diffToString(a map[string]any, b map[string]any) string {
 
 	result := builder.String()
 	return result[:len(result)-1]
+}
+
+func (u User) ChangePassword(ctx context.Context, adminId int64, oldPassword string, newPassword string) error {
+	admin, err := u.userRepo.GetUserById(ctx, adminId)
+	if err != nil {
+		return errors.WithMessage(err, "user.service.ChangePassword: get user by id")
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(admin.Password), []byte(oldPassword)); err != nil {
+		return domain.ErrInvalidPassword
+	}
+
+	encryptedPassword, errOld := u.cryptPassword(newPassword)
+	if errOld != nil {
+		return errors.WithMessage(errOld, "user.service.ChangePassword: crypt old password")
+	}
+
+	err = u.userRepo.ChangePassword(ctx, adminId, encryptedPassword)
+	if err != nil {
+		return errors.WithMessage(err, "user.service.ChangePassword: change password ")
+	}
+
+	return nil
 }

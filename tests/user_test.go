@@ -2,6 +2,8 @@ package tests_test
 
 import (
 	"context"
+	"github.com/txix-open/isp-kit/grpc/apierrors"
+	"golang.org/x/crypto/bcrypt"
 	"strconv"
 	"testing"
 	"time"
@@ -45,7 +47,7 @@ type UserTestSuite struct {
 func (s *UserTestSuite) SetupTest() {
 	testInstance, _ := test.New(s.T())
 	s.test = testInstance
-	s.db = dbt.New(testInstance, dbx.WithMigration("../migrations"))
+	s.db = dbt.New(testInstance, dbx.WithMigrationRunner("../migrations", testInstance.Logger()))
 	s.httpCli = httpcli.New()
 
 	remote := conf.Remote{
@@ -337,4 +339,35 @@ func (s *UserTestSuite) TestBlockUser() {
 	t, err := repository.NewToken(s.db).Get(context.Background(), token)
 	s.Require().NoError(err)
 	s.EqualValues(entity.TokenStatusRevoked, t.Status)
+}
+
+func (s *UserTestSuite) TestChangePasswordUser() {
+	// insert user with old password
+	adminId := InsertUser(s.db, entity.User{Email: "a_del@a.ru", Password: "password"})
+
+	// check for err when invalid data
+	invalidReq := domain.ChangePasswordRequest{OldPassword: "invalid", NewPassword: "new_password"}
+	err := s.grpcCli.Invoke("admin/user/change_password").
+		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(adminId))).
+		JsonRequestBody(invalidReq).
+		Do(context.Background())
+	s.Require().Error(err)
+	err = apierrors.FromError(err)
+	s.Require().Contains(err.Error(), "1001")
+
+	// change password
+	changePswReq := domain.ChangePasswordRequest{OldPassword: "password", NewPassword: "new_password"}
+	err = s.grpcCli.Invoke("admin/user/change_password").
+		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(adminId))).
+		JsonRequestBody(changePswReq).
+		Do(context.Background())
+
+	s.Require().NoError(err)
+
+	var newPassword string
+	s.db.Must().SelectRow(&newPassword, "select password from users where id = $1", adminId)
+
+	notEqualErr := bcrypt.CompareHashAndPassword([]byte(newPassword), []byte(changePswReq.NewPassword))
+	s.Require().NoError(notEqualErr)
+
 }

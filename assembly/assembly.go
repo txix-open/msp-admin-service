@@ -33,7 +33,7 @@ type Assembly struct {
 func New(boot *bootstrap.Bootstrap) (*Assembly, error) {
 	server := grpc.NewServer()
 	httpCli := httpclix.Default(httpcli.WithMiddlewares(httpclix.Log(boot.App.Logger())))
-	db := dbrx.New(dbx.WithMigration(boot.MigrationsDir))
+	db := dbrx.New(dbx.WithMigrationRunner(boot.MigrationsDir, boot.App.Logger()))
 	bgjobCli := bgjobx.NewClient(db, boot.App.Logger())
 	return &Assembly{
 		boot:     boot,

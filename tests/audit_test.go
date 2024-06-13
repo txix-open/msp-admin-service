@@ -35,7 +35,7 @@ type AuditSuite struct {
 func (t *AuditSuite) SetupTest() {
 	testInstance, _ := test.New(t.T())
 	t.test = testInstance
-	t.db = dbt.New(testInstance, dbx.WithMigration("../migrations"))
+	t.db = dbt.New(testInstance, dbx.WithMigrationRunner("../migrations", testInstance.Logger()))
 
 	remote := conf.Remote{
 		Audit: conf.Audit{

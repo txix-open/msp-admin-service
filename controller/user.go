@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"github.com/txix-open/isp-kit/grpc/apierrors"
 
 	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/grpc"
@@ -18,6 +19,7 @@ type userService interface {
 	DeleteUsers(ctx context.Context, ids []int64, adminId int64) (int, error)
 	Block(ctx context.Context, adminId int64, userId int) error
 	GetById(ctx context.Context, userId int) (*domain.User, error)
+	ChangePassword(ctx context.Context, adminId int64, oldPassword string, newPassword string) error
 }
 
 type User struct {
@@ -211,6 +213,30 @@ func (u User) GetById(ctx context.Context, identities domain.IdRequest) (*domain
 	return u.userService.GetById(ctx, identities.UserId)
 }
 
-func (u User) ChangePassword(ctx context.Context, req domain.ChangePasswordRequest) error {
-	return u.userService.ChangePassword(ctx, req)
+// ChangePassword
+// @Tags user
+// @Summary Метод изменения пароля пользователя
+// @Accept json
+// @Produce json
+// @Param X-AUTH-ADMIN header string true "Токен администратора"
+// @Param body body domain.ChangePasswordRequest true "Тело запроса"
+// @Success 200
+// @Failure 400 {object} domain.GrpcError "Невалидное тело запроса"
+// @Failure 500 {object} domain.GrpcError
+// @Router /user/change_password [POST]
+func (u User) ChangePassword(ctx context.Context, authData grpc.AuthData, req domain.ChangePasswordRequest) error {
+	adminId, err := getAdminId(authData)
+	if err != nil {
+		return err
+	}
+
+	err = u.userService.ChangePassword(ctx, adminId, req.OldPassword, req.NewPassword)
+	switch {
+	case errors.Is(err, domain.ErrInvalidPassword):
+		return apierrors.NewBusinessError(1001, "invalid password", err)
+	case err != nil:
+		return apierrors.NewInternalServiceError(err)
+	default:
+		return nil
+	}
 }

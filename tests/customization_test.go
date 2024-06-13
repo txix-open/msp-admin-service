@@ -29,7 +29,7 @@ type CustomizationTestSuite struct {
 func (s *CustomizationTestSuite) SetupTest() {
 	testInstance, _ := test.New(s.T())
 	s.test = testInstance
-	s.db = dbt.New(testInstance, dbx.WithMigration("../migrations"))
+	s.db = dbt.New(testInstance, dbx.WithMigrationRunner("../migrations", testInstance.Logger()))
 
 	remote := conf.Remote{
 		UiDesign: conf.UIDesign{

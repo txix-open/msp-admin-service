@@ -94,6 +94,11 @@ func endpointDescriptors(c Controllers) []cluster.EndpointDescriptor {
 			Handler: c.User.GetById,
 		},
 		{
+			Path:    "admin/user/change_password",
+			Inner:   true,
+			Handler: c.User.ChangePassword,
+		},
+		{
 			Path:    "admin/role/all",
 			Inner:   true,
 			Extra:   cluster.RequireAdminPermission("role_view"),
