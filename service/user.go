@@ -469,9 +469,9 @@ func (u User) ChangePassword(ctx context.Context, adminId int64, oldPassword str
 		return domain.ErrInvalidPassword
 	}
 
-	encryptedPassword, errOld := u.cryptPassword(newPassword)
-	if errOld != nil {
-		return errors.WithMessage(errOld, "user.service.ChangePassword: crypt old password")
+	encryptedPassword, errNew := u.cryptPassword(newPassword)
+	if errNew != nil {
+		return errors.WithMessage(errNew, "user.service.ChangePassword: crypt new password")
 	}
 
 	err = u.userRepo.ChangePassword(ctx, adminId, encryptedPassword)
