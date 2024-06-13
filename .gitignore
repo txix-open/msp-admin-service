@@ -72,3 +72,4 @@ fabric.properties
 google/
 package.json
 yarn.lock
+/bin/golangci-lint

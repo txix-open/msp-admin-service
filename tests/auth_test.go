@@ -179,7 +179,7 @@ func (s *AuthTestSuite) initMockSudir() (*httptest.Server, string) {
 			AccessToken:    "token",
 		}
 		data, err := json.Marshal(res)
-		s.NoError(err)
+		s.Require().NoError(err)
 		_, err = writer.Write(data)
 		s.NoError(err)
 	})
@@ -193,7 +193,7 @@ func (s *AuthTestSuite) initMockSudir() (*httptest.Server, string) {
 			FamilyName:     "surname",
 		}
 		data, err := json.Marshal(res)
-		s.NoError(err)
+		s.Require().NoError(err)
 		_, err = writer.Write(data)
 		s.NoError(err)
 	})
@@ -262,8 +262,7 @@ func (s *AuthTestSuite) TestBruteForceLogin() {
 	tooManyRequestsErrorCount := &atomic.Int32{}
 	unauthorizedErrorCount := &atomic.Int32{}
 	group, ctx := errgroup.WithContext(context.Background())
-	for i := range 100 {
-		index := i
+	for index := range 100 {
 		group.Go(func() error {
 			start := time.Now()
 			response := domain.LoginResponse{}
