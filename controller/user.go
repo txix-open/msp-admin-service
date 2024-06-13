@@ -233,7 +233,7 @@ func (u User) ChangePassword(ctx context.Context, authData grpc.AuthData, req do
 	err = u.userService.ChangePassword(ctx, adminId, req.OldPassword, req.NewPassword)
 	switch {
 	case errors.Is(err, domain.ErrInvalidPassword):
-		return apierrors.NewBusinessError(1001, "invalid password", err)
+		return apierrors.NewBusinessError(domain.ErrCodeInvalidPassword, "invalid password", err)
 	case err != nil:
 		return apierrors.NewInternalServiceError(err)
 	default:

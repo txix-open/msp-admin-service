@@ -388,7 +388,7 @@ func (u User) Block(ctx context.Context, adminId int64, userId int) error {
 
 //nolint:gomnd
 func (u User) cryptPassword(password string) (string, error) {
-	passwordBytes, err := bcrypt.GenerateFromPassword([]byte(password), 12)
+	passwordBytes, err := bcrypt.GenerateFromPassword([]byte(password), 12) //nolint:mnd
 	if err != nil {
 		return "", errors.WithMessage(err, "gen bcrypt from password")
 	}

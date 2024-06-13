@@ -179,9 +179,9 @@ func (s *AuthTestSuite) initMockSudir() (*httptest.Server, string) {
 			AccessToken:    "token",
 		}
 		data, err := json.Marshal(res)
-		s.Require().NoError(err)
+		s.NoError(err)
 		_, err = writer.Write(data)
-		s.Require().NoError(err)
+		s.NoError(err)
 	})
 	mux.HandleFunc("/blitz/oauth/me", func(writer http.ResponseWriter, request *http.Request) {
 		res := entity.SudirUserResponse{
@@ -193,9 +193,9 @@ func (s *AuthTestSuite) initMockSudir() (*httptest.Server, string) {
 			FamilyName:     "surname",
 		}
 		data, err := json.Marshal(res)
-		s.Require().NoError(err)
+		s.NoError(err)
 		_, err = writer.Write(data)
-		s.Require().NoError(err)
+		s.NoError(err)
 	})
 	srv := httptest.NewServer(mux)
 	return srv, srv.URL
@@ -229,7 +229,7 @@ func (s *AuthTestSuite) Test_Logout_NotFound() {
 	audit := repository.NewAudit(s.db)
 	auditList, err := audit.All(context.Background(), 10, 0)
 	s.Require().NoError(err)
-	s.Require().Equal(1, len(auditList))
+	s.Require().Len(auditList, 1) //nolint:mnd
 	s.Require().Equal(entity.EventSuccessLogout, auditList[0].Event)
 }
 
@@ -262,7 +262,7 @@ func (s *AuthTestSuite) TestBruteForceLogin() {
 	tooManyRequestsErrorCount := &atomic.Int32{}
 	unauthorizedErrorCount := &atomic.Int32{}
 	group, ctx := errgroup.WithContext(context.Background())
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		index := i
 		group.Go(func() error {
 			start := time.Now()

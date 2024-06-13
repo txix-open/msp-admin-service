@@ -6,6 +6,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	ErrCodeInvalidPassword = 1001
+)
+
 var (
 	ErrNotFound             = errors.New("not found")
 	ErrUnauthenticated      = errors.New("authentication failure")

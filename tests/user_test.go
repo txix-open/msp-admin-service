@@ -171,7 +171,7 @@ func (s *UserTestSuite) TestGetUsers() {
 		Do(context.Background())
 	s.Require().NoError(err)
 
-	s.Require().Equal(1, len(response.Items))
+	s.Require().Len(response.Items, 1) //nolint:mnd
 	s.Require().Equal(int64(5), response.Items[0].Id)
 }
 
@@ -353,7 +353,7 @@ func (s *UserTestSuite) TestChangePasswordUser() {
 		Do(context.Background())
 	s.Require().Error(err)
 	err = apierrors.FromError(err)
-	s.Require().Contains(err.Error(), "1001")
+	s.Require().Contains(err.Error(), domain.ErrCodeInvalidPassword)
 
 	// change password
 	changePswReq := domain.ChangePasswordRequest{OldPassword: "password", NewPassword: "new_password"}
@@ -369,5 +369,4 @@ func (s *UserTestSuite) TestChangePasswordUser() {
 
 	notEqualErr := bcrypt.CompareHashAndPassword([]byte(newPassword), []byte(changePswReq.NewPassword))
 	s.Require().NoError(notEqualErr)
-
 }

@@ -96,7 +96,7 @@ func (t *AuditSuite) Test_Events_DefaultEvents() {
 		t.Require().Equal(name, event.Name)
 		delete(expectedEventList, event.Event)
 	}
-	t.Require().Equal(0, len(expectedEventList))
+	t.Require().Empty(expectedEventList)
 }
 
 func (t *AuditSuite) Test_Events_SortEvents() {
@@ -110,7 +110,7 @@ func (t *AuditSuite) Test_Events_SortEvents() {
 		{Event: entity.EventUserChanged, Enable: true},
 		{Event: "новый#2", Enable: false},
 	})
-	t.NoError(err)
+	t.Require().NoError(err)
 
 	response := make([]domain.AuditEvent, 0)
 	err = t.grpcCli.
@@ -154,7 +154,7 @@ func (t *AuditSuite) Test_SetEvents_HappyPath() {
 		t.Require().Equal(enable, event.Enable)
 		delete(expectedEventList, event.Event)
 	}
-	t.Require().Equal(0, len(expectedEventList))
+	t.Require().Empty(expectedEventList)
 }
 
 func (t *AuditSuite) Test_SetEvents_InvalidEvent() {
