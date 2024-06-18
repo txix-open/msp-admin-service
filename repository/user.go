@@ -246,7 +246,7 @@ func (u User) ChangePassword(ctx context.Context, userId int64, newPassword stri
 
 	_, err = u.db.Exec(ctx, q, args...)
 	if err != nil {
-		return errors.WithMessage(err, "user.repo.ChangePassword: exec query")
+		return errors.WithMessagef(err, "user.repo.ChangePassword: exec query: %s", q)
 	}
 
 	return nil

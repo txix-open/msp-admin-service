@@ -345,6 +345,14 @@ func (s *UserTestSuite) TestChangePasswordUser() {
 	// insert user with old password
 	adminId := InsertUser(s.db, entity.User{Email: "a_del@a.ru", Password: "password"})
 
+	InsertTokenEntity(s.db, entity.Token{
+		Token:     "token-841297641213",
+		UserId:    adminId,
+		Status:    entity.TokenStatusAllowed,
+		CreatedAt: time.Time{},
+		ExpiredAt: time.Time{},
+	})
+
 	// check for err when invalid data
 	invalidReq := domain.ChangePasswordRequest{OldPassword: "invalid", NewPassword: "new_password"}
 	err := s.grpcCli.Invoke("admin/user/change_password").
@@ -369,4 +377,7 @@ func (s *UserTestSuite) TestChangePasswordUser() {
 
 	notEqualErr := bcrypt.CompareHashAndPassword([]byte(newPassword), []byte(changePswReq.NewPassword))
 	s.Require().NoError(notEqualErr)
+
+	tokenInfo := SelectTokenEntityByToken(s.db, "token-841297641213")
+	s.Require().Equal(entity.TokenStatusRevoked, tokenInfo.Status)
 }

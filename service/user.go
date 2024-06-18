@@ -62,6 +62,7 @@ type User struct {
 	auditService  auditService
 	txRunner      UserTransactionRunner
 	ldapService   LdapService
+	tokenService  tokenService
 	idleTimeoutMs int
 	logger        log.Logger
 }
@@ -74,6 +75,7 @@ func NewUser(
 	service auditService,
 	txRunner UserTransactionRunner,
 	ldapService LdapService,
+	tokenService tokenService,
 	idleTimeoutMs int,
 	logger log.Logger,
 ) User {
@@ -85,6 +87,7 @@ func NewUser(
 		auditService:  service,
 		txRunner:      txRunner,
 		ldapService:   ldapService,
+		tokenService:  tokenService,
 		idleTimeoutMs: idleTimeoutMs,
 		logger:        logger,
 	}
@@ -469,15 +472,22 @@ func (u User) ChangePassword(ctx context.Context, adminId int64, oldPassword str
 		return domain.ErrInvalidPassword
 	}
 
-	encryptedPassword, errNew := u.cryptPassword(newPassword)
-	if errNew != nil {
-		return errors.WithMessage(errNew, "user.service.ChangePassword: crypt new password")
+	encryptedPassword, err := u.cryptPassword(newPassword)
+	if err != nil {
+		return errors.WithMessage(err, "user.service.ChangePassword: crypt new password")
 	}
 
 	err = u.userRepo.ChangePassword(ctx, adminId, encryptedPassword)
 	if err != nil {
 		return errors.WithMessage(err, "user.service.ChangePassword: change password ")
 	}
+
+	err = u.tokenService.RevokeAllByUserId(ctx, adminId)
+	if err != nil {
+		return errors.WithMessage(err, "revoke all tokens by user id")
+	}
+
+	u.auditService.SaveAuditAsync(ctx, adminId, "Выход", entity.EventSuccessLogout)
 
 	return nil
 }

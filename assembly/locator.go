@@ -77,6 +77,7 @@ func (l Locator) Config(ctx context.Context, ldapRepoSupplier ldap.RepoSupplier,
 		auditService,
 		txManager,
 		ldapService,
+		tokenService,
 		cfg.IdleTimeoutMs,
 		l.logger,
 	)
