@@ -469,6 +469,7 @@ func (u User) ChangePassword(ctx context.Context, adminId int64, oldPassword str
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(admin.Password), []byte(oldPassword)); err != nil {
+		u.auditService.SaveAuditAsync(ctx, adminId, "Указан неверный старый пароль", entity.EventErrorPasswordChange)
 		return domain.ErrInvalidPassword
 	}
 
@@ -487,7 +488,7 @@ func (u User) ChangePassword(ctx context.Context, adminId int64, oldPassword str
 		return errors.WithMessage(err, "revoke all tokens by user id")
 	}
 
-	u.auditService.SaveAuditAsync(ctx, adminId, "Выход", entity.EventSuccessLogout)
+	u.auditService.SaveAuditAsync(ctx, adminId, "Сменил пароль", entity.EventUserPasswordChanged)
 
 	return nil
 }

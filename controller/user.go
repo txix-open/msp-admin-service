@@ -221,8 +221,8 @@ func (u User) GetById(ctx context.Context, identities domain.IdRequest) (*domain
 // @Param X-AUTH-ADMIN header string true "Токен администратора"
 // @Param body body domain.ChangePasswordRequest true "Тело запроса"
 // @Success 200
-// @Failure 400 {object} domain.GrpcError "Невалидное тело запроса"
-// @Failure 500 {object} domain.GrpcError
+// @Failure 400 {object} apierrors.Error "Невалидное тело запроса"
+// @Failure 500 {object} apierrors.Error "внутренняя ошибка"
 // @Router /user/change_password [POST]
 func (u User) ChangePassword(ctx context.Context, authData grpc.AuthData, req domain.ChangePasswordRequest) error {
 	adminId, err := getAdminId(authData)
