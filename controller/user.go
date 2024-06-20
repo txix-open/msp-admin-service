@@ -2,9 +2,10 @@ package controller
 
 import (
 	"context"
+	"github.com/txix-open/isp-kit/grpc/apierrors"
 
-	"github.com/integration-system/isp-kit/grpc"
 	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"msp-admin-service/domain"
@@ -18,6 +19,7 @@ type userService interface {
 	DeleteUsers(ctx context.Context, ids []int64, adminId int64) (int, error)
 	Block(ctx context.Context, adminId int64, userId int) error
 	GetById(ctx context.Context, userId int) (*domain.User, error)
+	ChangePassword(ctx context.Context, adminId int64, oldPassword string, newPassword string) error
 }
 
 type User struct {
@@ -209,4 +211,32 @@ func (u User) Block(ctx context.Context, authData grpc.AuthData, identities doma
 // @Router /user/get_by_id [POST]
 func (u User) GetById(ctx context.Context, identities domain.IdRequest) (*domain.User, error) {
 	return u.userService.GetById(ctx, identities.UserId)
+}
+
+// ChangePassword
+// @Tags user
+// @Summary Метод изменения пароля пользователя
+// @Accept json
+// @Produce json
+// @Param X-AUTH-ADMIN header string true "Токен администратора"
+// @Param body body domain.ChangePasswordRequest true "Тело запроса"
+// @Success 200
+// @Failure 400 {object} apierrors.Error "Невалидное тело запроса"
+// @Failure 500 {object} apierrors.Error "внутренняя ошибка"
+// @Router /user/change_password [POST]
+func (u User) ChangePassword(ctx context.Context, authData grpc.AuthData, req domain.ChangePasswordRequest) error {
+	adminId, err := getAdminId(authData)
+	if err != nil {
+		return err
+	}
+
+	err = u.userService.ChangePassword(ctx, adminId, req.OldPassword, req.NewPassword)
+	switch {
+	case errors.Is(err, domain.ErrInvalidPassword):
+		return apierrors.NewBusinessError(domain.ErrCodeInvalidPassword, "invalid password", err)
+	case err != nil:
+		return apierrors.NewInternalServiceError(err)
+	default:
+		return nil
+	}
 }

@@ -18,14 +18,14 @@ import (
 	"msp-admin-service/entity"
 	"msp-admin-service/repository"
 
-	"github.com/integration-system/isp-kit/dbx"
-	"github.com/integration-system/isp-kit/grpc/client"
-	"github.com/integration-system/isp-kit/http/httpcli"
-	"github.com/integration-system/isp-kit/json"
-	"github.com/integration-system/isp-kit/test"
-	"github.com/integration-system/isp-kit/test/dbt"
-	"github.com/integration-system/isp-kit/test/grpct"
 	"github.com/stretchr/testify/suite"
+	"github.com/txix-open/isp-kit/dbx"
+	"github.com/txix-open/isp-kit/grpc/client"
+	"github.com/txix-open/isp-kit/http/httpcli"
+	"github.com/txix-open/isp-kit/json"
+	"github.com/txix-open/isp-kit/test"
+	"github.com/txix-open/isp-kit/test/dbt"
+	"github.com/txix-open/isp-kit/test/grpct"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -46,7 +46,7 @@ type AuthTestSuite struct {
 func (s *AuthTestSuite) SetupTest() {
 	testInstance, _ := test.New(s.T())
 	s.test = testInstance
-	s.db = dbt.New(testInstance, dbx.WithMigration("../migrations"))
+	s.db = dbt.New(testInstance, dbx.WithMigrationRunner("../migrations", testInstance.Logger()))
 	s.httpCli = httpcli.New()
 
 	mocksrv, host := s.initMockSudir()
@@ -181,7 +181,7 @@ func (s *AuthTestSuite) initMockSudir() (*httptest.Server, string) {
 		data, err := json.Marshal(res)
 		s.Require().NoError(err)
 		_, err = writer.Write(data)
-		s.Require().NoError(err)
+		s.NoError(err)
 	})
 	mux.HandleFunc("/blitz/oauth/me", func(writer http.ResponseWriter, request *http.Request) {
 		res := entity.SudirUserResponse{
@@ -195,7 +195,7 @@ func (s *AuthTestSuite) initMockSudir() (*httptest.Server, string) {
 		data, err := json.Marshal(res)
 		s.Require().NoError(err)
 		_, err = writer.Write(data)
-		s.Require().NoError(err)
+		s.NoError(err)
 	})
 	srv := httptest.NewServer(mux)
 	return srv, srv.URL
@@ -229,7 +229,7 @@ func (s *AuthTestSuite) Test_Logout_NotFound() {
 	audit := repository.NewAudit(s.db)
 	auditList, err := audit.All(context.Background(), 10, 0)
 	s.Require().NoError(err)
-	s.Require().Equal(1, len(auditList))
+	s.Require().Len(auditList, 1) //nolint:mnd
 	s.Require().Equal(entity.EventSuccessLogout, auditList[0].Event)
 }
 
@@ -262,8 +262,7 @@ func (s *AuthTestSuite) TestBruteForceLogin() {
 	tooManyRequestsErrorCount := &atomic.Int32{}
 	unauthorizedErrorCount := &atomic.Int32{}
 	group, ctx := errgroup.WithContext(context.Background())
-	for i := 0; i < 100; i++ {
-		index := i
+	for index := range 100 {
 		group.Go(func() error {
 			start := time.Now()
 			response := domain.LoginResponse{}

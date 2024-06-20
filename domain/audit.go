@@ -17,7 +17,7 @@ type AuditResponse struct {
 }
 
 type PageRequest struct {
-	Limit  int `valid:"required"`
+	Limit  int `validate:"required"`
 	Offset int
 }
 

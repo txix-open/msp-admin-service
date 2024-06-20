@@ -1,10 +1,10 @@
 package routes
 
 import (
-	"github.com/integration-system/isp-kit/cluster"
-	"github.com/integration-system/isp-kit/grpc"
-	"github.com/integration-system/isp-kit/grpc/endpoint"
-	"github.com/integration-system/isp-kit/grpc/isp"
+	"github.com/txix-open/isp-kit/cluster"
+	"github.com/txix-open/isp-kit/grpc"
+	"github.com/txix-open/isp-kit/grpc/endpoint"
+	"github.com/txix-open/isp-kit/grpc/isp"
 	"msp-admin-service/controller"
 )
 
@@ -92,6 +92,11 @@ func endpointDescriptors(c Controllers) []cluster.EndpointDescriptor {
 			Path:    "admin/user/get_by_id",
 			Inner:   true,
 			Handler: c.User.GetById,
+		},
+		{
+			Path:    "admin/user/change_password",
+			Inner:   true,
+			Handler: c.User.ChangePassword,
 		},
 		{
 			Path:    "admin/role/all",

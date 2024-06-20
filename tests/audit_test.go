@@ -4,13 +4,13 @@ import (
 	"context"
 	"testing"
 
-	"github.com/integration-system/isp-kit/dbx"
-	"github.com/integration-system/isp-kit/grpc/client"
-	"github.com/integration-system/isp-kit/http/httpcli"
-	"github.com/integration-system/isp-kit/test"
-	"github.com/integration-system/isp-kit/test/dbt"
-	"github.com/integration-system/isp-kit/test/grpct"
 	"github.com/stretchr/testify/suite"
+	"github.com/txix-open/isp-kit/dbx"
+	"github.com/txix-open/isp-kit/grpc/client"
+	"github.com/txix-open/isp-kit/http/httpcli"
+	"github.com/txix-open/isp-kit/test"
+	"github.com/txix-open/isp-kit/test/dbt"
+	"github.com/txix-open/isp-kit/test/grpct"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"msp-admin-service/assembly"
@@ -35,7 +35,7 @@ type AuditSuite struct {
 func (t *AuditSuite) SetupTest() {
 	testInstance, _ := test.New(t.T())
 	t.test = testInstance
-	t.db = dbt.New(testInstance, dbx.WithMigration("../migrations"))
+	t.db = dbt.New(testInstance, dbx.WithMigrationRunner("../migrations", testInstance.Logger()))
 
 	remote := conf.Remote{
 		Audit: conf.Audit{
@@ -96,7 +96,7 @@ func (t *AuditSuite) Test_Events_DefaultEvents() {
 		t.Require().Equal(name, event.Name)
 		delete(expectedEventList, event.Event)
 	}
-	t.Require().Equal(0, len(expectedEventList))
+	t.Require().Empty(expectedEventList)
 }
 
 func (t *AuditSuite) Test_Events_SortEvents() {
@@ -110,7 +110,7 @@ func (t *AuditSuite) Test_Events_SortEvents() {
 		{Event: entity.EventUserChanged, Enable: true},
 		{Event: "новый#2", Enable: false},
 	})
-	t.NoError(err)
+	t.Require().NoError(err)
 
 	response := make([]domain.AuditEvent, 0)
 	err = t.grpcCli.
@@ -154,7 +154,7 @@ func (t *AuditSuite) Test_SetEvents_HappyPath() {
 		t.Require().Equal(enable, event.Enable)
 		delete(expectedEventList, event.Event)
 	}
-	t.Require().Equal(0, len(expectedEventList))
+	t.Require().Empty(expectedEventList)
 }
 
 func (t *AuditSuite) Test_SetEvents_InvalidEvent() {

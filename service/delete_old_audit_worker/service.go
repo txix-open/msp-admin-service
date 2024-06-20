@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/integration-system/bgjob"
-	"github.com/integration-system/isp-kit/log"
 	"github.com/pkg/errors"
+	"github.com/txix-open/bgjob"
+	"github.com/txix-open/isp-kit/log"
 	"msp-admin-service/conf"
 )
 

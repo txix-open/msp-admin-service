@@ -3,8 +3,8 @@ package controller
 import (
 	"context"
 
-	"github.com/integration-system/isp-kit/grpc/apierrors"
 	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/grpc/apierrors"
 	"msp-admin-service/domain"
 )
 

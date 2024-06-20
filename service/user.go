@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/integration-system/isp-kit/log"
 	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/log"
 	"golang.org/x/crypto/bcrypt"
 	"msp-admin-service/domain"
 	"msp-admin-service/entity"
@@ -33,6 +33,7 @@ type UserRepo interface {
 	DeleteUser(ctx context.Context, ids []int64) (int, error)
 	Insert(ctx context.Context, user entity.User) (int, error)
 	ChangeBlockStatus(ctx context.Context, userId int) (bool, error)
+	ChangePassword(ctx context.Context, userId int64, newPassword string) error
 }
 
 type TokenRepo interface {
@@ -61,6 +62,7 @@ type User struct {
 	auditService  auditService
 	txRunner      UserTransactionRunner
 	ldapService   LdapService
+	tokenService  tokenService
 	idleTimeoutMs int
 	logger        log.Logger
 }
@@ -73,6 +75,7 @@ func NewUser(
 	service auditService,
 	txRunner UserTransactionRunner,
 	ldapService LdapService,
+	tokenService tokenService,
 	idleTimeoutMs int,
 	logger log.Logger,
 ) User {
@@ -84,6 +87,7 @@ func NewUser(
 		auditService:  service,
 		txRunner:      txRunner,
 		ldapService:   ldapService,
+		tokenService:  tokenService,
 		idleTimeoutMs: idleTimeoutMs,
 		logger:        logger,
 	}
@@ -387,7 +391,7 @@ func (u User) Block(ctx context.Context, adminId int64, userId int) error {
 
 //nolint:gomnd
 func (u User) cryptPassword(password string) (string, error) {
-	passwordBytes, err := bcrypt.GenerateFromPassword([]byte(password), 12)
+	passwordBytes, err := bcrypt.GenerateFromPassword([]byte(password), 12) //nolint:mnd
 	if err != nil {
 		return "", errors.WithMessage(err, "gen bcrypt from password")
 	}
@@ -456,4 +460,35 @@ func diffToString(a map[string]any, b map[string]any) string {
 
 	result := builder.String()
 	return result[:len(result)-1]
+}
+
+func (u User) ChangePassword(ctx context.Context, adminId int64, oldPassword string, newPassword string) error {
+	admin, err := u.userRepo.GetUserById(ctx, adminId)
+	if err != nil {
+		return errors.WithMessage(err, "user.service.ChangePassword: get user by id")
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(admin.Password), []byte(oldPassword)); err != nil {
+		u.auditService.SaveAuditAsync(ctx, adminId, "Указан неверный старый пароль", entity.EventErrorPasswordChange)
+		return domain.ErrInvalidPassword
+	}
+
+	encryptedPassword, err := u.cryptPassword(newPassword)
+	if err != nil {
+		return errors.WithMessage(err, "user.service.ChangePassword: crypt new password")
+	}
+
+	err = u.userRepo.ChangePassword(ctx, adminId, encryptedPassword)
+	if err != nil {
+		return errors.WithMessage(err, "user.service.ChangePassword: change password ")
+	}
+
+	err = u.tokenService.RevokeAllByUserId(ctx, adminId)
+	if err != nil {
+		return errors.WithMessage(err, "revoke all tokens by user id")
+	}
+
+	u.auditService.SaveAuditAsync(ctx, adminId, "Сменил пароль", entity.EventUserPasswordChanged)
+
+	return nil
 }

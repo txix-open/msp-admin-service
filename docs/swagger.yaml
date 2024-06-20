@@ -13,6 +13,8 @@ definitions:
         type: string
       firstName:
         type: string
+      idleTimeoutMs:
+        type: integer
       lastName:
         type: string
       permissions:
@@ -56,6 +58,16 @@ definitions:
         type: array
       totalCount:
         type: integer
+    type: object
+  domain.ChangePasswordRequest:
+    properties:
+      newPassword:
+        type: string
+      oldPassword:
+        type: string
+    required:
+    - newPassword
+    - oldPassword
     type: object
   domain.CreateRoleRequest:
     properties:
@@ -103,8 +115,7 @@ definitions:
   domain.GrpcError:
     properties:
       details:
-        items:
-          type: object
+        items: {}
         type: array
       errorCode:
         type: string
@@ -212,6 +223,18 @@ definitions:
         type: boolean
       errorReason:
         type: string
+    type: object
+  domain.SecureAuthzRequest:
+    properties:
+      adminId:
+        type: integer
+      permission:
+        type: string
+    type: object
+  domain.SecureAuthzResponse:
+    properties:
+      authorized:
+        type: boolean
     type: object
   domain.SessionRequest:
     properties:
@@ -400,7 +423,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: ""
+          description: OK
         "400":
           description: Невалидный токен
           schema:
@@ -504,7 +527,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: ""
+          description: OK
         "400":
           description: Невалидное тело запроса
           schema:
@@ -607,7 +630,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: ""
+          description: OK
         "400":
           description: Невалидное тело запроса
           schema:
@@ -664,11 +687,6 @@ paths:
       - application/json
       description: Проверяет токен и возвращает идентификатор администратора
       parameters:
-      - description: Токен администратора
-        in: header
-        name: X-AUTH-ADMIN
-        required: true
-        type: string
       - description: Тело запроса
         in: body
         name: body
@@ -687,6 +705,32 @@ paths:
           schema:
             $ref: '#/definitions/domain.GrpcError'
       summary: Метод аутентификации токена
+      tags:
+      - secure
+  /secure/authorize:
+    post:
+      consumes:
+      - application/json
+      description: Проверяет наличие у администратора необходимого разрешения
+      parameters:
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.SecureAuthzRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.SecureAuthzResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Метод авторизации для администратора
       tags:
       - secure
   /session/all:
@@ -743,7 +787,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: ""
+          description: OK
         "400":
           description: Невалидное тело запроса
           schema:
@@ -775,7 +819,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: ""
+          description: OK
         "400":
           description: Невалидное тело запроса
           schema:
@@ -785,6 +829,38 @@ paths:
           schema:
             $ref: '#/definitions/domain.GrpcError'
       summary: Метод блокировки/разблокировки пользователя
+      tags:
+      - user
+  /user/change_password:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.ChangePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Невалидное тело запроса
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Метод изменения пароля пользователя
       tags:
       - user
   /user/create_user:
@@ -923,17 +999,33 @@ paths:
     post:
       consumes:
       - application/json
-      description: Получить все разрашения
+      description: Получить данные профиля
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/domain.Permission'
-            type: array
-      summary: Получить все разрашения
+            $ref: '#/definitions/domain.AdminUserShort'
+        "400":
+          description: Невалидный токен
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "404":
+          description: Пользователя не существует
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Получить профиль
       tags:
       - user
   /user/get_users:

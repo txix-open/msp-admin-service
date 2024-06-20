@@ -3,17 +3,17 @@ package assembly
 import (
 	"context"
 
-	"github.com/integration-system/isp-kit/app"
-	"github.com/integration-system/isp-kit/bgjobx"
-	"github.com/integration-system/isp-kit/bootstrap"
-	"github.com/integration-system/isp-kit/cluster"
-	"github.com/integration-system/isp-kit/dbrx"
-	"github.com/integration-system/isp-kit/dbx"
-	"github.com/integration-system/isp-kit/grpc"
-	"github.com/integration-system/isp-kit/http/httpcli"
-	"github.com/integration-system/isp-kit/http/httpclix"
-	"github.com/integration-system/isp-kit/log"
 	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/app"
+	"github.com/txix-open/isp-kit/bgjobx"
+	"github.com/txix-open/isp-kit/bootstrap"
+	"github.com/txix-open/isp-kit/cluster"
+	"github.com/txix-open/isp-kit/dbrx"
+	"github.com/txix-open/isp-kit/dbx"
+	"github.com/txix-open/isp-kit/grpc"
+	"github.com/txix-open/isp-kit/http/httpcli"
+	"github.com/txix-open/isp-kit/http/httpclix"
+	"github.com/txix-open/isp-kit/log"
 	"msp-admin-service/conf"
 	ldapRepo "msp-admin-service/repository/ldap"
 	"msp-admin-service/service/delete_old_audit_worker"
@@ -33,7 +33,7 @@ type Assembly struct {
 func New(boot *bootstrap.Bootstrap) (*Assembly, error) {
 	server := grpc.NewServer()
 	httpCli := httpclix.Default(httpcli.WithMiddlewares(httpclix.Log(boot.App.Logger())))
-	db := dbrx.New(dbx.WithMigration(boot.MigrationsDir))
+	db := dbrx.New(dbx.WithMigrationRunner(boot.MigrationsDir, boot.App.Logger()))
 	bgjobCli := bgjobx.NewClient(db, boot.App.Logger())
 	return &Assembly{
 		boot:     boot,

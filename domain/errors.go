@@ -6,6 +6,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	ErrCodeInvalidPassword = 1001
+)
+
 var (
 	ErrNotFound             = errors.New("not found")
 	ErrUnauthenticated      = errors.New("authentication failure")
@@ -18,6 +22,7 @@ var (
 	ErrTooManyLoginRequests = errors.New("too many login requests")
 	ErrUserIsBlocked        = errors.New("user is blocked")
 	ErrNoActionRequired     = errors.New("no action required")
+	ErrInvalidPassword      = errors.New("invalid password")
 )
 
 type UnknownAuditEventError struct {

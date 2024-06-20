@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/integration-system/isp-kit/bgjobx"
-	"github.com/integration-system/isp-kit/dbx"
-	"github.com/integration-system/isp-kit/test"
-	"github.com/integration-system/isp-kit/test/dbt"
+	"github.com/txix-open/isp-kit/bgjobx"
+	"github.com/txix-open/isp-kit/dbx"
+	"github.com/txix-open/isp-kit/test"
+	"github.com/txix-open/isp-kit/test/dbt"
 	"msp-admin-service/assembly"
 	"msp-admin-service/conf"
 	"msp-admin-service/entity"
@@ -20,7 +20,7 @@ func TestInactiveWorker(t *testing.T) {
 	t.Parallel()
 
 	test, require := test.New(t)
-	db := dbt.New(test, dbx.WithMigration("../migrations"))
+	db := dbt.New(test, dbx.WithMigrationRunner("../migrations", test.Logger()))
 
 	userId := InsertUser(db, entity.User{Email: "a@test"})
 	InsertUser(db, entity.User{Email: "b@test"})

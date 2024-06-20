@@ -4,9 +4,9 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/integration-system/isp-kit/grpc"
-	"github.com/integration-system/isp-kit/log"
 	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/grpc"
+	"github.com/txix-open/isp-kit/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"

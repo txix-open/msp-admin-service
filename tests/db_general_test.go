@@ -1,9 +1,9 @@
 package tests_test
 
 import (
-	"github.com/integration-system/isp-kit/db/query"
-	"github.com/integration-system/isp-kit/test/dbt"
 	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/db/query"
+	"github.com/txix-open/isp-kit/test/dbt"
 	"golang.org/x/crypto/bcrypt"
 	"msp-admin-service/entity"
 )

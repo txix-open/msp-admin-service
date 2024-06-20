@@ -38,7 +38,7 @@ func NewToken(tokenRep TokenRep, lifeTimeInSec int) Token {
 }
 
 func (s Token) GenerateToken(ctx context.Context, repo TokenSaver, id int64) (string, string, error) {
-	cryptoRand := make([]byte, 128) //nolint:gomnd
+	cryptoRand := make([]byte, 128) //nolint:mnd
 	_, err := rand.Read(cryptoRand)
 	if err != nil {
 		return "", "", errors.WithMessage(err, "crypto/rand read")
