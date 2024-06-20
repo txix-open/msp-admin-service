@@ -7,12 +7,12 @@ const (
 )
 
 type LoginRequest struct {
-	Email    string `valid:"required"`
-	Password string ` valid:"required"`
+	Email    string `validate:"required"`
+	Password string ` validate:"required"`
 }
 
 type LoginSudirRequest struct {
-	AuthCode string `valid:"required"`
+	AuthCode string `validate:"required"`
 }
 
 type LoginResponse struct {

@@ -5,10 +5,10 @@ import (
 	"database/sql"
 
 	"github.com/Masterminds/squirrel"
-	"github.com/integration-system/isp-kit/db"
-	"github.com/integration-system/isp-kit/db/query"
-	"github.com/integration-system/isp-kit/metrics/sql_metrics"
 	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/db"
+	"github.com/txix-open/isp-kit/db/query"
+	"github.com/txix-open/isp-kit/metrics/sql_metrics"
 	"msp-admin-service/domain"
 	"msp-admin-service/entity"
 )
@@ -230,4 +230,24 @@ func (u User) Block(ctx context.Context, userId int) (*entity.User, error) {
 		return nil, errors.WithMessagef(err, "select row: %s", query)
 	}
 	return &user, nil
+}
+
+func (u User) ChangePassword(ctx context.Context, userId int64, newPassword string) error {
+	ctx = sql_metrics.OperationLabelToContext(ctx, "User.ChangePassword")
+
+	q, args, err := query.New().
+		Update("users").
+		Where(squirrel.Eq{"id": userId}).
+		Set("password", newPassword).
+		ToSql()
+	if err != nil {
+		return errors.WithMessage(err, "user.repo.ChangePassword: build query")
+	}
+
+	_, err = u.db.Exec(ctx, q, args...)
+	if err != nil {
+		return errors.WithMessagef(err, "user.repo.ChangePassword: exec query: %s", q)
+	}
+
+	return nil
 }

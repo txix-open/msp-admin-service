@@ -31,7 +31,7 @@ type UsersRequest struct {
 type AdminUserShort struct {
 	FirstName     string
 	LastName      string
-	Email         string `valid:"required"`
+	Email         string `validate:"required"`
 	Role          string
 	Roles         []int
 	Permissions   []string
@@ -42,13 +42,13 @@ type CreateUserRequest struct {
 	Roles       []int
 	FirstName   string
 	LastName    string
-	Email       string `valid:"required"`
-	Password    string `valid:"required"`
+	Email       string `validate:"required"`
+	Password    string `validate:"required"`
 	Description string
 }
 
 type UpdateUserRequest struct {
-	Id          int64 `valid:"required"`
+	Id          int64 `validate:"required"`
 	Roles       []int
 	FirstName   string
 	LastName    string
@@ -62,9 +62,14 @@ type DeleteResponse struct {
 }
 
 type IdentitiesRequest struct {
-	Ids []int64 `valid:"required"`
+	Ids []int64 `validate:"required"`
 }
 
 type IdRequest struct {
-	UserId int `valid:"required"`
+	UserId int `validate:"required"`
+}
+
+type ChangePasswordRequest struct {
+	OldPassword string `validate:"required"`
+	NewPassword string `validate:"required"`
 }

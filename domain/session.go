@@ -23,5 +23,5 @@ type SessionRequest struct {
 }
 
 type RevokeRequest struct {
-	Id int `valid:"required"`
+	Id int `validate:"required"`
 }

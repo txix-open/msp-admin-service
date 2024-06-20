@@ -4,12 +4,12 @@ import (
 	"context"
 	"time"
 
-	"github.com/integration-system/isp-kit/bgjobx"
-	"github.com/integration-system/isp-kit/db"
-	"github.com/integration-system/isp-kit/grpc/endpoint"
-	"github.com/integration-system/isp-kit/grpc/isp"
-	"github.com/integration-system/isp-kit/http/httpcli"
-	"github.com/integration-system/isp-kit/log"
+	"github.com/txix-open/isp-kit/bgjobx"
+	"github.com/txix-open/isp-kit/db"
+	"github.com/txix-open/isp-kit/grpc/endpoint"
+	"github.com/txix-open/isp-kit/grpc/isp"
+	"github.com/txix-open/isp-kit/http/httpcli"
+	"github.com/txix-open/isp-kit/log"
 	"msp-admin-service/conf"
 	"msp-admin-service/controller"
 	"msp-admin-service/repository"
@@ -77,6 +77,7 @@ func (l Locator) Config(ctx context.Context, ldapRepoSupplier ldap.RepoSupplier,
 		auditService,
 		txManager,
 		ldapService,
+		tokenService,
 		cfg.IdleTimeoutMs,
 		l.logger,
 	)

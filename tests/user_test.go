@@ -2,18 +2,20 @@ package tests_test
 
 import (
 	"context"
+	"github.com/txix-open/isp-kit/grpc/apierrors"
+	"golang.org/x/crypto/bcrypt"
 	"strconv"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/integration-system/isp-kit/dbx"
-	"github.com/integration-system/isp-kit/grpc/client"
-	"github.com/integration-system/isp-kit/http/httpcli"
-	"github.com/integration-system/isp-kit/test"
-	"github.com/integration-system/isp-kit/test/dbt"
-	"github.com/integration-system/isp-kit/test/grpct"
 	"github.com/stretchr/testify/suite"
+	"github.com/txix-open/isp-kit/dbx"
+	"github.com/txix-open/isp-kit/grpc/client"
+	"github.com/txix-open/isp-kit/http/httpcli"
+	"github.com/txix-open/isp-kit/test"
+	"github.com/txix-open/isp-kit/test/dbt"
+	"github.com/txix-open/isp-kit/test/grpct"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"msp-admin-service/assembly"
@@ -45,7 +47,7 @@ type UserTestSuite struct {
 func (s *UserTestSuite) SetupTest() {
 	testInstance, _ := test.New(s.T())
 	s.test = testInstance
-	s.db = dbt.New(testInstance, dbx.WithMigration("../migrations"))
+	s.db = dbt.New(testInstance, dbx.WithMigrationRunner("../migrations", testInstance.Logger()))
 	s.httpCli = httpcli.New()
 
 	remote := conf.Remote{
@@ -169,7 +171,7 @@ func (s *UserTestSuite) TestGetUsers() {
 		Do(context.Background())
 	s.Require().NoError(err)
 
-	s.Require().Equal(1, len(response.Items))
+	s.Require().Len(response.Items, 1) //nolint:mnd
 	s.Require().Equal(int64(5), response.Items[0].Id)
 }
 
@@ -337,4 +339,45 @@ func (s *UserTestSuite) TestBlockUser() {
 	t, err := repository.NewToken(s.db).Get(context.Background(), token)
 	s.Require().NoError(err)
 	s.EqualValues(entity.TokenStatusRevoked, t.Status)
+}
+
+func (s *UserTestSuite) TestChangePasswordUser() {
+	// insert user with old password
+	adminId := InsertUser(s.db, entity.User{Email: "a_del@a.ru", Password: "password"})
+
+	InsertTokenEntity(s.db, entity.Token{
+		Token:     "token-841297641213",
+		UserId:    adminId,
+		Status:    entity.TokenStatusAllowed,
+		CreatedAt: time.Time{},
+		ExpiredAt: time.Time{},
+	})
+
+	// check for err when invalid data
+	invalidReq := domain.ChangePasswordRequest{OldPassword: "invalid", NewPassword: "new_password"}
+	err := s.grpcCli.Invoke("admin/user/change_password").
+		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(adminId))).
+		JsonRequestBody(invalidReq).
+		Do(context.Background())
+	s.Require().Error(err)
+	err = apierrors.FromError(err)
+	s.Require().Contains(err.Error(), strconv.Itoa(domain.ErrCodeInvalidPassword))
+
+	// change password
+	changePswReq := domain.ChangePasswordRequest{OldPassword: "password", NewPassword: "new_password"}
+	err = s.grpcCli.Invoke("admin/user/change_password").
+		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(adminId))).
+		JsonRequestBody(changePswReq).
+		Do(context.Background())
+
+	s.Require().NoError(err)
+
+	var newPassword string
+	s.db.Must().SelectRow(&newPassword, "select password from users where id = $1", adminId)
+
+	notEqualErr := bcrypt.CompareHashAndPassword([]byte(newPassword), []byte(changePswReq.NewPassword))
+	s.Require().NoError(notEqualErr)
+
+	tokenInfo := SelectTokenEntityByToken(s.db, "token-841297641213")
+	s.Require().Equal(entity.TokenStatusRevoked, tokenInfo.Status)
 }

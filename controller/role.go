@@ -3,8 +3,8 @@ package controller
 import (
 	"context"
 
-	"github.com/integration-system/isp-kit/grpc"
 	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"msp-admin-service/domain"

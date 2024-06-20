@@ -3,7 +3,7 @@ package transaction
 import (
 	"context"
 
-	"github.com/integration-system/isp-kit/db"
+	"github.com/txix-open/isp-kit/db"
 	"msp-admin-service/repository"
 	"msp-admin-service/service"
 )

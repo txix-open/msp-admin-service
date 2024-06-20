@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/integration-system/isp-kit/http/httpcli"
-	"github.com/integration-system/isp-kit/metrics/http_metrics"
 	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/http/httpcli"
+	"github.com/txix-open/isp-kit/metrics/http_metrics"
 	"msp-admin-service/conf"
 	"msp-admin-service/entity"
 )

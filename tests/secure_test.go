@@ -5,14 +5,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/integration-system/isp-kit/dbx"
-	"github.com/integration-system/isp-kit/grpc/client"
-	"github.com/integration-system/isp-kit/http/httpcli"
-	"github.com/integration-system/isp-kit/test"
-	"github.com/integration-system/isp-kit/test/dbt"
-	"github.com/integration-system/isp-kit/test/grpct"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"github.com/txix-open/isp-kit/dbx"
+	"github.com/txix-open/isp-kit/grpc/client"
+	"github.com/txix-open/isp-kit/http/httpcli"
+	"github.com/txix-open/isp-kit/test"
+	"github.com/txix-open/isp-kit/test/dbt"
+	"github.com/txix-open/isp-kit/test/grpct"
 	"msp-admin-service/assembly"
 	"msp-admin-service/conf"
 	"msp-admin-service/domain"
@@ -34,7 +34,7 @@ type SecureSuite struct {
 
 func (s *SecureSuite) SetupTest() {
 	s.test, s.require = test.New(s.T())
-	s.db = dbt.New(s.test, dbx.WithMigration("../migrations"))
+	s.db = dbt.New(s.test, dbx.WithMigrationRunner("../migrations", s.test.Logger()))
 	httpCli := httpcli.New()
 	remote := conf.Remote{
 		ExpireSec: 3600,
