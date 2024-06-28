@@ -47,7 +47,7 @@ func TestInactiveWorker(t *testing.T) {
 			},
 		})
 	bgjobCli := bgjobx.NewClient(db, test.Logger())
-	assembly.JobPollInterval = 1 * time.Second
+	assembly.JobPollInterval = 300 * time.Millisecond
 	err := bgjobCli.Upgrade(context.Background(), config.BgJobCfg)
 	require.NoError(err)
 	err = inactive_worker.EnqueueSeedJob(context.Background(), bgjobCli)
