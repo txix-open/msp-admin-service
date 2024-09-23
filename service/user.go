@@ -44,6 +44,7 @@ type TokenRepo interface {
 type UserRoleRepo interface {
 	GetRolesByUserIds(ctx context.Context, identity []int) ([]entity.UserRole, error)
 	UpsertUserRoleLinks(ctx context.Context, id int, roleIds []int) error
+	GetRoleEntitiesByUserId(ctx context.Context, userId int) ([]entity.Role, error)
 }
 
 type roleRepoUser interface {
@@ -158,7 +159,12 @@ func (u User) GetUsers(ctx context.Context, req domain.UsersRequest) (*domain.Us
 			}
 		}
 
-		items = append(items, u.toDomain(user, roles, lastSessionsByUsers[user.Id]))
+		rolesNames, err := u.userRoleRepo.GetRoleEntitiesByUserId(ctx, int(user.Id))
+		if err != nil {
+			return nil, errors.WithMessagef(err, "get role entities by user id %d", user.Id)
+		}
+
+		items = append(items, u.toDomain(user, roles, RolesNames(rolesNames), lastSessionsByUsers[user.Id]))
 	}
 
 	return &domain.UsersResponse{Items: items}, nil
@@ -232,7 +238,12 @@ func (u User) CreateUser(ctx context.Context, req domain.CreateUserRequest, admi
 		entity.EventUserChanged,
 	)
 
-	result := u.toDomain(usr, req.Roles, nil)
+	rolesNames, err := u.userRoleRepo.GetRoleEntitiesByUserId(ctx, int(usr.Id))
+	if err != nil {
+		return nil, errors.WithMessagef(err, "get role entities by user id %d", usr.Id)
+	}
+
+	result := u.toDomain(usr, req.Roles, RolesNames(rolesNames), nil)
 	return &result, nil
 }
 
@@ -313,7 +324,12 @@ func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, admi
 		entity.EventUserChanged,
 	)
 
-	result := u.toDomain(*user, req.Roles, lastSessionCreatedAt)
+	rolesNames, err := u.userRoleRepo.GetRoleEntitiesByUserId(ctx, int(req.Id))
+	if err != nil {
+		return nil, errors.WithMessagef(err, "get role entities by user id %d", req.Id)
+	}
+
+	result := u.toDomain(*user, req.Roles, RolesNames(rolesNames), lastSessionCreatedAt)
 	return &result, nil
 }
 
@@ -336,26 +352,27 @@ func (u User) DeleteUsers(ctx context.Context, ids []int64, adminId int64) (int,
 }
 
 func (u User) GetById(ctx context.Context, userId int) (*domain.User, error) {
-	u.logger.Debug(ctx, "GET BY ID", log.Int("USER ID", userId))
 	user, err := u.userRepo.GetUserById(ctx, int64(userId))
 	if err != nil {
 		return nil, errors.WithMessagef(err, "get user by id %d", userId)
 	}
-	u.logger.Debug(ctx, "GET BY ID", log.Int("GET USER BY ID", int(user.Id)))
 
-	roles, err := u.userRoleRepo.GetRolesByUserIds(ctx, []int{userId})
+	userRoles, err := u.userRoleRepo.GetRolesByUserIds(ctx, []int{userId})
 	if err != nil {
-		return nil, errors.WithMessage(err, "get roles by user id")
+		return nil, errors.WithMessage(err, "get user roles by user id")
 	}
-	u.logger.Debug(ctx, "GET BY ID", log.Any("ROLES", roles))
+
+	roles, err := u.userRoleRepo.GetRoleEntitiesByUserId(ctx, userId)
+	if err != nil {
+		return nil, errors.WithMessagef(err, "get entities role by id %d", userId)
+	}
 
 	lastSessions, err := u.tokenRepo.LastAccessByUserIds(ctx, []int{userId})
 	if err != nil {
 		return nil, errors.WithMessage(err, "get last sessions by user id")
 	}
 
-	result := u.toDomain(*user, RolesIds(roles), lastSessions[int64(userId)])
-	u.logger.Debug(ctx, "GET BY ID", log.Int("TO DOMAIN", int(result.Id)))
+	result := u.toDomain(*user, RolesIds(userRoles), RolesNames(roles), lastSessions[int64(userId)])
 	return &result, nil
 }
 
@@ -403,10 +420,11 @@ func (u User) cryptPassword(password string) (string, error) {
 	return string(passwordBytes), nil
 }
 
-func (u User) toDomain(user entity.User, roleIds []int, lastSessionCreatedAt *time.Time) domain.User {
+func (u User) toDomain(user entity.User, roleIds []int, roleNames []string, lastSessionCreatedAt *time.Time) domain.User {
 	return domain.User{
 		Id:                   user.Id,
 		Roles:                roleIds,
+		RolesNames:           roleNames,
 		FirstName:            user.FirstName,
 		Description:          user.Description,
 		LastName:             user.LastName,
@@ -423,6 +441,16 @@ func RolesIds(roles []entity.UserRole) []int {
 
 	for _, role := range roles {
 		roleList = append(roleList, role.RoleId)
+	}
+	slices.Sort(roleList)
+	return roleList
+}
+
+func RolesNames(roles []entity.Role) []string {
+	roleList := make([]string, 0)
+
+	for _, role := range roles {
+		roleList = append(roleList, role.Name)
 	}
 	slices.Sort(roleList)
 	return roleList
