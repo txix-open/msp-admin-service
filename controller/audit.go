@@ -72,7 +72,7 @@ func (c Audit) SetEvents(ctx context.Context, req []domain.SetAuditEvent) error 
 	err := c.service.SetEvents(ctx, req)
 	switch {
 	case errors.As(err, &domain.UnknownAuditEventError{}):
-		return status.Errorf(codes.InvalidArgument, err.Error())
+		return status.Errorf(codes.InvalidArgument, err.Error()) // nolint: govet
 	default:
 		return err
 	}

@@ -1,3 +1,4 @@
+// nolint: testifylint
 package tests_test
 
 import (

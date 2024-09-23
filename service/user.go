@@ -336,15 +336,18 @@ func (u User) DeleteUsers(ctx context.Context, ids []int64, adminId int64) (int,
 }
 
 func (u User) GetById(ctx context.Context, userId int) (*domain.User, error) {
+	u.logger.Debug(ctx, "GET BY ID", log.Int("USER ID", userId))
 	user, err := u.userRepo.GetUserById(ctx, int64(userId))
 	if err != nil {
 		return nil, errors.WithMessagef(err, "get user by id %d", userId)
 	}
+	u.logger.Debug(ctx, "GET BY ID", log.Int("GET USER BY ID", int(user.Id)))
 
 	roles, err := u.userRoleRepo.GetRolesByUserIds(ctx, []int{userId})
 	if err != nil {
 		return nil, errors.WithMessage(err, "get roles by user id")
 	}
+	u.logger.Debug(ctx, "GET BY ID", log.Any("ROLES", roles))
 
 	lastSessions, err := u.tokenRepo.LastAccessByUserIds(ctx, []int{userId})
 	if err != nil {
@@ -352,6 +355,7 @@ func (u User) GetById(ctx context.Context, userId int) (*domain.User, error) {
 	}
 
 	result := u.toDomain(*user, RolesIds(roles), lastSessions[int64(userId)])
+	u.logger.Debug(ctx, "GET BY ID", log.Int("TO DOMAIN", int(result.Id)))
 	return &result, nil
 }
 
