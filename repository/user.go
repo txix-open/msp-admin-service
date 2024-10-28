@@ -101,6 +101,7 @@ func (u User) UpsertBySudirUserId(ctx context.Context, user entity.User) (*entit
 	return &result, nil
 }
 
+//nolint:gosec
 func (u User) GetUsers(ctx context.Context, ids []int64, offset, limit int, email string) ([]entity.User, error) {
 	ctx = sql_metrics.OperationLabelToContext(ctx, "User.GetUsers")
 

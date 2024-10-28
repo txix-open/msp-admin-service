@@ -49,9 +49,9 @@ type Auth struct {
 	sudirService             sudirService
 	auditService             auditService
 	logger                   log.Logger
-	maxInFlightLoginRequests int
+	maxInFlightLoginRequests int64
 	delayLoginRequest        time.Duration
-	inFlightLoginRequests    *atomic.Int32
+	inFlightLoginRequests    *atomic.Int64
 }
 
 func NewAuth(
@@ -72,8 +72,8 @@ func NewAuth(
 		auditService:             auditService,
 		logger:                   logger,
 		delayLoginRequest:        time.Duration(delayLoginRequestInSec) * time.Second,
-		maxInFlightLoginRequests: maxInFlightLoginRequests,
-		inFlightLoginRequests:    &atomic.Int32{},
+		maxInFlightLoginRequests: int64(maxInFlightLoginRequests),
+		inFlightLoginRequests:    &atomic.Int64{},
 	}
 }
 
@@ -81,7 +81,7 @@ func (a Auth) Login(ctx context.Context, request domain.LoginRequest) (*domain.L
 	value := a.inFlightLoginRequests.Add(1)
 	defer a.inFlightLoginRequests.Add(-1)
 
-	if value > int32(a.maxInFlightLoginRequests) {
+	if value > a.maxInFlightLoginRequests {
 		return nil, domain.ErrTooManyLoginRequests
 	}
 	time.Sleep(a.delayLoginRequest)
