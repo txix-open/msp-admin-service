@@ -179,7 +179,7 @@ func (s *AuthTestSuite) initMockSudir() (*httptest.Server, string) {
 			AccessToken:    "token",
 		}
 		data, err := json.Marshal(res)
-		s.Require().NoError(err)
+		s.Require().NoError(err) //nolint:testifylint
 		_, err = writer.Write(data)
 		s.NoError(err)
 	})
@@ -193,7 +193,7 @@ func (s *AuthTestSuite) initMockSudir() (*httptest.Server, string) {
 			FamilyName:     "surname",
 		}
 		data, err := json.Marshal(res)
-		s.Require().NoError(err)
+		s.Require().NoError(err) //nolint:testifylint
 		_, err = writer.Write(data)
 		s.NoError(err)
 	})

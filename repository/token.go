@@ -76,6 +76,7 @@ func (r Token) RevokeByUserId(ctx context.Context, userId int64, updatedAt time.
 	return nil
 }
 
+//nolint:gosec
 func (r Token) All(ctx context.Context, limit int, offset int) ([]entity.Token, error) {
 	ctx = sql_metrics.OperationLabelToContext(ctx, "Token.All")
 

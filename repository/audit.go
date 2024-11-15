@@ -43,6 +43,7 @@ func (r Audit) Insert(ctx context.Context, log entity.Audit) (int, error) {
 	return id, nil
 }
 
+//nolint:gosec
 func (r Audit) All(ctx context.Context, limit int, offset int) ([]entity.Audit, error) {
 	ctx = sql_metrics.OperationLabelToContext(ctx, "Audit.All")
 
