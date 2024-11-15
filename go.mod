@@ -9,7 +9,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.9.0
 	github.com/txix-open/bgjob v1.4.0
-	github.com/txix-open/isp-kit v1.39.0
+	github.com/txix-open/isp-kit v1.39.1
 	github.com/txix-open/jsonschema v1.2.0
 	golang.org/x/crypto v0.28.0
 	golang.org/x/sync v0.8.0
@@ -58,7 +58,7 @@ require (
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/sethvargo/go-retry v0.3.0 // indirect
 	github.com/txix-open/bellows v1.2.0 // indirect
-	github.com/txix-open/etp/v3 v3.2.0 // indirect
+	github.com/txix-open/etp/v4 v4.0.1 // indirect
 	github.com/txix-open/validator/v10 v10.0.0-20240401163703-e83541b40f99 // indirect
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
