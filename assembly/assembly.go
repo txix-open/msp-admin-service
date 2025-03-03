@@ -31,15 +31,16 @@ type Assembly struct {
 }
 
 func New(boot *bootstrap.Bootstrap) (*Assembly, error) {
+	logger := boot.App.Logger()
 	server := grpc.NewServer()
-	httpCli := httpclix.Default(httpcli.WithMiddlewares(httpclix.Log(boot.App.Logger())))
-	db := dbrx.New(dbx.WithMigrationRunner(boot.MigrationsDir, boot.App.Logger()))
-	bgjobCli := bgjobx.NewClient(db, boot.App.Logger())
+	httpCli := httpclix.Default(httpcli.WithMiddlewares(httpclix.Log(logger)))
+	db := dbrx.New(logger, dbx.WithMigrationRunner(boot.MigrationsDir, logger))
+	bgjobCli := bgjobx.NewClient(db, logger)
 	return &Assembly{
 		boot:     boot,
 		db:       db,
 		server:   server,
-		logger:   boot.App.Logger(),
+		logger:   logger,
 		httpCli:  httpCli,
 		bgjobCli: bgjobCli,
 	}, nil
