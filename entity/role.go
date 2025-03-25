@@ -30,7 +30,7 @@ func (p *PermList) Scan(src any) error {
 	return json.Unmarshal(src.([]byte), p)
 }
 
-func (p PermList) Value() (driver.Value, error) {
+func (p *PermList) Value() (driver.Value, error) {
 	bytes, err := json.Marshal(p)
 	return driver.Value(bytes), err
 }
