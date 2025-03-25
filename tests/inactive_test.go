@@ -1,6 +1,7 @@
 package tests_test
 
 import (
+	"msp-admin-service/service/inactive_worker"
 	"testing"
 	"time"
 
@@ -12,7 +13,6 @@ import (
 	"msp-admin-service/conf"
 	"msp-admin-service/entity"
 	"msp-admin-service/repository"
-	"msp-admin-service/service/inactive_worker"
 )
 
 func TestInactiveWorker(t *testing.T) {
@@ -42,14 +42,14 @@ func TestInactiveWorker(t *testing.T) {
 		Config(t.Context(), emptyLdap, conf.Remote{
 			BlockInactiveWorker: conf.BlockInactiveWorker{
 				DaysThreshold:        1,
-				RunIntervalInMinutes: 60,
+				RunIntervalInMinutes: 1,
 			},
-		})
+		}, 500*time.Millisecond)
+
 	bgjobCli := bgjobx.NewClient(db, test.Logger())
-	assembly.JobPollInterval = 300 * time.Millisecond
-	err := bgjobCli.Upgrade(t.Context(), config.BgJobCfg)
+	err := inactive_worker.EnqueueSeedJob(t.Context(), bgjobCli)
 	require.NoError(err)
-	err = inactive_worker.EnqueueSeedJob(t.Context(), bgjobCli)
+	err = bgjobCli.Upgrade(t.Context(), config.BgJobCfg)
 	require.NoError(err)
 
 	time.Sleep(5 * time.Second)

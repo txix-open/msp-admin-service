@@ -22,10 +22,6 @@ import (
 	"msp-admin-service/transaction"
 )
 
-var (
-	JobPollInterval = 1 * time.Minute //nolint:gochecknoglobals
-)
-
 type DB interface {
 	db.DB
 	db.Transactional
@@ -51,7 +47,12 @@ type Config struct {
 }
 
 //nolint:funlen
-func (l Locator) Config(ctx context.Context, ldapRepoSupplier ldap.RepoSupplier, cfg conf.Remote) Config {
+func (l Locator) Config(
+	ctx context.Context,
+	ldapRepoSupplier ldap.RepoSupplier,
+	cfg conf.Remote,
+	jobPollInterval time.Duration,
+) Config {
 	sudirRepo := repository.NewSudir(l.httpCli, cfg.SudirAuth)
 	roleRepo := repository.NewRole(l.db)
 	userRepo := repository.NewUser(l.db)
@@ -129,12 +130,12 @@ func (l Locator) Config(ctx context.Context, ldapRepoSupplier ldap.RepoSupplier,
 		BgJobCfg: []bgjobx.WorkerConfig{{
 			Queue:        delete_old_audit_worker.QueueName,
 			Concurrency:  1,
-			PollInterval: JobPollInterval,
+			PollInterval: jobPollInterval,
 			Handle:       deleteOldAuditWorker,
 		}, {
 			Queue:        inactive_worker.QueueName,
 			Concurrency:  1,
-			PollInterval: JobPollInterval,
+			PollInterval: jobPollInterval,
 			Handle:       inactiveBlocker,
 		}},
 	}

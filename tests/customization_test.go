@@ -3,6 +3,7 @@ package tests_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/suite"
 	"github.com/txix-open/isp-kit/dbx"
@@ -39,7 +40,7 @@ func (s *CustomizationTestSuite) SetupTest() {
 		ExpireSec: 0,
 	}
 	cfg := assembly.NewLocator(testInstance.Logger(), nil, s.db).
-		Config(context.Background(), emptyLdap, remote)
+		Config(context.Background(), emptyLdap, remote, time.Minute)
 
 	server, apiCli := grpct.TestServer(testInstance, cfg.Handler)
 	s.grpcCli = apiCli

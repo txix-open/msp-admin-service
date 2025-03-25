@@ -2,6 +2,7 @@ package assembly
 
 import (
 	"context"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/app"
@@ -70,7 +71,7 @@ func (a *Assembly) ReceiveConfig(ctx context.Context, remoteConfig []byte) error
 			return nil, errors.WithMessage(err, "new repository")
 		}
 		return repo, nil
-	}, newCfg)
+	}, newCfg, time.Minute)
 
 	a.server.Upgrade(config.Handler)
 
