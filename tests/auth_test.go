@@ -65,7 +65,7 @@ func (s *AuthTestSuite) SetupTest() {
 		},
 	}
 	cfg := assembly.NewLocator(testInstance.Logger(), s.httpCli, s.db).
-		Config(context.Background(), emptyLdap, remote)
+		Config(context.Background(), emptyLdap, remote, time.Minute)
 
 	server, apiCli := grpct.TestServer(testInstance, cfg.Handler)
 	s.grpcCli = apiCli

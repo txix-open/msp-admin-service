@@ -1,4 +1,4 @@
-// nolint:tagliatelle
+// nolint:tagliatelle,errname
 package entity
 
 import (
