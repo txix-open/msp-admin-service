@@ -1,7 +1,7 @@
 package tests_test
 
 import (
-	"context"
+	"msp-admin-service/service/inactive_worker"
 	"testing"
 	"time"
 
@@ -13,7 +13,6 @@ import (
 	"msp-admin-service/conf"
 	"msp-admin-service/entity"
 	"msp-admin-service/repository"
-	"msp-admin-service/service/inactive_worker"
 )
 
 func TestInactiveWorker(t *testing.T) {
@@ -40,26 +39,26 @@ func TestInactiveWorker(t *testing.T) {
 	})
 
 	config := assembly.NewLocator(test.Logger(), nil, db).
-		Config(context.Background(), emptyLdap, conf.Remote{
+		Config(t.Context(), emptyLdap, conf.Remote{
 			BlockInactiveWorker: conf.BlockInactiveWorker{
 				DaysThreshold:        1,
-				RunIntervalInMinutes: 60,
+				RunIntervalInMinutes: 1,
 			},
-		})
+		}, 500*time.Millisecond)
+
 	bgjobCli := bgjobx.NewClient(db, test.Logger())
-	assembly.JobPollInterval = 300 * time.Millisecond
-	err := bgjobCli.Upgrade(context.Background(), config.BgJobCfg)
+	err := inactive_worker.EnqueueSeedJob(t.Context(), bgjobCli)
 	require.NoError(err)
-	err = inactive_worker.EnqueueSeedJob(context.Background(), bgjobCli)
+	err = bgjobCli.Upgrade(t.Context(), config.BgJobCfg)
 	require.NoError(err)
 
 	time.Sleep(5 * time.Second)
 
-	user, err := repository.NewUser(db).GetUserById(context.Background(), userId)
+	user, err := repository.NewUser(db).GetUserById(t.Context(), userId)
 	require.NoError(err)
 	require.True(user.Blocked)
 
-	list, err := repository.NewAudit(db).All(context.Background(), 10, 0)
+	list, err := repository.NewAudit(db).All(t.Context(), 10, 0)
 	require.NoError(err)
 	require.Len(list, 1)
 }

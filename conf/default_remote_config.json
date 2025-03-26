@@ -29,64 +29,164 @@
   },
   "permissions": [
     {
-      "key": "user_view",
-      "name": "Просмотр списка пользователей"
+      "name": "Просмотр экрана \"Профиль\"",
+      "key": "profile_view"
     },
     {
-      "key": "user_block",
-      "name": "Блокировка пользователя"
+      "name": "Смена пароля",
+      "key": "profile_change_password"
     },
     {
-      "key": "user_create",
-      "name": "Создать пользователя"
+      "name": "Просмотр экрана \"Приложения\"",
+      "key": "application_group_view"
     },
     {
-      "key": "user_update",
-      "name": "Обновить пользователя"
+      "name": "Добавление новой группы",
+      "key": "application_group_add"
     },
     {
-      "key": "user_delete",
-      "name": "Удаление пользователя"
+      "name": "Редактирование существующей группы",
+      "key": "application_group_edit"
     },
     {
-      "key": "session_view",
-      "name": "Просмотр списка пользовательских сессий"
+      "name": "Удаление группы",
+      "key": "application_group_delete"
     },
     {
-      "key": "session_revoke",
-      "name": "Отзыв сессии"
+      "name": "Добавление нового приложения",
+      "key": "application_group_app_add"
     },
     {
-      "key": "role_view",
-      "name": "Просмотр экрана ролей"
+      "name": "Редактирование существующего приложения",
+      "key": "application_group_app_edit"
     },
     {
-      "key": "role_add",
-      "name": "Создание роли"
+      "name": "Удаление приложения",
+      "key": "application_group_app_delete"
     },
     {
-      "key": "role_update",
-      "name": "Обновление роли"
+      "name": "Просмотр раздела \"Токены\"",
+      "key": "application_group_token_view"
     },
     {
-      "key": "role_delete",
-      "name": "Удаление роли"
+      "name": "Выпуск нового токена",
+      "key": "application_group_token_add"
     },
     {
-      "key": "security_log_view",
-      "name": "Просмотр журналов ИБ"
+      "name": "Отзыв токена",
+      "key": "application_group_token_delete"
     },
     {
-      "key": "audit_management_view",
-      "name": "Управление событиями аудита"
+      "name": "Просмотр экрана \"Доступы приложений\"",
+      "key": "app_access_view"
+    },
+    {
+      "name": "Редактирование доступов приложений",
+      "key": "app_access_edit"
+    },
+    {
+      "name": "Просмотр экрана \"Переменные\"",
+      "key": "variable_view"
+    },
+    {
+      "name": "Добавление новой переменной",
+      "key": "variable_add"
+    },
+    {
+      "name": "Редактирование переменной",
+      "key": "variable_edit"
+    },
+    {
+      "name": "Удаление переменной",
+      "key": "variable_delete"
+    },
+    {
+      "name": "Просмотр экрана \"Модули\"",
+      "key": "module_view"
+    },
+    {
+      "name": "Удаление модуля",
+      "key": "module_delete"
+    },
+    {
+      "name": "Небезопасное сохранение конфигурации модуля",
+      "key": "module_configuration_save_unsafe"
+    },
+    {
+      "name": "Активация/деактивация конфигурации",
+      "key": "module_configuration_set_active"
+    },
+    {
+      "name": "Восстановление версии конфигурации",
+      "key": "module_history_set"
+    },
+    {
+      "name": "Удаление версии конфигурации",
+      "key": "module_history_delete_version"
+    },
+    {
+      "name": "Редактирование конфигураций модуля",
+      "key": "module_configuration_edit"
+    },
+    {
+      "name": "Создание новой конфигурации",
+      "key": "module_configuration_add"
+    },
+    {
+      "name": "Просмотр экрана \"Пользователи\"",
+      "key": "user_view"
+    },
+    {
+      "name": "Блокировка/разблокировка пользователя",
+      "key": "user_block"
+    },
+    {
+      "name": "Создание пользователя",
+      "key": "user_create"
+    },
+    {
+      "name": "Обновление пользователя",
+      "key": "user_update"
+    },
+    {
+      "name": "Удаление пользователя",
+      "key": "user_delete"
+    },
+    {
+      "name": "Просмотр экрана \"Пользовательские сессии\"",
+      "key": "session_view"
+    },
+    {
+      "name": "Отзыв сессии",
+      "key": "session_revoke"
+    },
+    {
+      "name": "Просмотр экрана \"Просмотр журналов ИБ\"",
+      "key": "security_log_view"
+    },
+    {
+      "name": "Просмотр экрана ролей",
+      "key": "role_view"
+    },
+    {
+      "name": "Создание роли",
+      "key": "role_add"
+    },
+    {
+      "name": "Обновление роли",
+      "key": "role_update"
+    },
+    {
+      "name": "Удаление роли",
+      "key": "role_delete"
     },
     {
       "key": "read",
-      "name": "Просмотр настроек системы"
+      "name": "Просмотр настроек системы (Устарело)"
     },
     {
       "key": "write",
-      "name": "Изменение настроек системы"
+      "name": "Изменение настроек системы (Устарело)"
     }
   ],
   "database": {
