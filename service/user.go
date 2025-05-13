@@ -108,11 +108,17 @@ func (u User) GetProfileById(ctx context.Context, userId int64) (*domain.AdminUs
 	}
 	roleIds := RolesIds(roles)
 
-	var roleList []entity.Role
+	var (
+		roleList []entity.Role
+		roleName string
+	)
 	if len(roleIds) != 0 {
 		roleList, err = u.roleRepoUser.GetRoleByIds(ctx, roleIds)
 		if err != nil {
 			return nil, errors.WithMessage(err, "get roles")
+		}
+		if len(roleList) > 0 {
+			roleName = roleList[0].Name
 		}
 	}
 
@@ -120,7 +126,7 @@ func (u User) GetProfileById(ctx context.Context, userId int64) (*domain.AdminUs
 		FirstName:     user.FirstName,
 		LastName:      user.LastName,
 		Email:         user.Email,
-		Role:          roleList[0].Name,
+		Role:          roleName,
 		Roles:         roleIds,
 		IdleTimeoutMs: u.idleTimeoutMs,
 		Permissions:   mergePermissions(roleList),
@@ -389,31 +395,6 @@ func (u User) Block(ctx context.Context, adminId int64, userId int) error {
 	return nil
 }
 
-//nolint:gomnd
-func (u User) cryptPassword(password string) (string, error) {
-	passwordBytes, err := bcrypt.GenerateFromPassword([]byte(password), 12) //nolint:mnd
-	if err != nil {
-		return "", errors.WithMessage(err, "gen bcrypt from password")
-	}
-
-	return string(passwordBytes), nil
-}
-
-func (u User) toDomain(user entity.User, roleIds []int, lastSessionCreatedAt *time.Time) domain.User {
-	return domain.User{
-		Id:                   user.Id,
-		Roles:                roleIds,
-		FirstName:            user.FirstName,
-		Description:          user.Description,
-		LastName:             user.LastName,
-		Email:                user.Email,
-		Blocked:              user.Blocked,
-		UpdatedAt:            user.UpdatedAt,
-		CreatedAt:            user.CreatedAt,
-		LastSessionCreatedAt: lastSessionCreatedAt,
-	}
-}
-
 func RolesIds(roles []entity.UserRole) []int {
 	roleList := make([]int, 0)
 
@@ -491,4 +472,29 @@ func (u User) ChangePassword(ctx context.Context, adminId int64, oldPassword str
 	u.auditService.SaveAuditAsync(ctx, adminId, "Сменил пароль", entity.EventUserPasswordChanged)
 
 	return nil
+}
+
+//nolint:gomnd
+func (u User) cryptPassword(password string) (string, error) {
+	passwordBytes, err := bcrypt.GenerateFromPassword([]byte(password), 12) //nolint:mnd
+	if err != nil {
+		return "", errors.WithMessage(err, "gen bcrypt from password")
+	}
+
+	return string(passwordBytes), nil
+}
+
+func (u User) toDomain(user entity.User, roleIds []int, lastSessionCreatedAt *time.Time) domain.User {
+	return domain.User{
+		Id:                   user.Id,
+		Roles:                roleIds,
+		FirstName:            user.FirstName,
+		Description:          user.Description,
+		LastName:             user.LastName,
+		Email:                user.Email,
+		Blocked:              user.Blocked,
+		UpdatedAt:            user.UpdatedAt,
+		CreatedAt:            user.CreatedAt,
+		LastSessionCreatedAt: lastSessionCreatedAt,
+	}
 }
