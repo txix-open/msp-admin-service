@@ -1,5 +1,15 @@
 basePath: /api/admin
 definitions:
+  apierrors.Error:
+    properties:
+      details:
+        additionalProperties: {}
+        type: object
+      errorCode:
+        type: integer
+      errorMessage:
+        type: string
+    type: object
   conf.UIDesign:
     properties:
       name:
@@ -218,6 +228,7 @@ definitions:
   domain.SecureAuthResponse:
     properties:
       adminId:
+        format: int64
         type: integer
       authenticated:
         type: boolean
@@ -299,6 +310,7 @@ definitions:
       firstName:
         type: string
       id:
+        format: int64
         type: integer
       lastName:
         type: string
@@ -317,6 +329,7 @@ definitions:
         type: string
       ids:
         items:
+          format: int64
           type: integer
         type: array
       limit:
@@ -855,11 +868,11 @@ paths:
         "400":
           description: Невалидное тело запроса
           schema:
-            $ref: '#/definitions/domain.GrpcError'
+            $ref: '#/definitions/apierrors.Error'
         "500":
-          description: Internal Server Error
+          description: внутренняя ошибка
           schema:
-            $ref: '#/definitions/domain.GrpcError'
+            $ref: '#/definitions/apierrors.Error'
       summary: Метод изменения пароля пользователя
       tags:
       - user

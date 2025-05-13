@@ -123,7 +123,7 @@ func (t *AuditSuite) Test_Events_SortEvents() {
 	expectedSort := []bool{
 		true, true, true, false, false, false, false,
 	}
-	t.Require().Equal(len(expectedSort), len(response))
+	t.Require().Equal(len(expectedSort), len(response)) // nolint:testifylint
 	for i, event := range response {
 		t.Require().Equal(expectedSort[i], event.Enabled)
 	}

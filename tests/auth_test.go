@@ -170,37 +170,6 @@ func (s *AuthTestSuite) TestSudirLoginHappyPath() {
 	s.Require().Equal(tokenInfo.UserId, user.Id)
 }
 
-func (s *AuthTestSuite) initMockSudir() (*httptest.Server, string) {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/blitz/oauth/te", func(writer http.ResponseWriter, request *http.Request) {
-		res := entity.SudirTokenResponse{
-			SudirAuthError: nil,
-			IdToken:        "1",
-			AccessToken:    "token",
-		}
-		data, err := json.Marshal(res)
-		s.Require().NoError(err) //nolint:testifylint
-		_, err = writer.Write(data)
-		s.NoError(err)
-	})
-	mux.HandleFunc("/blitz/oauth/me", func(writer http.ResponseWriter, request *http.Request) {
-		res := entity.SudirUserResponse{
-			SudirAuthError: nil,
-			Email:          "sudir@email.ru",
-			Groups:         []string{"DIT-KKD-Admins"},
-			Sub:            "sudirUser1",
-			GivenName:      "name",
-			FamilyName:     "surname",
-		}
-		data, err := json.Marshal(res)
-		s.Require().NoError(err) //nolint:testifylint
-		_, err = writer.Write(data)
-		s.NoError(err)
-	})
-	srv := httptest.NewServer(mux)
-	return srv, srv.URL
-}
-
 func (s *AuthTestSuite) Test_Logout_HappyPath() {
 	userId := InsertUser(s.db, entity.User{Email: "suslik@mail.ru"})
 	InsertTokenEntity(s.db, entity.Token{
@@ -295,4 +264,35 @@ func (s *AuthTestSuite) TestBruteForceLogin() {
 
 	s.Require().EqualValues(97, tooManyRequestsErrorCount.Load())
 	s.Require().EqualValues(3, unauthorizedErrorCount.Load())
+}
+
+func (s *AuthTestSuite) initMockSudir() (*httptest.Server, string) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/blitz/oauth/te", func(writer http.ResponseWriter, request *http.Request) {
+		res := entity.SudirTokenResponse{
+			SudirAuthError: nil,
+			IdToken:        "1",
+			AccessToken:    "token",
+		}
+		data, err := json.Marshal(res)
+		s.Require().NoError(err) //nolint:testifylint
+		_, err = writer.Write(data)
+		s.NoError(err)
+	})
+	mux.HandleFunc("/blitz/oauth/me", func(writer http.ResponseWriter, request *http.Request) {
+		res := entity.SudirUserResponse{
+			SudirAuthError: nil,
+			Email:          "sudir@email.ru",
+			Groups:         []string{"DIT-KKD-Admins"},
+			Sub:            "sudirUser1",
+			GivenName:      "name",
+			FamilyName:     "surname",
+		}
+		data, err := json.Marshal(res)
+		s.Require().NoError(err) //nolint:testifylint
+		_, err = writer.Write(data)
+		s.NoError(err)
+	})
+	srv := httptest.NewServer(mux)
+	return srv, srv.URL
 }
