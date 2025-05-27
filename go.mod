@@ -9,7 +9,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.10.0
 	github.com/txix-open/bgjob v1.5.0
-	github.com/txix-open/isp-kit v1.48.1
+	github.com/txix-open/isp-kit v1.51.0
 	github.com/txix-open/jsonschema v1.3.0
 	golang.org/x/crypto v0.38.0
 	golang.org/x/sync v0.14.0
