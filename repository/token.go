@@ -3,9 +3,9 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"github.com/Masterminds/squirrel"
 	"time"
 
-	"github.com/Masterminds/squirrel"
 	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/db"
 	"github.com/txix-open/isp-kit/db/query"
@@ -137,29 +137,6 @@ func (r Token) UpdateStatusByUserId(ctx context.Context, userId int, status stri
 	}
 
 	return nil
-}
-
-func (r Token) LastAccessNotBlockedUsers(ctx context.Context) (map[int64]time.Time, error) {
-	ctx = sql_metrics.OperationLabelToContext(ctx, "Token.LastAccessNotBlockedUsers")
-
-	query := `
-	select t.user_id, max(t.created_at) as created_at from tokens t 
-	    join users u on t.user_id = u.id
-	    where u.blocked = false
-	    group by t.user_id
-`
-	tokens := make([]entity.Token, 0)
-	err := r.db.Select(ctx, &tokens, query)
-	if err != nil {
-		return nil, errors.WithMessagef(err, "select query: %s", query)
-	}
-
-	result := make(map[int64]time.Time, 0)
-	for _, token := range tokens {
-		result[token.UserId] = token.CreatedAt
-	}
-
-	return result, nil
 }
 
 func (r Token) LastAccessByUserIds(ctx context.Context, userIds []int) (map[int64]*time.Time, error) {

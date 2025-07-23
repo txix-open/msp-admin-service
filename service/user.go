@@ -34,6 +34,7 @@ type UserRepo interface {
 	Insert(ctx context.Context, user entity.User) (int, error)
 	ChangeBlockStatus(ctx context.Context, userId int) (bool, error)
 	ChangePassword(ctx context.Context, userId int64, newPassword string) error
+	UpdateLastActiveAt(ctx context.Context, userId int64, lastActiveAt time.Time) error
 }
 
 type TokenRepo interface {
@@ -371,7 +372,7 @@ func (u User) Block(ctx context.Context, adminId int64, userId int) error {
 		}
 
 		if blocked {
-			err := tx.UpdateStatusByUserId(ctx, userId, entity.TokenStatusRevoked)
+			err = tx.UpdateStatusByUserId(ctx, userId, entity.TokenStatusRevoked)
 			if err != nil {
 				return errors.WithMessage(err, "revoke tokens")
 			}
@@ -379,6 +380,11 @@ func (u User) Block(ctx context.Context, adminId int64, userId int) error {
 
 		if !blocked {
 			userBlocked = "разблокировка"
+			lastActiveAt := time.Now().UTC()
+			err = tx.UpdateLastActiveAt(ctx, int64(userId), lastActiveAt)
+			if err != nil {
+				return errors.WithMessage(err, "update user last_active_at")
+			}
 		}
 
 		return nil
@@ -444,32 +450,45 @@ func diffToString(a map[string]any, b map[string]any) string {
 }
 
 func (u User) ChangePassword(ctx context.Context, adminId int64, oldPassword string, newPassword string) error {
-	admin, err := u.userRepo.GetUserById(ctx, adminId)
+	err := u.txRunner.UserTransaction(ctx, func(ctx context.Context, tx UserTransaction) error {
+		admin, err := tx.GetUserById(ctx, adminId)
+		if err != nil {
+			return errors.WithMessage(err, "user.service.ChangePassword: get user by id")
+		}
+
+		if err = bcrypt.CompareHashAndPassword([]byte(admin.Password), []byte(oldPassword)); err != nil {
+			u.auditService.SaveAuditAsync(ctx, adminId, "Указан неверный старый пароль", entity.EventErrorPasswordChange)
+			return domain.ErrInvalidPassword
+		}
+
+		encryptedPassword, err := u.cryptPassword(newPassword)
+		if err != nil {
+			return errors.WithMessage(err, "user.service.ChangePassword: crypt new password")
+		}
+
+		err = tx.ChangePassword(ctx, adminId, encryptedPassword)
+		if err != nil {
+			return errors.WithMessage(err, "user.service.ChangePassword: change password ")
+		}
+
+		err = u.tokenService.RevokeAllByUserId(ctx, adminId)
+		if err != nil {
+			return errors.WithMessage(err, "revoke all tokens by user id")
+		}
+
+		lastActiveAt := time.Now().UTC()
+		err = tx.UpdateLastActiveAt(ctx, adminId, lastActiveAt)
+		if err != nil {
+			return errors.WithMessage(err, "update user last_active_at")
+		}
+
+		u.auditService.SaveAuditAsync(ctx, adminId, "Сменил пароль", entity.EventUserPasswordChanged)
+
+		return nil
+	})
 	if err != nil {
-		return errors.WithMessage(err, "user.service.ChangePassword: get user by id")
+		return errors.WithMessage(err, "user transaction")
 	}
-
-	if err := bcrypt.CompareHashAndPassword([]byte(admin.Password), []byte(oldPassword)); err != nil {
-		u.auditService.SaveAuditAsync(ctx, adminId, "Указан неверный старый пароль", entity.EventErrorPasswordChange)
-		return domain.ErrInvalidPassword
-	}
-
-	encryptedPassword, err := u.cryptPassword(newPassword)
-	if err != nil {
-		return errors.WithMessage(err, "user.service.ChangePassword: crypt new password")
-	}
-
-	err = u.userRepo.ChangePassword(ctx, adminId, encryptedPassword)
-	if err != nil {
-		return errors.WithMessage(err, "user.service.ChangePassword: change password ")
-	}
-
-	err = u.tokenService.RevokeAllByUserId(ctx, adminId)
-	if err != nil {
-		return errors.WithMessage(err, "revoke all tokens by user id")
-	}
-
-	u.auditService.SaveAuditAsync(ctx, adminId, "Сменил пароль", entity.EventUserPasswordChanged)
 
 	return nil
 }

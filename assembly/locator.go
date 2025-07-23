@@ -115,7 +115,6 @@ func (l Locator) Config(
 	)
 
 	inactiveBlocker := inactive_worker.NewInactiveBlocker(
-		tokenRepo,
 		userRepo,
 		auditService,
 		userRoleRepo,

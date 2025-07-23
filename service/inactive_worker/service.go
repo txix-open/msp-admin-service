@@ -19,11 +19,8 @@ type AuditRepo interface {
 	SaveAuditAsync(ctx context.Context, userId int64, message string, event string)
 }
 
-type TokenRepo interface {
-	LastAccessNotBlockedUsers(ctx context.Context) (map[int64]time.Time, error)
-}
-
 type UserRepo interface {
+	LastAccessNotBlockedUsers(ctx context.Context) (map[int64]time.Time, error)
 	Block(ctx context.Context, userId int) (*entity.User, error)
 }
 
@@ -36,7 +33,6 @@ type UserRoleRepo interface {
 }
 
 type Service struct {
-	tokenRepo    TokenRepo
 	userRepo     UserRepo
 	auditRepo    AuditRepo
 	userRoleRepo UserRoleRepo
@@ -47,7 +43,6 @@ type Service struct {
 }
 
 func NewInactiveBlocker(
-	tokensRepo TokenRepo,
 	userRepo UserRepo,
 	auditRepo AuditRepo,
 	userRoleRepo UserRoleRepo,
@@ -56,7 +51,6 @@ func NewInactiveBlocker(
 	logger log.Logger,
 ) Service {
 	return Service{
-		tokenRepo:    tokensRepo,
 		userRepo:     userRepo,
 		auditRepo:    auditRepo,
 		userRoleRepo: userRoleRepo,
@@ -79,7 +73,7 @@ func (w Service) Handle(ctx context.Context, _ bgjob.Job) bgjob.Result {
 }
 
 func (w Service) do(ctx context.Context) error {
-	lastAccess, err := w.tokenRepo.LastAccessNotBlockedUsers(ctx)
+	lastAccess, err := w.userRepo.LastAccessNotBlockedUsers(ctx)
 	if err != nil {
 		return errors.WithMessage(err, "get last access times")
 	}
