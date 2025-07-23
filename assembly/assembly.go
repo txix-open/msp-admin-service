@@ -16,10 +16,8 @@ import (
 	"github.com/txix-open/isp-kit/http/httpclix"
 	"github.com/txix-open/isp-kit/log"
 	"msp-admin-service/conf"
-	ldapRepo "msp-admin-service/repository/ldap"
 	"msp-admin-service/service/delete_old_audit_worker"
 	"msp-admin-service/service/inactive_worker"
-	"msp-admin-service/service/ldap"
 )
 
 type Assembly struct {
@@ -65,13 +63,7 @@ func (a *Assembly) ReceiveConfig(ctx context.Context, remoteConfig []byte) error
 	}
 
 	locator := NewLocator(a.logger, a.httpCli, a.db)
-	config := locator.Config(ctx, func(config *conf.Ldap) (ldap.Repo, error) {
-		repo, err := ldapRepo.NewRepository(config)
-		if err != nil {
-			return nil, errors.WithMessage(err, "new repository")
-		}
-		return repo, nil
-	}, newCfg, time.Minute)
+	config := locator.Config(ctx, newCfg, time.Minute)
 
 	a.server.Upgrade(config.Handler)
 

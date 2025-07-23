@@ -24,10 +24,6 @@ type UserRepo interface {
 	Block(ctx context.Context, userId int) (*entity.User, error)
 }
 
-type LdapService interface {
-	SyncGroups(ctx context.Context, user entity.User) error
-}
-
 type UserRoleRepo interface {
 	UpsertUserRoleLinks(ctx context.Context, id int, roleIds []int) error
 }
@@ -36,7 +32,6 @@ type Service struct {
 	userRepo     UserRepo
 	auditRepo    AuditRepo
 	userRoleRepo UserRoleRepo
-	ldapService  LdapService
 	threshold    time.Duration
 	syncPeriod   time.Duration
 	logger       log.Logger
@@ -46,7 +41,6 @@ func NewInactiveBlocker(
 	userRepo UserRepo,
 	auditRepo AuditRepo,
 	userRoleRepo UserRoleRepo,
-	ldapService LdapService,
 	config conf.BlockInactiveWorker,
 	logger log.Logger,
 ) Service {
@@ -54,7 +48,6 @@ func NewInactiveBlocker(
 		userRepo:     userRepo,
 		auditRepo:    auditRepo,
 		userRoleRepo: userRoleRepo,
-		ldapService:  ldapService,
 		threshold:    time.Duration(config.DaysThreshold) * 24 * time.Hour,
 		syncPeriod:   time.Minute * time.Duration(config.RunIntervalInMinutes),
 		logger:       logger,
@@ -86,7 +79,7 @@ func (w Service) do(ctx context.Context) error {
 		}
 
 		w.logger.Info(ctx, "block inactive user", log.Int64("userId", userId), log.Any("lastAccessTime", lastAccess))
-		user, err := w.userRepo.Block(ctx, int(userId))
+		_, err := w.userRepo.Block(ctx, int(userId))
 		if err != nil {
 			return errors.WithMessagef(err, "block user %d", userId)
 		}
@@ -94,11 +87,6 @@ func (w Service) do(ctx context.Context) error {
 		err = w.userRoleRepo.UpsertUserRoleLinks(ctx, int(userId), []int{})
 		if err != nil {
 			return errors.WithMessage(err, "empty user roles links")
-		}
-
-		err = w.ldapService.SyncGroups(ctx, *user)
-		if err != nil {
-			w.logger.Error(ctx, errors.WithMessage(err, "remove ldap groups"))
 		}
 
 		w.auditRepo.SaveAuditAsync(ctx, userId, "Блокировка неактивной УЗ", entity.EventUserChanged)

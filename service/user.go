@@ -51,10 +51,6 @@ type roleRepoUser interface {
 	GetRoleByIds(ctx context.Context, id []int) ([]entity.Role, error)
 }
 
-type LdapService interface {
-	SyncGroupsAsync(ctx context.Context, user entity.User)
-}
-
 type User struct {
 	userRepo      UserRepo
 	userRoleRepo  UserRoleRepo
@@ -62,7 +58,6 @@ type User struct {
 	tokenRepo     TokenRepo
 	auditService  auditService
 	txRunner      UserTransactionRunner
-	ldapService   LdapService
 	tokenService  tokenService
 	idleTimeoutMs int
 	logger        log.Logger
@@ -75,7 +70,6 @@ func NewUser(
 	tokenRepo TokenRepo,
 	service auditService,
 	txRunner UserTransactionRunner,
-	ldapService LdapService,
 	tokenService tokenService,
 	idleTimeoutMs int,
 	logger log.Logger,
@@ -87,7 +81,6 @@ func NewUser(
 		tokenRepo:     tokenRepo,
 		auditService:  service,
 		txRunner:      txRunner,
-		ldapService:   ldapService,
 		tokenService:  tokenService,
 		idleTimeoutMs: idleTimeoutMs,
 		logger:        logger,
@@ -218,8 +211,6 @@ func (u User) CreateUser(ctx context.Context, req domain.CreateUserRequest, admi
 		return nil, errors.WithMessage(err, "create user transaction")
 	}
 
-	u.ldapService.SyncGroupsAsync(ctx, usr)
-
 	slices.Sort(req.Roles)
 	diff := diffToString(map[string]any{
 		"Имя":       "",
@@ -298,8 +289,6 @@ func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, admi
 	if err != nil {
 		return nil, errors.WithMessage(err, "update user transaction")
 	}
-
-	u.ldapService.SyncGroupsAsync(ctx, *user)
 
 	slices.Sort(req.Roles)
 	diff := diffToString(map[string]any{

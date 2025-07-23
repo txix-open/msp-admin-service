@@ -40,7 +40,7 @@ func (s *SecureSuite) SetupTest() {
 		ExpireSec: 3600,
 	}
 	cfg := assembly.NewLocator(s.test.Logger(), httpCli, s.db).
-		Config(context.Background(), emptyLdap, remote, time.Minute)
+		Config(context.Background(), remote, time.Minute)
 
 	server, apiCli := grpct.TestServer(s.test, cfg.Handler)
 	s.test.T().Cleanup(func() {
