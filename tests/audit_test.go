@@ -66,7 +66,7 @@ func (t *AuditSuite) SetupTest() {
 		},
 	}
 	cfg := assembly.NewLocator(testInstance.Logger(), httpcli.New(), t.db).
-		Config(context.Background(), emptyLdap, remote, time.Minute)
+		Config(context.Background(), remote, time.Minute)
 
 	server, apiCli := grpct.TestServer(testInstance, cfg.Handler)
 	t.grpcCli = apiCli

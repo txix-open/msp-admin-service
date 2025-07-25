@@ -17,7 +17,6 @@ import (
 	"msp-admin-service/service"
 	"msp-admin-service/service/delete_old_audit_worker"
 	"msp-admin-service/service/inactive_worker"
-	"msp-admin-service/service/ldap"
 	"msp-admin-service/service/secure"
 	"msp-admin-service/transaction"
 )
@@ -49,7 +48,6 @@ type Config struct {
 //nolint:funlen
 func (l Locator) Config(
 	ctx context.Context,
-	ldapRepoSupplier ldap.RepoSupplier,
 	cfg conf.Remote,
 	jobPollInterval time.Duration,
 ) Config {
@@ -68,8 +66,6 @@ func (l Locator) Config(
 
 	txManager := transaction.NewManager(l.db)
 
-	ldapService := ldap.NewService(cfg.Ldap, ldapRepoSupplier, userRoleRepo, roleRepo, l.logger)
-
 	userService := service.NewUser(
 		userRepo,
 		userRoleRepo,
@@ -77,7 +73,6 @@ func (l Locator) Config(
 		tokenRepo,
 		auditService,
 		txManager,
-		ldapService,
 		tokenService,
 		cfg.IdleTimeoutMs,
 		l.logger,
@@ -115,11 +110,9 @@ func (l Locator) Config(
 	)
 
 	inactiveBlocker := inactive_worker.NewInactiveBlocker(
-		tokenRepo,
 		userRepo,
 		auditService,
 		userRoleRepo,
-		ldapService,
 		cfg.BlockInactiveWorker,
 		l.logger,
 	)
