@@ -25,7 +25,7 @@ func TestInactiveWorker(t *testing.T) {
 	InsertUser(db, entity.User{Email: "b@test", LastActiveAt: time.Now().UTC()})
 
 	config := assembly.NewLocator(test.Logger(), nil, db).
-		Config(t.Context(), emptyLdap, conf.Remote{
+		Config(t.Context(), conf.Remote{
 			BlockInactiveWorker: conf.BlockInactiveWorker{
 				DaysThreshold:        1,
 				RunIntervalInMinutes: 1,

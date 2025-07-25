@@ -29,7 +29,6 @@ type Remote struct {
 	AntiBruteforce      AntiBruteforce      `schema:"Настройки антибрут для admin login"`
 	BlockInactiveWorker BlockInactiveWorker `validate:"required" schema:"Блокировка неактивных УЗ"`
 	Permissions         []Permission        `schema:"Список разрешений"`
-	Ldap                *Ldap               `schema:"Настройки LDAP"`
 }
 
 type Audit struct {
@@ -72,11 +71,4 @@ type BlockInactiveWorker struct {
 type Permission struct {
 	Key  string
 	Name string
-}
-
-type Ldap struct {
-	Address  string `validate:"required" schema:"Адрес LDAP"`
-	Username string `validate:"required" schema:"Пользователь сервисной УЗ"`
-	Password string `validate:"required" schema:"Пароль сервисной УЗ"`
-	BaseDn   string `validate:"required"`
 }
