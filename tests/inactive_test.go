@@ -21,25 +21,11 @@ func TestInactiveWorker(t *testing.T) {
 	test, require := test.New(t)
 	db := dbt.New(test, dbx.WithMigrationRunner("../migrations", test.Logger()))
 
-	userId := InsertUser(db, entity.User{Email: "a@test"})
-	InsertUser(db, entity.User{Email: "b@test"})
-	InsertTokenEntity(db, entity.Token{
-		Id:        0,
-		Token:     "123",
-		UserId:    userId,
-		Status:    entity.TokenStatusAllowed,
-		CreatedAt: time.Now().UTC().Add(-48 * time.Hour),
-	})
-	InsertTokenEntity(db, entity.Token{
-		Id:        0,
-		Token:     "234",
-		UserId:    userId,
-		Status:    entity.TokenStatusAllowed,
-		CreatedAt: time.Now().UTC().Add(-5 * 24 * time.Hour),
-	})
+	userId := InsertUser(db, entity.User{Email: "a@test", LastActiveAt: time.Now().UTC().Add(-5 * 24 * time.Hour)})
+	InsertUser(db, entity.User{Email: "b@test", LastActiveAt: time.Now().UTC()})
 
 	config := assembly.NewLocator(test.Logger(), nil, db).
-		Config(t.Context(), emptyLdap, conf.Remote{
+		Config(t.Context(), conf.Remote{
 			BlockInactiveWorker: conf.BlockInactiveWorker{
 				DaysThreshold:        1,
 				RunIntervalInMinutes: 1,

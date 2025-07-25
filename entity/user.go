@@ -3,16 +3,17 @@ package entity
 import "time"
 
 type User struct {
-	SudirUserId *string
-	Id          int64
-	FirstName   string
-	LastName    string
-	Description string
-	Email       string
-	Password    string
-	Blocked     bool
-	UpdatedAt   time.Time
-	CreatedAt   time.Time
+	SudirUserId  *string
+	Id           int64
+	FirstName    string
+	LastName     string
+	Description  string
+	Email        string
+	Password     string
+	Blocked      bool
+	LastActiveAt time.Time
+	UpdatedAt    time.Time
+	CreatedAt    time.Time
 }
 
 type SudirUser struct {

@@ -31,6 +31,7 @@ type userRepository interface {
 	GetUserByEmail(ctx context.Context, email string) (*entity.User, error)
 	UpsertBySudirUserId(ctx context.Context, user entity.User) (*entity.User, error)
 	UpdateUser(ctx context.Context, id int64, user entity.UpdateUser) (*entity.User, error)
+	UpdateLastActiveAt(ctx context.Context, userId int64, lastActiveAt time.Time) error
 }
 
 type tokenService interface {
@@ -118,6 +119,12 @@ func (a Auth) Login(ctx context.Context, request domain.LoginRequest) (*domain.L
 			return errors.WithMessage(err, "generate token")
 		}
 
+		lastActiveAt := time.Now().UTC()
+		err = tx.UpdateLastActiveAt(ctx, user.Id, lastActiveAt)
+		if err != nil {
+			return errors.WithMessage(err, "update user last_active_at")
+		}
+
 		a.auditService.SaveAuditAsync(ctx, user.Id, "Успешный вход через форму входа", entity.EventSuccessLogin)
 
 		return nil
@@ -185,6 +192,12 @@ func (a Auth) LoginWithSudir(ctx context.Context, request domain.LoginSudirReque
 			return errors.WithMessage(err, "generate token")
 		}
 
+		lastActiveAt := time.Now().UTC()
+		err = tx.UpdateLastActiveAt(ctx, user.Id, lastActiveAt)
+		if err != nil {
+			return errors.WithMessage(err, "update user last_active_at")
+		}
+
 		return nil
 	})
 	if err != nil {
@@ -201,12 +214,24 @@ func (a Auth) LoginWithSudir(ctx context.Context, request domain.LoginSudirReque
 }
 
 func (a Auth) Logout(ctx context.Context, adminId int64) error {
-	err := a.tokenService.RevokeAllByUserId(ctx, adminId)
-	if err != nil {
-		return errors.WithMessage(err, "revoke all tokens by user id")
-	}
+	err := a.txRunner.AuthTransaction(ctx, func(ctx context.Context, tx AuthTransaction) error {
+		err := a.tokenService.RevokeAllByUserId(ctx, adminId)
+		if err != nil {
+			return errors.WithMessage(err, "revoke all tokens by user id")
+		}
 
-	a.auditService.SaveAuditAsync(ctx, adminId, "Выход", entity.EventSuccessLogout)
+		lastActiveAt := time.Now().UTC()
+		err = tx.UpdateLastActiveAt(ctx, adminId, lastActiveAt)
+		if err != nil {
+			return errors.WithMessage(err, "update user last_active_at")
+		}
+
+		a.auditService.SaveAuditAsync(ctx, adminId, "Выход", entity.EventSuccessLogout)
+		return nil
+	})
+	if err != nil {
+		return errors.WithMessage(err, "auth transaction")
+	}
 
 	return nil
 }

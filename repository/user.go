@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/pkg/errors"
@@ -233,6 +234,32 @@ func (u User) Block(ctx context.Context, userId int) (*entity.User, error) {
 	return &user, nil
 }
 
+func (u User) LastAccessNotBlockedUsers(ctx context.Context) (map[int64]time.Time, error) {
+	ctx = sql_metrics.OperationLabelToContext(ctx, "User.LastAccessNotBlockedUsers")
+
+	q, args, err := query.New().
+		Select("id, last_active_at").
+		From("users").
+		Where(squirrel.Eq{"blocked": false}).
+		ToSql()
+	if err != nil {
+		return nil, errors.WithMessage(err, "build query")
+	}
+
+	users := make([]entity.User, 0)
+	err = u.db.Select(ctx, &users, q, args...)
+	if err != nil {
+		return nil, errors.WithMessagef(err, "select query: %s", q)
+	}
+
+	result := make(map[int64]time.Time, 0)
+	for _, user := range users {
+		result[user.Id] = user.LastActiveAt
+	}
+
+	return result, nil
+}
+
 func (u User) ChangePassword(ctx context.Context, userId int64, newPassword string) error {
 	ctx = sql_metrics.OperationLabelToContext(ctx, "User.ChangePassword")
 
@@ -250,5 +277,16 @@ func (u User) ChangePassword(ctx context.Context, userId int64, newPassword stri
 		return errors.WithMessagef(err, "user.repo.ChangePassword: exec query: %s", q)
 	}
 
+	return nil
+}
+
+func (u User) UpdateLastActiveAt(ctx context.Context, userId int64, lastActiveAt time.Time) error {
+	ctx = sql_metrics.OperationLabelToContext(ctx, "User.UpdateLastActiveAt")
+
+	q := "update users set last_active_at = $1 where id = $2"
+	_, err := u.db.Exec(ctx, q, lastActiveAt, userId)
+	if err != nil {
+		return errors.WithMessagef(err, "user.repo.UpdateLastActiveAt: exec query: %s", q)
+	}
 	return nil
 }
