@@ -25,7 +25,7 @@ func NewSudir(httpCli *httpcli.Client, cfg *conf.SudirAuth) Sudir {
 }
 
 func (s Sudir) GetToken(ctx context.Context, authCode string) (*entity.SudirTokenResponse, error) {
-	urlString, err := url.JoinPath(s.cfg.Host, "/blitz/oauth/te")
+	urlString, err := url.JoinPath(s.cfg.Host, "/oauth/te")
 	if err != nil {
 		return nil, errors.WithMessage(err, "build url")
 	}
@@ -56,7 +56,7 @@ func (s Sudir) GetToken(ctx context.Context, authCode string) (*entity.SudirToke
 }
 
 func (s Sudir) GetUser(ctx context.Context, accessToken string) (*entity.SudirUserResponse, error) {
-	urlString, err := url.JoinPath(s.cfg.Host, "/blitz/oauth/me")
+	urlString, err := url.JoinPath(s.cfg.Host, "/oauth/me")
 	if err != nil {
 		return nil, errors.WithMessage(err, "build url")
 	}
