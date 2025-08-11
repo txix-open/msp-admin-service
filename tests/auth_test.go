@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strconv"
 	"sync/atomic"
 	"testing"
@@ -50,12 +51,13 @@ func (s *AuthTestSuite) SetupTest() {
 	s.httpCli = httpcli.New()
 
 	mocksrv, host := s.initMockSudir()
+	sudirHost, _ := url.JoinPath(host, "/blitz/")
 
 	remote := conf.Remote{
 		SudirAuth: &conf.SudirAuth{
 			ClientId:     "admin",
 			ClientSecret: "admin",
-			Host:         host,
+			Host:         sudirHost,
 			RedirectURI:  "http://localhost",
 		},
 		ExpireSec: 3600,
