@@ -6,6 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/txix-open/bgjob"
+	"github.com/txix-open/isp-kit/bgjobx/handler"
 	"github.com/txix-open/isp-kit/log"
 	"msp-admin-service/conf"
 )
@@ -38,13 +39,13 @@ func NewService(
 	}
 }
 
-func (s Service) Handle(ctx context.Context, _ bgjob.Job) bgjob.Result {
+func (s Service) Handle(ctx context.Context, _ bgjob.Job) handler.Result {
 	err := s.deleteOldAudit(ctx)
 	if err != nil {
-		return bgjob.Retry(defaultRetryTimeout, errors.WithMessage(err, "sync state with worker"))
+		return handler.Retry(defaultRetryTimeout, errors.WithMessage(err, "sync state with worker"))
 	}
 
-	return bgjob.Reschedule(s.syncPeriod)
+	return handler.Reschedule(s.syncPeriod)
 }
 
 func (s Service) deleteOldAudit(ctx context.Context) error {

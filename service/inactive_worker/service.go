@@ -6,6 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/txix-open/bgjob"
+	"github.com/txix-open/isp-kit/bgjobx/handler"
 	"github.com/txix-open/isp-kit/log"
 	"msp-admin-service/conf"
 	"msp-admin-service/entity"
@@ -54,15 +55,15 @@ func NewInactiveBlocker(
 	}
 }
 
-func (w Service) Handle(ctx context.Context, _ bgjob.Job) bgjob.Result {
+func (w Service) Handle(ctx context.Context, _ bgjob.Job) handler.Result {
 	ctx = log.ToContext(ctx, log.String("worker", "inactiveBlocker"))
 	w.logger.Debug(ctx, "begin work")
 	err := w.do(ctx)
 	if err != nil {
-		return bgjob.Retry(defaultRetryTimeout, errors.WithMessage(err, "sync state with worker"))
+		return handler.Retry(defaultRetryTimeout, errors.WithMessage(err, "sync state with worker"))
 	}
 	w.logger.Debug(ctx, "end work")
-	return bgjob.Reschedule(w.syncPeriod)
+	return handler.Reschedule(w.syncPeriod)
 }
 
 func (w Service) do(ctx context.Context) error {
