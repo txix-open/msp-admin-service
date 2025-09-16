@@ -11,13 +11,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pkg/errors"
-	"golang.org/x/sync/errgroup"
 	"msp-admin-service/assembly"
 	"msp-admin-service/conf"
 	"msp-admin-service/domain"
 	"msp-admin-service/entity"
 	"msp-admin-service/repository"
+
+	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/stretchr/testify/suite"
 	"github.com/txix-open/isp-kit/dbx"
@@ -38,6 +39,7 @@ func TestAuthTestSuite(t *testing.T) {
 
 type AuthTestSuite struct {
 	suite.Suite
+
 	test    *test.Test
 	db      *dbt.TestDb
 	grpcCli *client.Client

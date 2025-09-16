@@ -174,6 +174,11 @@ definitions:
     required:
     - authCode
     type: object
+  domain.LogoutRequest:
+    properties:
+      reason:
+        type: string
+    type: object
   domain.PageRequest:
     properties:
       limit:
@@ -228,7 +233,6 @@ definitions:
   domain.SecureAuthResponse:
     properties:
       adminId:
-        format: int64
         type: integer
       authenticated:
         type: boolean
@@ -310,7 +314,6 @@ definitions:
       firstName:
         type: string
       id:
-        format: int64
         type: integer
       lastName:
         type: string
@@ -329,7 +332,6 @@ definitions:
         type: string
       ids:
         items:
-          format: int64
           type: integer
         type: array
       limit:
@@ -446,6 +448,39 @@ paths:
           schema:
             $ref: '#/definitions/domain.GrpcError'
       summary: Выход из авторизованной сессии
+      tags:
+      - auth
+  /auth/logout_with_reason:
+    post:
+      consumes:
+      - application/json
+      description: Выход по бездействию из авторизованной сессии администрирования
+      parameters:
+      - description: Тело запроса
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.LogoutRequest'
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Невалидный токен
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Выход по бездействию из авторизованной сессии
       tags:
       - auth
   /log/all:

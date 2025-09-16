@@ -50,6 +50,11 @@ func endpointDescriptors(c Controllers) []cluster.EndpointDescriptor {
 			Handler: c.Auth.Logout,
 		},
 		{
+			Path:    "admin/auth/logout_with_reason",
+			Inner:   true,
+			Handler: c.Auth.LogoutWithReason,
+		},
+		{
 			Path:    "admin/user/get_profile",
 			Inner:   true,
 			Handler: c.User.GetProfile,

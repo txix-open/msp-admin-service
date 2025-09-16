@@ -22,6 +22,7 @@ func TestCustomizationTestSuite(t *testing.T) {
 
 type CustomizationTestSuite struct {
 	suite.Suite
+
 	test    *test.Test
 	db      *dbt.TestDb
 	grpcCli *client.Client
