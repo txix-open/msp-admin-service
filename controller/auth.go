@@ -16,7 +16,7 @@ import (
 type authService interface {
 	Login(ctx context.Context, request domain.LoginRequest) (*domain.LoginResponse, error)
 	LoginWithSudir(ctx context.Context, request domain.LoginSudirRequest) (*domain.LoginResponse, error)
-	Logout(ctx context.Context, adminId int64) error
+	Logout(ctx context.Context, adminId int64, request *domain.LogoutRequest) error
 }
 
 type Auth struct {
@@ -48,7 +48,33 @@ func (a Auth) Logout(ctx context.Context, authData grpc.AuthData) error {
 		return err
 	}
 
-	err = a.authService.Logout(ctx, adminId)
+	err = a.authService.Logout(ctx, adminId, nil)
+	if err != nil {
+		return errors.WithMessage(err, "logout")
+	}
+
+	return nil
+}
+
+// LogoutWithReason
+// @Tags auth
+// @Summary Выход по бездействию из авторизованной сессии
+// @Description Выход по бездействию из авторизованной сессии администрирования
+// @Accept json
+// @Produce json
+// @Param body body domain.LogoutRequest true "Тело запроса"
+// @Param X-AUTH-ADMIN header string true "Токен администратора"
+// @Success 200
+// @Failure 400 {object} domain.GrpcError "Невалидный токен"
+// @Failure 500 {object} domain.GrpcError
+// @Router /auth/logout_with_reason [POST]
+func (a Auth) LogoutWithReason(ctx context.Context, authData grpc.AuthData, logoutRequest domain.LogoutRequest) error {
+	adminId, err := getAdminId(authData)
+	if err != nil {
+		return err
+	}
+
+	err = a.authService.Logout(ctx, adminId, &logoutRequest)
 	if err != nil {
 		return errors.WithMessage(err, "logout")
 	}
