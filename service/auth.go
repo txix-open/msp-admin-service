@@ -213,7 +213,7 @@ func (a Auth) LoginWithSudir(ctx context.Context, request domain.LoginSudirReque
 	}, nil
 }
 
-func (a Auth) Logout(ctx context.Context, adminId int64) error {
+func (a Auth) Logout(ctx context.Context, adminId int64, request *domain.LogoutRequest) error {
 	err := a.txRunner.AuthTransaction(ctx, func(ctx context.Context, tx AuthTransaction) error {
 		err := a.tokenService.RevokeAllByUserId(ctx, adminId)
 		if err != nil {
@@ -224,6 +224,11 @@ func (a Auth) Logout(ctx context.Context, adminId int64) error {
 		err = tx.UpdateLastActiveAt(ctx, adminId, lastActiveAt)
 		if err != nil {
 			return errors.WithMessage(err, "update user last_active_at")
+		}
+
+		if request != nil && request.Reason == "idle" {
+			a.auditService.SaveAuditAsync(ctx, adminId, "Выход по бездействию", entity.EventSuccessLogout)
+			return nil
 		}
 
 		a.auditService.SaveAuditAsync(ctx, adminId, "Выход", entity.EventSuccessLogout)

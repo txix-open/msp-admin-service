@@ -5,13 +5,14 @@ import (
 	"database/sql"
 	"time"
 
+	"msp-admin-service/domain"
+	"msp-admin-service/entity"
+
 	"github.com/Masterminds/squirrel"
 	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/db"
 	"github.com/txix-open/isp-kit/db/query"
 	"github.com/txix-open/isp-kit/metrics/sql_metrics"
-	"msp-admin-service/domain"
-	"msp-admin-service/entity"
 )
 
 type User struct {
@@ -54,6 +55,36 @@ func (u User) GetUserById(ctx context.Context, identity int64) (*entity.User, er
 		Select("*").
 		From("users").
 		Where(squirrel.Eq{"id": identity}).
+		ToSql()
+	if err != nil {
+		return nil, errors.WithMessage(err, "build query")
+	}
+
+	user := entity.User{}
+	err = u.db.SelectRow(ctx, &user, q, args...)
+
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return nil, domain.ErrNotFound
+	case err != nil:
+		return nil, errors.WithMessage(err, "db select")
+	default:
+		return &user, nil
+	}
+}
+
+func (u User) GetUserByEmailAndSudirId(ctx context.Context, email string, sudir_user_id string) (*entity.User, error) {
+	ctx = sql_metrics.OperationLabelToContext(ctx, "User.GetUserByEmail")
+
+	equalClause := squirrel.Eq{"email": email, "sudir_user_id": nil}
+	if sudir_user_id != "" {
+		equalClause["sudir_user_id"] = sudir_user_id
+	}
+
+	q, args, err := query.New().
+		Select("*").
+		From("users").
+		Where(equalClause).
 		ToSql()
 	if err != nil {
 		return nil, errors.WithMessage(err, "build query")
@@ -132,6 +163,31 @@ func (u User) GetUsers(ctx context.Context, ids []int64, offset, limit int, emai
 	}
 
 	return users, nil
+}
+
+func (u User) GetUsersByEmail(ctx context.Context, email string) ([]entity.User, error) {
+	ctx = sql_metrics.OperationLabelToContext(ctx, "User.GetUserByEmail")
+
+	q, args, err := query.New().
+		Select("*").
+		From("users").
+		Where(squirrel.Eq{"email": email}).
+		ToSql()
+	if err != nil {
+		return nil, errors.WithMessage(err, "build query")
+	}
+
+	users := make([]entity.User, 0)
+	err = u.db.Select(ctx, &users, q, args...)
+
+	switch {
+	case errors.Is(err, sql.ErrNoRows) || len(users) == 0:
+		return nil, domain.ErrNotFound
+	case err != nil:
+		return nil, errors.WithMessage(err, "db select")
+	default:
+		return users, nil
+	}
 }
 
 func (u User) Insert(ctx context.Context, user entity.User) (int, error) {

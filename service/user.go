@@ -8,11 +8,12 @@ import (
 	"strings"
 	"time"
 
+	"msp-admin-service/domain"
+	"msp-admin-service/entity"
+
 	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/log"
 	"golang.org/x/crypto/bcrypt"
-	"msp-admin-service/domain"
-	"msp-admin-service/entity"
 )
 
 type UserTransaction interface {
@@ -28,7 +29,8 @@ type UserTransactionRunner interface {
 type UserRepo interface {
 	GetUserById(ctx context.Context, identity int64) (*entity.User, error)
 	GetUsers(ctx context.Context, ids []int64, offset, limit int, email string) ([]entity.User, error)
-	GetUserByEmail(ctx context.Context, email string) (*entity.User, error)
+	GetUserByEmailAndSudirId(ctx context.Context, email string, sudir_user_id string) (*entity.User, error)
+	GetUsersByEmail(ctx context.Context, email string) ([]entity.User, error)
 	UpdateUser(ctx context.Context, id int64, user entity.UpdateUser) (*entity.User, error)
 	DeleteUser(ctx context.Context, ids []int64) (int, error)
 	Insert(ctx context.Context, user entity.User) (int, error)
@@ -168,7 +170,7 @@ func (u User) CreateUser(ctx context.Context, req domain.CreateUserRequest, admi
 	var usr entity.User
 
 	err := u.txRunner.UserTransaction(ctx, func(ctx context.Context, tx UserTransaction) error {
-		user, err := tx.GetUserByEmail(ctx, req.Email)
+		user, err := tx.GetUserByEmailAndSudirId(ctx, req.Email, "")
 		switch {
 		case errors.Is(err, domain.ErrNotFound):
 			break
@@ -234,6 +236,7 @@ func (u User) CreateUser(ctx context.Context, req domain.CreateUserRequest, admi
 	return &result, nil
 }
 
+//nolint:cyclop,funlen
 func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, adminId int64) (*domain.User, error) {
 	var (
 		user                 *entity.User
@@ -244,7 +247,7 @@ func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, admi
 		return nil, errors.WithMessage(err, "get user roles")
 	}
 	err = u.txRunner.UserTransaction(ctx, func(ctx context.Context, tx UserTransaction) error {
-		_, err := tx.GetUserById(ctx, req.Id)
+		user, err = tx.GetUserById(ctx, req.Id)
 		switch {
 		case errors.Is(err, domain.ErrNotFound):
 			return err // nolint:wrapcheck
@@ -252,14 +255,24 @@ func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, admi
 			return errors.WithMessage(err, "get user by id")
 		}
 
-		user, err = tx.GetUserByEmail(ctx, req.Email)
+		users, err := tx.GetUsersByEmail(ctx, req.Email)
 		switch {
 		case errors.Is(err, domain.ErrNotFound):
 			break
 		case err != nil:
 			return errors.WithMessage(err, "get user by email or phone")
-		case user.Id != req.Id:
-			return domain.ErrAlreadyExists
+		}
+
+		for _, usr := range users {
+			// check in internal user space
+			if (user.SudirUserId == nil && usr.SudirUserId == nil) && (usr.Id != req.Id) {
+				return domain.ErrAlreadyExists
+			}
+
+			// check in sudir user space
+			if usr.SudirUserId != nil && user.SudirUserId != nil && (*user.SudirUserId != *usr.SudirUserId) {
+				return domain.ErrAlreadyExists
+			}
 		}
 
 		updateEntity := entity.UpdateUser{
@@ -445,7 +458,8 @@ func (u User) ChangePassword(ctx context.Context, adminId int64, oldPassword str
 			return errors.WithMessage(err, "user.service.ChangePassword: get user by id")
 		}
 
-		if err = bcrypt.CompareHashAndPassword([]byte(admin.Password), []byte(oldPassword)); err != nil {
+		err = bcrypt.CompareHashAndPassword([]byte(admin.Password), []byte(oldPassword))
+		if err != nil {
 			u.auditService.SaveAuditAsync(ctx, adminId, "Указан неверный старый пароль", entity.EventErrorPasswordChange)
 			return domain.ErrInvalidPassword
 		}
