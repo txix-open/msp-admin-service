@@ -28,6 +28,7 @@ func TestAuditSuite(t *testing.T) {
 
 type AuditSuite struct {
 	suite.Suite
+
 	test    *test.Test
 	db      *dbt.TestDb
 	grpcCli *client.Client

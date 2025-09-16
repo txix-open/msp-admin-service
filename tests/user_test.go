@@ -2,11 +2,19 @@ package tests_test
 
 import (
 	"context"
-	"github.com/txix-open/isp-kit/grpc/apierrors"
-	"golang.org/x/crypto/bcrypt"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/txix-open/isp-kit/grpc/apierrors"
+	"golang.org/x/crypto/bcrypt"
+
+	"msp-admin-service/assembly"
+	"msp-admin-service/conf"
+	"msp-admin-service/domain"
+	"msp-admin-service/entity"
+	"msp-admin-service/repository"
+	"msp-admin-service/service"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
@@ -18,12 +26,6 @@ import (
 	"github.com/txix-open/isp-kit/test/grpct"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"msp-admin-service/assembly"
-	"msp-admin-service/conf"
-	"msp-admin-service/domain"
-	"msp-admin-service/entity"
-	"msp-admin-service/repository"
-	"msp-admin-service/service"
 )
 
 type tokenService interface {
@@ -37,6 +39,7 @@ func TestUserTestSuite(t *testing.T) {
 
 type UserTestSuite struct {
 	suite.Suite
+
 	test         *test.Test
 	db           *dbt.TestDb
 	grpcCli      *client.Client
@@ -201,6 +204,33 @@ func (s *UserTestSuite) TestCreateUserHappyPath() {
 	s.Require().Equal(preCount+1, postCount)
 }
 
+func (s *UserTestSuite) TestCreateUserWithSameEmailSudirHappyPath() {
+	firstSudirId := "user_a"
+	admin := InsertSudirUser(s.db, entity.SudirUser{SudirUserId: firstSudirId, Email: "a2@a.ru"})
+
+	preCount := 0
+	s.db.Must().SelectRow(&preCount, "select count(*) from users")
+
+	response := entity.User{}
+	err := s.grpcCli.
+		Invoke("admin/user/create_user").
+		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(admin))).
+		JsonRequestBody(domain.CreateUserRequest{
+			FirstName: "name",
+			LastName:  "surname",
+			Email:     "a2@a.ru",
+			Password:  "password",
+		}).
+		JsonResponseBody(&response).
+		Do(context.Background())
+	s.Require().NoError(err)
+
+	postCount := 0
+	s.db.Must().SelectRow(&postCount, "select count(*) from users")
+
+	s.Require().Equal(preCount+1, postCount)
+}
+
 func (s *UserTestSuite) TestCreateUserAlreadyExist() {
 	id := InsertUser(s.db, entity.User{Email: "exists@a.ru"})
 
@@ -246,7 +276,7 @@ func (s *AuthTestSuite) TestUpdateUserHappyPath() {
 }
 
 func (s *AuthTestSuite) TestUpdateSudirUserHappyPath() {
-	id := InsertSudirUser(s.db, entity.SudirUser{Email: "sudir@a.ru"})
+	id := InsertSudirUser(s.db, entity.SudirUser{SudirUserId: "123", Email: "sudir@a.ru"})
 	req := domain.UpdateUserRequest{
 		Id:        id,
 		FirstName: "name",
@@ -273,6 +303,29 @@ func (s *AuthTestSuite) TestUpdateSudirUserHappyPath() {
 func (s *AuthTestSuite) TestUpdateUserAlreadyExist() {
 	admin := InsertUser(s.db, entity.User{Email: "a_exists@a.ru", Password: "password"})
 	id := InsertUser(s.db, entity.User{Email: "b_exists@b.ru", Password: "password"})
+	req := domain.UpdateUserRequest{
+		Id:        id,
+		FirstName: "name",
+		LastName:  "surname",
+		Email:     "a_exists@a.ru",
+	}
+	err := s.grpcCli.
+		Invoke("admin/user/update_user").
+		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(admin))).
+		JsonRequestBody(req).
+		Do(context.Background())
+	s.Require().Error(err)
+	st, ok := status.FromError(err)
+	s.Require().True(ok)
+	s.Require().Equal(codes.AlreadyExists, st.Code())
+}
+
+func (s *AuthTestSuite) TestUpdateUserWithSudirAlreadyExist() {
+	firstSudirId := "user_a"
+	secondSudirId := "user_b"
+
+	admin := InsertSudirUser(s.db, entity.SudirUser{SudirUserId: firstSudirId, Email: "a_exists@a.ru"})
+	id := InsertSudirUser(s.db, entity.SudirUser{SudirUserId: secondSudirId, Email: "b_exists@b.ru"})
 	req := domain.UpdateUserRequest{
 		Id:        id,
 		FirstName: "name",
