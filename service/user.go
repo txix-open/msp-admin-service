@@ -397,7 +397,7 @@ func (u User) Block(ctx context.Context, adminId int64, userId int) error {
 
 	u.auditService.SaveAuditAsync(ctx, adminId,
 		fmt.Sprintf("Пользователь. %s пользователя ID %d.", userBlocked, userId),
-		entity.EventUserChanged,
+		entity.EventUserBlocked,
 	)
 
 	return nil
@@ -496,7 +496,6 @@ func (u User) ChangePassword(ctx context.Context, adminId int64, oldPassword str
 	return nil
 }
 
-//nolint:gomnd
 func (u User) cryptPassword(password string) (string, error) {
 	passwordBytes, err := bcrypt.GenerateFromPassword([]byte(password), 12) //nolint:mnd
 	if err != nil {

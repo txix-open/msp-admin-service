@@ -4,12 +4,13 @@ import (
 	"context"
 	"time"
 
-	"github.com/pkg/errors"
-	"github.com/txix-open/isp-kit/log"
-	"golang.org/x/sync/errgroup"
 	"msp-admin-service/conf"
 	"msp-admin-service/domain"
 	"msp-admin-service/entity"
+
+	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/log"
+	"golang.org/x/sync/errgroup"
 )
 
 type AuditRepository interface {
@@ -45,6 +46,7 @@ func NewAudit(
 		entity.EventSuccessLogout: true,
 		entity.EventRoleChanged:   true,
 		entity.EventUserChanged:   true,
+		entity.EventUserBlocked:   true,
 	}
 
 	eventName := make(map[string]conf.AuditEventSetting)

@@ -5,6 +5,12 @@ import (
 	"testing"
 	"time"
 
+	"msp-admin-service/assembly"
+	"msp-admin-service/conf"
+	"msp-admin-service/domain"
+	"msp-admin-service/entity"
+	"msp-admin-service/repository"
+
 	"github.com/stretchr/testify/suite"
 	"github.com/txix-open/isp-kit/dbx"
 	"github.com/txix-open/isp-kit/grpc/client"
@@ -14,11 +20,6 @@ import (
 	"github.com/txix-open/isp-kit/test/grpct"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"msp-admin-service/assembly"
-	"msp-admin-service/conf"
-	"msp-admin-service/domain"
-	"msp-admin-service/entity"
-	"msp-admin-service/repository"
 )
 
 func TestAuditSuite(t *testing.T) {
@@ -62,6 +63,10 @@ func (t *AuditSuite) SetupTest() {
 					Event: entity.EventUserChanged,
 					Name:  "изменение пользователя",
 				},
+				{
+					Event: entity.EventUserBlocked,
+					Name:  "изменение статуса блокировки пользователя",
+				},
 			},
 			AuditTTl: conf.AuditTTlSetting{},
 		},
@@ -91,6 +96,7 @@ func (t *AuditSuite) Test_Events_DefaultEvents() {
 		entity.EventSuccessLogout: "успешный выход",
 		entity.EventRoleChanged:   "изменение роли",
 		entity.EventUserChanged:   "изменение пользователя",
+		entity.EventUserBlocked:   "изменение статуса блокировки пользователя",
 	}
 	for _, event := range response {
 		name, found := expectedEventList[event.Event]
@@ -110,6 +116,7 @@ func (t *AuditSuite) Test_Events_SortEvents() {
 		{Event: entity.EventSuccessLogout, Enable: true},
 		{Event: entity.EventRoleChanged, Enable: false},
 		{Event: entity.EventUserChanged, Enable: true},
+		{Event: entity.EventUserBlocked, Enable: true},
 		{Event: "новый#2", Enable: false},
 	})
 	t.Require().NoError(err)
@@ -122,7 +129,7 @@ func (t *AuditSuite) Test_Events_SortEvents() {
 	t.Require().NoError(err)
 
 	expectedSort := []bool{
-		true, true, true, false, false, false, false,
+		true, true, true, true, false, false, false, false,
 	}
 	t.Require().Equal(len(expectedSort), len(response)) // nolint:testifylint
 	for i, event := range response {
@@ -146,6 +153,7 @@ func (t *AuditSuite) Test_SetEvents_HappyPath() {
 		entity.EventSuccessLogout: true,
 		entity.EventRoleChanged:   false,
 		entity.EventUserChanged:   true,
+		entity.EventUserBlocked:   true,
 	}
 	eventRep := repository.NewAuditEvent(t.db)
 	eventList, err := eventRep.All(context.Background())
