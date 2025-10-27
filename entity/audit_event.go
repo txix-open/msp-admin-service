@@ -8,6 +8,7 @@ const (
 	EventUserChanged         = "user_changed"
 	EventUserPasswordChanged = "success_change_password"
 	EventErrorPasswordChange = "error_change_password"
+	EventUserBlocked         = "user_blocked"
 )
 
 type AuditEvent struct {

@@ -1,14 +1,14 @@
 package tests_test
 
 import (
+	"msp-admin-service/entity"
+
 	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/db/query"
 	"github.com/txix-open/isp-kit/test/dbt"
 	"golang.org/x/crypto/bcrypt"
-	"msp-admin-service/entity"
 )
 
-//nolint:gomnd
 func InsertUser(db *dbt.TestDb, user entity.User) int64 {
 	if user.Password != "" {
 		passwordBytes, _ := bcrypt.GenerateFromPassword([]byte(user.Password), 12)
