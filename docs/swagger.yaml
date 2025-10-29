@@ -33,6 +33,10 @@ definitions:
         type: array
       role:
         type: string
+      roleNames:
+        items:
+          type: string
+        type: array
       roles:
         items:
           type: integer
@@ -233,7 +237,6 @@ definitions:
   domain.SecureAuthResponse:
     properties:
       adminId:
-        format: int64
         type: integer
       authenticated:
         type: boolean
@@ -315,7 +318,6 @@ definitions:
       firstName:
         type: string
       id:
-        format: int64
         type: integer
       lastName:
         type: string
@@ -334,7 +336,6 @@ definitions:
         type: string
       ids:
         items:
-          format: int64
           type: integer
         type: array
       limit:

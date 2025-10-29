@@ -34,6 +34,7 @@ type AdminUserShort struct {
 	Email         string `validate:"required"`
 	Role          string
 	Roles         []int
+	RoleNames     []string
 	Permissions   []string
 	IdleTimeoutMs int
 }
