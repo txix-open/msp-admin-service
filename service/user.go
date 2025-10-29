@@ -105,8 +105,9 @@ func (u User) GetProfileById(ctx context.Context, userId int64) (*domain.AdminUs
 	roleIds := RolesIds(roles)
 
 	var (
-		roleList []entity.Role
-		roleName string
+		roleList  []entity.Role
+		roleName  string
+		roleNames []string
 	)
 	if len(roleIds) != 0 {
 		roleList, err = u.roleRepoUser.GetRoleByIds(ctx, roleIds)
@@ -115,6 +116,9 @@ func (u User) GetProfileById(ctx context.Context, userId int64) (*domain.AdminUs
 		}
 		if len(roleList) > 0 {
 			roleName = roleList[0].Name
+			for _, r := range roleList {
+				roleNames = append(roleNames, r.Name)
+			}
 		}
 	}
 
@@ -124,6 +128,7 @@ func (u User) GetProfileById(ctx context.Context, userId int64) (*domain.AdminUs
 		Email:         user.Email,
 		Role:          roleName,
 		Roles:         roleIds,
+		RoleNames:     roleNames,
 		IdleTimeoutMs: u.idleTimeoutMs,
 		Permissions:   mergePermissions(roleList),
 	}, nil

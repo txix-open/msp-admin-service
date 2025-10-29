@@ -99,6 +99,7 @@ func (s *UserTestSuite) TestGetProfileHappyPath() {
 		Email:       "a@a.ru",
 		Role:        "admin",
 		Roles:       []int{1},
+		RoleNames:   []string{"admin"},
 		Permissions: []string{},
 	}
 	s.Require().Equal(expected, response)
@@ -151,6 +152,7 @@ func (s *UserTestSuite) TestGetProfileSudir() {
 		Email:       "a@b.ru",
 		Role:        "admin",
 		Roles:       []int{1},
+		RoleNames:   []string{"admin"},
 		Permissions: []string{},
 	}
 	s.Require().Equal(expected, response)
