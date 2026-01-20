@@ -137,15 +137,19 @@ func (u User) UpsertBySudirUserId(ctx context.Context, user entity.User) (*entit
 func (u User) GetUsers(ctx context.Context, req domain.UsersPageRequest) ([]entity.User, error) {
 	ctx = sql_metrics.OperationLabelToContext(ctx, "User.GetUsers")
 
+	if req.Order == nil {
+		req.Order = &domain.OrderParams{
+			Field: domain.DefaultOrderField,
+			Type:  domain.DefaultOrderType,
+		}
+	}
+
 	q := query.New().
 		Select("*").
 		From("users").
+		OrderBy(req.Order.Field + " " + req.Order.Type).
 		Offset(uint64(req.Offset)).
 		Limit(uint64(req.Limit))
-
-	if req.Order != nil {
-		q = q.OrderBy(req.Order.Field + " " + req.Order.Type)
-	}
 
 	query, args, err := reqUsersQuery(q, req.Query).ToSql()
 	if err != nil {

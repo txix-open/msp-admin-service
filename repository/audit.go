@@ -50,15 +50,19 @@ func (r Audit) Insert(ctx context.Context, log entity.Audit) (int, error) {
 func (r Audit) All(ctx context.Context, req domain.AuditPageRequest) ([]entity.Audit, error) {
 	ctx = sql_metrics.OperationLabelToContext(ctx, "Audit.All")
 
+	if req.Order == nil {
+		req.Order = &domain.OrderParams{
+			Field: domain.DefaultOrderField,
+			Type:  domain.DefaultOrderType,
+		}
+	}
+
 	q := query.New().
 		Select("*").
 		From("audit").
+		OrderBy(req.Order.Field + " " + req.Order.Type).
 		Offset(uint64(req.Offset)).
 		Limit(uint64(req.Limit))
-
-	if req.Order != nil {
-		q = q.OrderBy(req.Order.Field + " " + req.Order.Type)
-	}
 
 	query, args, err := reqAuditQuery(q, req.Query).ToSql()
 	if err != nil {

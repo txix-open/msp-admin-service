@@ -2,6 +2,11 @@ package domain
 
 import "time"
 
+const (
+	DefaultOrderField = "created_at"
+	DefaultOrderType  = "DESC"
+)
+
 type LimitOffestParams struct {
 	Limit  int `validate:"required"`
 	Offset int
