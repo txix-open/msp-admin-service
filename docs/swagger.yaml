@@ -64,6 +64,30 @@ definitions:
       name:
         type: string
     type: object
+  domain.AuditPageRequest:
+    properties:
+      limit:
+        type: integer
+      offset:
+        type: integer
+      order:
+        $ref: '#/definitions/domain.OrderParams'
+      query:
+        $ref: '#/definitions/domain.AuditQuery'
+    required:
+    - limit
+    type: object
+  domain.AuditQuery:
+    properties:
+      createdAt:
+        $ref: '#/definitions/domain.DateFromToParams'
+      id:
+        type: integer
+      message:
+        type: string
+      userId:
+        type: integer
+    type: object
   domain.AuditResponse:
     properties:
       items:
@@ -115,6 +139,16 @@ definitions:
     required:
     - email
     - password
+    type: object
+  domain.DateFromToParams:
+    properties:
+      from:
+        type: string
+      to:
+        type: string
+    required:
+    - from
+    - to
     type: object
   domain.DeleteResponse:
     properties:
@@ -183,14 +217,17 @@ definitions:
       reason:
         type: string
     type: object
-  domain.PageRequest:
+  domain.OrderParams:
     properties:
-      limit:
-        type: integer
-      offset:
-        type: integer
-    required:
-    - limit
+      field:
+        type: string
+      type:
+        enum:
+        - asc
+        - desc
+        - ASC
+        - DESC
+        type: string
     type: object
   domain.Permission:
     properties:
@@ -237,6 +274,7 @@ definitions:
   domain.SecureAuthResponse:
     properties:
       adminId:
+        format: int64
         type: integer
       authenticated:
         type: boolean
@@ -255,11 +293,52 @@ definitions:
       authorized:
         type: boolean
     type: object
-  domain.SessionRequest:
+  domain.Session:
+    properties:
+      createdAt:
+        type: string
+      expiredAt:
+        type: string
+      id:
+        type: integer
+      status:
+        type: string
+      userId:
+        type: integer
+    type: object
+  domain.SessionPageRequest:
     properties:
       limit:
         type: integer
       offset:
+        type: integer
+      order:
+        $ref: '#/definitions/domain.OrderParams'
+      query:
+        $ref: '#/definitions/domain.SessionQuery'
+    required:
+    - limit
+    type: object
+  domain.SessionQuery:
+    properties:
+      createdAt:
+        $ref: '#/definitions/domain.DateFromToParams'
+      expiredAt:
+        $ref: '#/definitions/domain.DateFromToParams'
+      id:
+        type: integer
+      status:
+        type: string
+      userId:
+        type: integer
+    type: object
+  domain.SessionResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/domain.Session'
+        type: array
+      totalCount:
         type: integer
     type: object
   domain.SetAuditEvent:
@@ -318,6 +397,7 @@ definitions:
       firstName:
         type: string
       id:
+        format: int64
         type: integer
       lastName:
         type: string
@@ -330,18 +410,33 @@ definitions:
       updatedAt:
         type: string
     type: object
-  domain.UsersRequest:
+  domain.UserQuery:
     properties:
+      description:
+        type: string
       email:
         type: string
-      ids:
+      id:
+        type: integer
+      lastSessionCreatedAt:
+        $ref: '#/definitions/domain.DateFromToParams'
+      roles:
         items:
           type: integer
         type: array
+    type: object
+  domain.UsersPageRequest:
+    properties:
       limit:
         type: integer
       offset:
         type: integer
+      order:
+        $ref: '#/definitions/domain.OrderParams'
+      query:
+        $ref: '#/definitions/domain.UserQuery'
+    required:
+    - limit
     type: object
   domain.UsersResponse:
     properties:
@@ -502,7 +597,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/domain.PageRequest'
+          $ref: '#/definitions/domain.AuditPageRequest'
       produces:
       - application/json
       responses:
@@ -800,14 +895,14 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/domain.SessionRequest'
+          $ref: '#/definitions/domain.SessionPageRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/domain.PageRequest'
+            $ref: '#/definitions/domain.SessionResponse'
         "400":
           description: Невалидное тело запроса
           schema:
@@ -1096,7 +1191,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/domain.UsersRequest'
+          $ref: '#/definitions/domain.UsersPageRequest'
       produces:
       - application/json
       responses:
