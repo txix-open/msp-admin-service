@@ -200,7 +200,12 @@ func (s *AuthTestSuite) Test_Logout_NotFound() {
 
 	time.Sleep(time.Second)
 	audit := repository.NewAudit(s.db)
-	auditList, err := audit.All(context.Background(), 10, 0)
+	auditList, err := audit.All(context.Background(), domain.AuditPageRequest{
+		LimitOffestParams: domain.LimitOffestParams{
+			Limit:  10,
+			Offset: 0,
+		},
+	})
 	s.Require().NoError(err)
 	s.Require().Len(auditList, 1) //nolint:mnd
 	s.Require().Equal(entity.EventSuccessLogout, auditList[0].Event)

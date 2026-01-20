@@ -161,23 +161,99 @@ func (s *UserTestSuite) TestGetProfileSudir() {
 func (s *UserTestSuite) TestGetUsers() {
 	InsertUser(s.db, entity.User{Email: "a1@a.ru"})
 	InsertUser(s.db, entity.User{Email: "b1@a.ru"})
-	InsertUser(s.db, entity.User{Email: "a1@b.ru"})
-	InsertUser(s.db, entity.User{Email: "a1@c.ru"})
+	userId1 := InsertUser(s.db, entity.User{Email: "a1@b.ru"})
+	userId2 := InsertUser(s.db, entity.User{Email: "a1@c.ru"})
+	userId3 := InsertUser(s.db, entity.User{Email: "a1@d.ru"})
+
+	roleId1 := InsertRole(s.db, entity.Role{Name: "test_role_1"})
+	roleId2 := InsertRole(s.db, entity.Role{Name: "test_role_2"})
+
+	InsertUserRole(s.db, entity.UserRole{RoleId: int(roleId1), UserId: int(userId1)})
+	InsertUserRole(s.db, entity.UserRole{RoleId: int(roleId1), UserId: int(userId2)})
+	InsertUserRole(s.db, entity.UserRole{RoleId: int(roleId1), UserId: int(userId3)})
+
+	InsertUserRole(s.db, entity.UserRole{RoleId: int(roleId2), UserId: int(userId1)})
+	InsertUserRole(s.db, entity.UserRole{RoleId: int(roleId2), UserId: int(userId2)})
+
+	email := "a1@"
 
 	response := domain.UsersResponse{}
 	err := s.grpcCli.Invoke("admin/user/get_users").
-		JsonRequestBody(domain.UsersRequest{
-			Ids:    []int64{3, 4, 5, 6},
-			Offset: 1,
-			Limit:  1,
-			Email:  "a1@",
+		JsonRequestBody(domain.UsersPageRequest{
+			LimitOffestParams: domain.LimitOffestParams{
+				Limit:  5,
+				Offset: 1,
+			},
+			Order: &domain.OrderParams{
+				Field: "email",
+				Type:  "asc",
+			},
+			Query: &domain.UserQuery{
+				Email: &email,
+				Roles: []int{int(roleId2)},
+			},
+		}).
+		JsonResponseBody(&response).
+		Do(context.Background())
+	s.Require().NoError(err)
+
+	roles := []int{int(roleId1), int(roleId2)}
+
+	s.Require().Len(response.Items, 2) //nolint:mnd
+	s.Require().EqualValues("a1@b.ru", response.Items[0].Email)
+	s.Require().EqualValues(roles, response.Items[0].Roles)
+	s.Require().EqualValues("a1@c.ru", response.Items[1].Email)
+	s.Require().EqualValues(roles, response.Items[1].Roles)
+}
+
+func (s *UserTestSuite) TestGetUsersFilterByLastActiveAt() {
+	userId1 := InsertUser(s.db, entity.User{Email: "test1@a.ru"})
+	userId2 := InsertUser(s.db, entity.User{Email: "test2@a.ru"})
+
+	userTime1, err := time.Parse("2006-01-02T15:04:05Z", "2018-01-01T00:00:00Z")
+	s.Require().NoError(err)
+
+	userTime2, err := time.Parse("2006-01-02T15:04:05Z", "2020-01-01T00:00:00Z")
+	s.Require().NoError(err)
+
+	InsertTokenEntity(s.db, entity.Token{
+		Token:     "test_token",
+		UserId:    userId1,
+		Status:    entity.TokenStatusAllowed,
+		ExpiredAt: userTime1.Add(1 * time.Hour),
+		CreatedAt: userTime1,
+		UpdatedAt: userTime1,
+	})
+
+	InsertTokenEntity(s.db, entity.Token{
+		Token:     "test_token2",
+		UserId:    userId2,
+		Status:    entity.TokenStatusAllowed,
+		ExpiredAt: userTime2.Add(1 * time.Hour),
+		CreatedAt: userTime2,
+		UpdatedAt: userTime2,
+	})
+
+	response := domain.UsersResponse{}
+	err = s.grpcCli.Invoke("admin/user/get_users").
+		JsonRequestBody(domain.UsersPageRequest{
+			LimitOffestParams: domain.LimitOffestParams{
+				Limit:  5,
+				Offset: 0,
+			},
+			Query: &domain.UserQuery{
+				LastSessionCreatedAt: &domain.DateFromToParams{
+					From: userTime1.Add(-24 * time.Hour),
+					To:   userTime1.Add(24 * time.Hour),
+				},
+			},
 		}).
 		JsonResponseBody(&response).
 		Do(context.Background())
 	s.Require().NoError(err)
 
 	s.Require().Len(response.Items, 1) //nolint:mnd
-	s.Require().Equal(int64(5), response.Items[0].Id)
+	s.Require().EqualValues(userId1, response.Items[0].Id)
 }
 
 func (s *UserTestSuite) TestCreateUserHappyPath() {
