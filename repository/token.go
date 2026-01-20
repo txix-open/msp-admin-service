@@ -3,15 +3,17 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"github.com/Masterminds/squirrel"
 	"time"
+
+	"github.com/Masterminds/squirrel"
+
+	"msp-admin-service/domain"
+	"msp-admin-service/entity"
 
 	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/db"
 	"github.com/txix-open/isp-kit/db/query"
 	"github.com/txix-open/isp-kit/metrics/sql_metrics"
-	"msp-admin-service/domain"
-	"msp-admin-service/entity"
 )
 
 type Token struct {
@@ -76,17 +78,21 @@ func (r Token) RevokeByUserId(ctx context.Context, userId int64, updatedAt time.
 	return nil
 }
 
-//nolint:gosec
-func (r Token) All(ctx context.Context, limit int, offset int) ([]entity.Token, error) {
+//nolint:dupl,gosec
+func (r Token) All(ctx context.Context, req domain.SessionPageRequest) ([]entity.Token, error) {
 	ctx = sql_metrics.OperationLabelToContext(ctx, "Token.All")
 
-	query, args, err := query.New().
+	q := query.New().
 		Select("*").
 		From("tokens").
-		OrderBy("created_at DESC").
-		Offset(uint64(offset)).
-		Limit(uint64(limit)).
-		ToSql()
+		Offset(uint64(req.Offset)).
+		Limit(uint64(req.Limit))
+
+	if req.Order != nil {
+		q = q.OrderBy(req.Order.Field + " " + req.Order.Type)
+	}
+
+	query, args, err := reqTokenQuery(q, req.Query).ToSql()
 	if err != nil {
 		return nil, errors.WithMessage(err, "build query")
 	}
@@ -139,30 +145,71 @@ func (r Token) UpdateStatusByUserId(ctx context.Context, userId int, status stri
 	return nil
 }
 
-func (r Token) LastAccessByUserIds(ctx context.Context, userIds []int) (map[int64]*time.Time, error) {
+func (r Token) LastAccessByUserIds(ctx context.Context, userIds []int, reqQuery *domain.UserQuery) (map[int64]*time.Time, error) {
 	ctx = sql_metrics.OperationLabelToContext(ctx, "Token.LastAccessNotBlockedUsers")
 
-	q, args, err := query.New().
+	q := query.New().
 		Select("user_id", "max(created_at) as created_at").
 		From("tokens").
 		Where(squirrel.Eq{"user_id": userIds}).
-		GroupBy("user_id").
-		ToSql()
+		GroupBy("user_id")
+
+	if reqQuery != nil {
+		if reqQuery.LastSessionCreatedAt != nil {
+			q = q.Where(squirrel.GtOrEq{"created_at": reqQuery.LastSessionCreatedAt.From}).
+				Where(squirrel.LtOrEq{"created_at": reqQuery.LastSessionCreatedAt.To})
+		}
+	}
+
+	query, args, err := q.ToSql()
 	if err != nil {
 		return nil, errors.WithMessage(err, "build query")
 	}
 
 	tokens := make([]entity.Token, 0)
-	err = r.db.Select(ctx, &tokens, q, args...)
+	err = r.db.Select(ctx, &tokens, query, args...)
 	if err != nil {
-		return nil, errors.WithMessagef(err, "select query: %s", q)
+		return nil, errors.WithMessagef(err, "select query: %s", query)
 	}
 
-	result := make(map[int64]*time.Time, 0)
+	result := make(map[int64]*time.Time)
 	for _, token := range tokens {
 		createdAt := token.CreatedAt
 		result[token.UserId] = &createdAt
 	}
 
 	return result, nil
+}
+
+func reqTokenQuery(q squirrel.SelectBuilder, reqQuery *domain.SessionQuery) squirrel.SelectBuilder {
+	if reqQuery == nil {
+		return q
+	}
+
+	switch {
+	case reqQuery.Id != nil:
+		{
+			q = q.Where("id = ?", *reqQuery.Id)
+		}
+	case reqQuery.UserId != nil:
+		{
+			q = q.Where("user_id = ?", *reqQuery.UserId)
+		}
+	case reqQuery.Status != nil:
+		{
+			q = q.Where("status = ?", *reqQuery.Status)
+		}
+	case reqQuery.CreatedAt != nil:
+		{
+			q = q.Where(squirrel.GtOrEq{"created_at": reqQuery.CreatedAt.From}).
+				Where(squirrel.LtOrEq{"created_at": reqQuery.CreatedAt.To})
+		}
+	case reqQuery.ExpiredAt != nil:
+		{
+			q = q.Where(squirrel.GtOrEq{"expired_at": reqQuery.ExpiredAt.From}).
+				Where(squirrel.LtOrEq{"expired_at": reqQuery.ExpiredAt.To})
+		}
+	}
+
+	return q
 }

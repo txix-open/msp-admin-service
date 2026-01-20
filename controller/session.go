@@ -7,7 +7,7 @@ import (
 )
 
 type SessionService interface {
-	All(ctx context.Context, limit int, offset int) (*domain.SessionResponse, error)
+	All(ctx context.Context, req domain.SessionPageRequest) (*domain.SessionResponse, error)
 	Revoke(ctx context.Context, id int) error
 }
 
@@ -27,13 +27,13 @@ func NewSession(service SessionService) Session {
 // @Accept json
 // @Produce json
 // @Param X-AUTH-ADMIN header string true "Токен администратора"
-// @Param body body domain.SessionRequest true "Тело запроса"
-// @Success 200 {object} domain.PageRequest
+// @Param body body domain.SessionPageRequest true "Тело запроса"
+// @Success 200 {object} domain.SessionResponse
 // @Failure 400 {object} domain.GrpcError "Невалидное тело запроса"
 // @Failure 500 {object} domain.GrpcError
 // @Router /session/all [POST]
-func (c Session) All(ctx context.Context, req domain.PageRequest) (*domain.SessionResponse, error) {
-	return c.service.All(ctx, req.Limit, req.Offset)
+func (c Session) All(ctx context.Context, req domain.SessionPageRequest) (*domain.SessionResponse, error) {
+	return c.service.All(ctx, req)
 }
 
 // Revoke

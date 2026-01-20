@@ -2,18 +2,20 @@ package controller
 
 import (
 	"context"
+
 	"github.com/txix-open/isp-kit/grpc/apierrors"
+
+	"msp-admin-service/domain"
 
 	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"msp-admin-service/domain"
 )
 
 type userService interface {
 	GetProfileById(ctx context.Context, userId int64) (*domain.AdminUserShort, error)
-	GetUsers(ctx context.Context, identities domain.UsersRequest) (*domain.UsersResponse, error)
+	GetUsers(ctx context.Context, req domain.UsersPageRequest) (*domain.UsersResponse, error)
 	CreateUser(ctx context.Context, req domain.CreateUserRequest, adminId int64) (*domain.User, error)
 	UpdateUser(ctx context.Context, req domain.UpdateUserRequest, adminId int64) (*domain.User, error)
 	DeleteUsers(ctx context.Context, ids []int64, adminId int64) (int, error)
@@ -70,13 +72,13 @@ func (u User) GetProfile(ctx context.Context, authData grpc.AuthData) (*domain.A
 // @Accept json
 // @Produce json
 // @Param X-AUTH-ADMIN header string true "Токен администратора"
-// @Param body body domain.UsersRequest true "Тело запроса"
+// @Param body body domain.UsersPageRequest true "Тело запроса"
 // @Success 200 {object} domain.UsersResponse
 // @Failure 400 {object} domain.GrpcError
 // @Failure 500 {object} domain.GrpcError
 // @Router /user/get_users [POST]
-func (u User) GetUsers(ctx context.Context, identities domain.UsersRequest) (*domain.UsersResponse, error) {
-	users, err := u.userService.GetUsers(ctx, identities)
+func (u User) GetUsers(ctx context.Context, req domain.UsersPageRequest) (*domain.UsersResponse, error) {
+	users, err := u.userService.GetUsers(ctx, req)
 	if err != nil {
 		return nil, errors.WithMessage(err, "get users")
 	}

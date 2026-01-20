@@ -73,12 +73,12 @@ func (u User) GetUserById(ctx context.Context, identity int64) (*entity.User, er
 	}
 }
 
-func (u User) GetUserByEmailAndSudirId(ctx context.Context, email string, sudir_user_id string) (*entity.User, error) {
+func (u User) GetUserByEmailAndSudirId(ctx context.Context, email string, sudirUserId string) (*entity.User, error) {
 	ctx = sql_metrics.OperationLabelToContext(ctx, "User.GetUserByEmail")
 
 	equalClause := squirrel.Eq{"email": email, "sudir_user_id": nil}
-	if sudir_user_id != "" {
-		equalClause["sudir_user_id"] = sudir_user_id
+	if sudirUserId != "" {
+		equalClause["sudir_user_id"] = sudirUserId
 	}
 
 	q, args, err := query.New().
@@ -133,31 +133,27 @@ func (u User) UpsertBySudirUserId(ctx context.Context, user entity.User) (*entit
 	return &result, nil
 }
 
-//nolint:gosec
-func (u User) GetUsers(ctx context.Context, ids []int64, offset, limit int, email string) ([]entity.User, error) {
+//nolint:dupl,gosec
+func (u User) GetUsers(ctx context.Context, req domain.UsersPageRequest) ([]entity.User, error) {
 	ctx = sql_metrics.OperationLabelToContext(ctx, "User.GetUsers")
 
 	q := query.New().
 		Select("*").
-		From("users")
+		From("users").
+		Offset(uint64(req.Offset)).
+		Limit(uint64(req.Limit))
 
-	if len(ids) > 0 {
-		q = q.Where(squirrel.Eq{"id": ids})
+	if req.Order != nil {
+		q = q.OrderBy(req.Order.Field + " " + req.Order.Type)
 	}
-	if email != "" {
-		q = q.Where("email LIKE ?", "%"+email+"%")
-	}
-	qstring, args, err := q.
-		Limit(uint64(limit)).
-		Offset(uint64(offset)).
-		OrderBy("created_at DESC").
-		ToSql()
+
+	query, args, err := reqUsersQuery(q, req.Query).ToSql()
 	if err != nil {
 		return nil, errors.WithMessage(err, "build query")
 	}
 
 	users := make([]entity.User, 0)
-	err = u.db.Select(ctx, &users, qstring, args...)
+	err = u.db.Select(ctx, &users, query, args...)
 	if err != nil {
 		return nil, errors.WithMessage(err, "db select")
 	}
@@ -345,4 +341,27 @@ func (u User) UpdateLastActiveAt(ctx context.Context, userId int64, lastActiveAt
 		return errors.WithMessagef(err, "user.repo.UpdateLastActiveAt: exec query: %s", q)
 	}
 	return nil
+}
+
+func reqUsersQuery(q squirrel.SelectBuilder, reqQuery *domain.UserQuery) squirrel.SelectBuilder {
+	if reqQuery == nil {
+		return q
+	}
+
+	switch {
+	case reqQuery.Id != nil:
+		{
+			q = q.Where("id = ?", *reqQuery.Id)
+		}
+	case reqQuery.Description != nil:
+		{
+			q = q.Where("description = ?", *reqQuery.Description)
+		}
+	case reqQuery.Email != nil:
+		{
+			q = q.Where("email LIKE ?", "%"+*reqQuery.Email+"%")
+		}
+	}
+
+	return q
 }

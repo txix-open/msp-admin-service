@@ -28,8 +28,8 @@ type UserTransactionRunner interface {
 
 type UserRepo interface {
 	GetUserById(ctx context.Context, identity int64) (*entity.User, error)
-	GetUsers(ctx context.Context, ids []int64, offset, limit int, email string) ([]entity.User, error)
-	GetUserByEmailAndSudirId(ctx context.Context, email string, sudir_user_id string) (*entity.User, error)
+	GetUsers(ctx context.Context, req domain.UsersPageRequest) ([]entity.User, error)
+	GetUserByEmailAndSudirId(ctx context.Context, email string, sudirUserId string) (*entity.User, error)
 	GetUsersByEmail(ctx context.Context, email string) ([]entity.User, error)
 	UpdateUser(ctx context.Context, id int64, user entity.UpdateUser) (*entity.User, error)
 	DeleteUser(ctx context.Context, ids []int64) (int, error)
@@ -41,7 +41,7 @@ type UserRepo interface {
 
 type TokenRepo interface {
 	UpdateStatusByUserId(ctx context.Context, userId int, status string) error
-	LastAccessByUserIds(ctx context.Context, userIds []int) (map[int64]*time.Time, error)
+	LastAccessByUserIds(ctx context.Context, userIds []int, reqQuery *domain.UserQuery) (map[int64]*time.Time, error)
 }
 
 type UserRoleRepo interface {
@@ -134,8 +134,8 @@ func (u User) GetProfileById(ctx context.Context, userId int64) (*domain.AdminUs
 	}, nil
 }
 
-func (u User) GetUsers(ctx context.Context, req domain.UsersRequest) (*domain.UsersResponse, error) {
-	users, err := u.userRepo.GetUsers(ctx, req.Ids, req.Offset, req.Limit, req.Email)
+func (u User) GetUsers(ctx context.Context, req domain.UsersPageRequest) (*domain.UsersResponse, error) {
+	users, err := u.userRepo.GetUsers(ctx, req)
 	if err != nil {
 		return nil, errors.WithMessage(err, "get users from repo")
 	}
@@ -145,12 +145,12 @@ func (u User) GetUsers(ctx context.Context, req domain.UsersRequest) (*domain.Us
 		userIds = append(userIds, int(user.Id))
 	}
 
-	rolesByUsers, err := u.userRoleRepo.GetRolesByUserIds(ctx, userIds)
+	userRoles, err := u.userRoleRepo.GetRolesByUserIds(ctx, userIds)
 	if err != nil {
-		return nil, errors.WithMessage(err, "get roles by user ids")
+		return nil, errors.WithMessage(err, "get roles by user ids and roles id")
 	}
 
-	lastSessionsByUsers, err := u.tokenRepo.LastAccessByUserIds(ctx, userIds)
+	lastSessionsByUsers, err := u.tokenRepo.LastAccessByUserIds(ctx, userIds, req.Query)
 	if err != nil {
 		return nil, errors.WithMessage(err, "get last sessions by user ids")
 	}
@@ -159,13 +159,15 @@ func (u User) GetUsers(ctx context.Context, req domain.UsersRequest) (*domain.Us
 	for _, user := range users {
 		roles := make([]int, 0)
 
-		for _, role := range rolesByUsers {
+		for _, role := range userRoles {
 			if role.UserId == int(user.Id) {
 				roles = append(roles, role.RoleId)
 			}
 		}
 
-		items = append(items, u.toDomain(user, roles, lastSessionsByUsers[user.Id]))
+		if filteredRoles(req.Query, roles) && filteredLastSession(req.Query, lastSessionsByUsers[user.Id]) {
+			items = append(items, u.toDomain(user, roles, lastSessionsByUsers[user.Id]))
+		}
 	}
 
 	return &domain.UsersResponse{Items: items}, nil
@@ -296,7 +298,7 @@ func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, admi
 			return errors.WithMessage(err, "update user role links")
 		}
 
-		userLastSession, err := tx.LastAccessByUserIds(ctx, []int{int(user.Id)})
+		userLastSession, err := tx.LastAccessByUserIds(ctx, []int{int(user.Id)}, nil)
 		if err != nil {
 			return errors.WithMessage(err, "get last user session")
 		}
@@ -360,7 +362,7 @@ func (u User) GetById(ctx context.Context, userId int) (*domain.User, error) {
 		return nil, errors.WithMessage(err, "get roles by user id")
 	}
 
-	lastSessions, err := u.tokenRepo.LastAccessByUserIds(ctx, []int{userId})
+	lastSessions, err := u.tokenRepo.LastAccessByUserIds(ctx, []int{userId}, nil)
 	if err != nil {
 		return nil, errors.WithMessage(err, "get last sessions by user id")
 	}
@@ -523,4 +525,42 @@ func (u User) toDomain(user entity.User, roleIds []int, lastSessionCreatedAt *ti
 		CreatedAt:            user.CreatedAt,
 		LastSessionCreatedAt: lastSessionCreatedAt,
 	}
+}
+
+func filteredRoles(reqQuery *domain.UserQuery, roleIds []int) bool {
+	if reqQuery == nil {
+		return true
+	}
+
+	if reqQuery.Roles == nil {
+		return true
+	}
+
+	if len(reqQuery.Roles) == 0 {
+		return true
+	}
+
+	for _, roleId := range roleIds {
+		if slices.Contains(reqQuery.Roles, roleId) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func filteredLastSession(reqQuery *domain.UserQuery, lastSessionCreatedAt *time.Time) bool {
+	if reqQuery == nil {
+		return true
+	}
+
+	if reqQuery.LastSessionCreatedAt == nil {
+		return true
+	}
+
+	if lastSessionCreatedAt != nil {
+		return true
+	}
+
+	return false
 }

@@ -21,11 +21,19 @@ type UsersResponse struct {
 	Items []User
 }
 
-type UsersRequest struct {
-	Ids    []int64
-	Offset int
-	Limit  int
-	Email  string
+type UserQuery struct {
+	Id                   *int
+	Description          *string
+	Email                *string
+	Roles                []int
+	LastSessionCreatedAt *DateFromToParams
+}
+
+type UsersPageRequest struct {
+	LimitOffestParams
+
+	Order *OrderParams
+	Query *UserQuery
 }
 
 type AdminUserShort struct {

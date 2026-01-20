@@ -6,17 +6,18 @@ import (
 	"encoding/hex"
 	"time"
 
-	"github.com/pkg/errors"
-	"golang.org/x/sync/errgroup"
 	"msp-admin-service/domain"
 	"msp-admin-service/entity"
+
+	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 )
 
 type TokenRep interface {
 	TokenSaver
 	Get(ctx context.Context, token string) (*entity.Token, error)
 	RevokeByUserId(ctx context.Context, userId int64, updatedAt time.Time) error
-	All(ctx context.Context, limit int, offset int) ([]entity.Token, error)
+	All(ctx context.Context, req domain.SessionPageRequest) ([]entity.Token, error)
 	Count(ctx context.Context) (int64, error)
 	UpdateStatus(ctx context.Context, id int, status string) error
 }
@@ -73,13 +74,13 @@ func (s Token) RevokeAllByUserId(ctx context.Context, userId int64) error {
 	return nil
 }
 
-func (s Token) All(ctx context.Context, limit int, offset int) (*domain.SessionResponse, error) {
+func (s Token) All(ctx context.Context, req domain.SessionPageRequest) (*domain.SessionResponse, error) {
 	group, ctx := errgroup.WithContext(ctx)
 	var tokens []entity.Token
 	var total int64
 	var err error
 	group.Go(func() error {
-		tokens, err = s.tokenRep.All(ctx, limit, offset)
+		tokens, err = s.tokenRep.All(ctx, req)
 		if err != nil {
 			return errors.WithMessage(err, "get all tokens")
 		}

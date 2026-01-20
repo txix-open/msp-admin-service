@@ -15,10 +15,18 @@ type AuditResponse struct {
 	TotalCount int
 	Items      []Audit
 }
+type AuditPageRequest struct {
+	LimitOffestParams
 
-type PageRequest struct {
-	Limit  int `validate:"required"`
-	Offset int
+	Order *OrderParams
+	Query *AuditQuery
+}
+
+type AuditQuery struct {
+	Id        *int
+	UserId    *int
+	Message   *string
+	CreatedAt *DateFromToParams
 }
 
 type SetAuditEvent struct {
