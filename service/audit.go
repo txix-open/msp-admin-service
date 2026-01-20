@@ -95,11 +95,12 @@ func (s Audit) SaveAuditAsync(ctx context.Context, userId int64, message string,
 }
 
 func (s Audit) All(ctx context.Context, req domain.AuditPageRequest) (*domain.AuditResponse, error) {
-	group, ctx := errgroup.WithContext(ctx)
 	var logs []entity.Audit
 	var total int64
-	var err error
+
+	group, ctx := errgroup.WithContext(ctx)
 	group.Go(func() error {
+		var err error
 		logs, err = s.auditRep.All(ctx, req)
 		if err != nil {
 			return errors.WithMessage(err, "get all audit")
@@ -107,13 +108,14 @@ func (s Audit) All(ctx context.Context, req domain.AuditPageRequest) (*domain.Au
 		return nil
 	})
 	group.Go(func() error {
+		var err error
 		total, err = s.auditRep.Count(ctx)
 		if err != nil {
 			return errors.WithMessage(err, "count all audit")
 		}
 		return nil
 	})
-	err = group.Wait()
+	err := group.Wait()
 	if err != nil {
 		return nil, errors.WithMessage(err, "wait workers")
 	}

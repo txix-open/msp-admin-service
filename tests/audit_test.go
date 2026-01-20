@@ -39,7 +39,6 @@ func (t *AuditSuite) SetupTest() {
 	testInstance, _ := test.New(t.T())
 	t.test = testInstance
 	t.db = dbt.New(testInstance, dbx.WithMigrationRunner("../migrations", testInstance.Logger()))
-	insertAuditLogs(t.db)
 
 	remote := conf.Remote{
 		Audit: conf.Audit{
@@ -74,6 +73,8 @@ func (t *AuditSuite) SetupTest() {
 	}
 	cfg := assembly.NewLocator(testInstance.Logger(), httpcli.New(), t.db).
 		Config(context.Background(), remote, time.Minute)
+
+	t.insertAuditLogs()
 
 	server, apiCli := grpct.TestServer(testInstance, cfg.Handler)
 	t.grpcCli = apiCli
@@ -226,8 +227,8 @@ func (t *AuditSuite) Test_All_Logs() {
 	t.Require().EqualValues(5, response.Items[1].UserId)
 }
 
-func insertAuditLogs(testDb *dbt.TestDb) {
-	testDb.Must().Exec(`INSERT INTO audit (user_id, message, created_at, event)
+func (t *AuditSuite) insertAuditLogs() {
+	t.db.Must().Exec(`INSERT INTO audit (user_id, message, created_at, event)
 	VALUES (1, 'Успешный вход', NOW(), 'success_login'),
 	       (2, 'Успешный вход', NOW(), 'success_login'),
 	       (3, 'Неуспешный вход', NOW(), 'unsuccess_login'),

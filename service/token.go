@@ -75,11 +75,12 @@ func (s Token) RevokeAllByUserId(ctx context.Context, userId int64) error {
 }
 
 func (s Token) All(ctx context.Context, req domain.SessionPageRequest) (*domain.SessionResponse, error) {
-	group, ctx := errgroup.WithContext(ctx)
 	var tokens []entity.Token
 	var total int64
-	var err error
+
+	group, ctx := errgroup.WithContext(ctx)
 	group.Go(func() error {
+		var err error
 		tokens, err = s.tokenRep.All(ctx, req)
 		if err != nil {
 			return errors.WithMessage(err, "get all tokens")
@@ -87,13 +88,14 @@ func (s Token) All(ctx context.Context, req domain.SessionPageRequest) (*domain.
 		return nil
 	})
 	group.Go(func() error {
+		var err error
 		total, err = s.tokenRep.Count(ctx)
 		if err != nil {
 			return errors.WithMessage(err, "count all tokens")
 		}
 		return nil
 	})
-	err = group.Wait()
+	err := group.Wait()
 	if err != nil {
 		return nil, errors.WithMessage(err, "wait workers")
 	}
