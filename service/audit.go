@@ -16,7 +16,7 @@ import (
 type AuditRepository interface {
 	Insert(ctx context.Context, log entity.Audit) (int, error)
 	All(ctx context.Context, req domain.AuditPageRequest) ([]entity.Audit, error)
-	Count(ctx context.Context) (int64, error)
+	Count(ctx context.Context, reqQuery *domain.AuditQuery) (int64, error)
 }
 
 type AuditEventRepository interface {
@@ -109,7 +109,7 @@ func (s Audit) All(ctx context.Context, req domain.AuditPageRequest) (*domain.Au
 	})
 	group.Go(func() error {
 		var err error
-		total, err = s.auditRep.Count(ctx)
+		total, err = s.auditRep.Count(ctx, req.Query)
 		if err != nil {
 			return errors.WithMessage(err, "count all audit")
 		}

@@ -52,6 +52,10 @@ func TestInactiveWorker(t *testing.T) {
 			Limit:  10,
 			Offset: 0,
 		},
+		Order: &domain.OrderParams{
+			Field: "created_at",
+			Type:  "desc",
+		},
 	})
 	require.NoError(err)
 	require.Len(list, 1)

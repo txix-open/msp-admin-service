@@ -33,6 +33,13 @@ func NewSession(service SessionService) Session {
 // @Failure 500 {object} domain.GrpcError
 // @Router /session/all [POST]
 func (c Session) All(ctx context.Context, req domain.SessionPageRequest) (*domain.SessionResponse, error) {
+	if req.Order == nil {
+		req.Order = &domain.OrderParams{
+			Field: domain.DefaultOrderField,
+			Type:  domain.DefaultOrderType,
+		}
+	}
+
 	return c.service.All(ctx, req)
 }
 

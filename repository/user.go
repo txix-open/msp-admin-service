@@ -9,6 +9,7 @@ import (
 	"msp-admin-service/entity"
 
 	"github.com/Masterminds/squirrel"
+	"github.com/iancoleman/strcase"
 	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/db"
 	"github.com/txix-open/isp-kit/db/query"
@@ -133,23 +134,21 @@ func (u User) UpsertBySudirUserId(ctx context.Context, user entity.User) (*entit
 	return &result, nil
 }
 
-//nolint:dupl,gosec
+//nolint:gosec
 func (u User) GetUsers(ctx context.Context, req domain.UsersPageRequest) ([]entity.User, error) {
 	ctx = sql_metrics.OperationLabelToContext(ctx, "User.GetUsers")
 
-	if req.Order == nil {
-		req.Order = &domain.OrderParams{
-			Field: domain.DefaultOrderField,
-			Type:  domain.DefaultOrderType,
-		}
-	}
-
 	q := query.New().
-		Select("*").
+		Select("*", "(SELECT max(created_at) FROM tokens WHERE tokens.user_id = users.id) as last_session_created_at").
 		From("users").
-		OrderBy(req.Order.Field + " " + req.Order.Type).
 		Offset(uint64(req.Offset)).
 		Limit(uint64(req.Limit))
+
+	if req.Order.Field == "userId" {
+		q = q.OrderBy("last_name "+req.Order.Type, "first_name "+req.Order.Type)
+	} else {
+		q = q.OrderBy(strcase.ToSnake(req.Order.Field) + " " + req.Order.Type)
+	}
 
 	query, args, err := reqUsersQuery(q, req.Query).ToSql()
 	if err != nil {
@@ -352,19 +351,20 @@ func reqUsersQuery(q squirrel.SelectBuilder, reqQuery *domain.UserQuery) squirre
 		return q
 	}
 
-	switch {
-	case reqQuery.Id != nil:
-		{
-			q = q.Where("id = ?", *reqQuery.Id)
-		}
-	case reqQuery.Description != nil:
-		{
-			q = q.Where("description = ?", *reqQuery.Description)
-		}
-	case reqQuery.Email != nil:
-		{
-			q = q.Where("email LIKE ?", "%"+*reqQuery.Email+"%")
-		}
+	if reqQuery.Id != nil {
+		q = q.Where("id = ?", *reqQuery.Id)
+	}
+
+	if reqQuery.UserId != nil { // поиск в ui по имени, но в бд - по id юзера
+		q = q.Where("id = ?", *reqQuery.UserId)
+	}
+
+	if reqQuery.Description != nil {
+		q = q.Where(squirrel.ILike{"description": "%" + *reqQuery.Description + "%"})
+	}
+
+	if reqQuery.Email != nil {
+		q = q.Where(squirrel.ILike{"email": "%" + *reqQuery.Email + "%"})
 	}
 
 	return q

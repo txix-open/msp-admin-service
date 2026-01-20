@@ -150,11 +150,6 @@ func (u User) GetUsers(ctx context.Context, req domain.UsersPageRequest) (*domai
 		return nil, errors.WithMessage(err, "get roles by user ids and roles id")
 	}
 
-	lastSessionsByUsers, err := u.tokenRepo.LastAccessByUserIds(ctx, userIds, req.Query)
-	if err != nil {
-		return nil, errors.WithMessage(err, "get last sessions by user ids")
-	}
-
 	items := make([]domain.User, 0, len(users))
 	for _, user := range users {
 		roles := make([]int, 0)
@@ -165,8 +160,8 @@ func (u User) GetUsers(ctx context.Context, req domain.UsersPageRequest) (*domai
 			}
 		}
 
-		if filteredRoles(req.Query, roles) && filteredLastSession(req.Query, lastSessionsByUsers[user.Id]) {
-			items = append(items, u.toDomain(user, roles, lastSessionsByUsers[user.Id]))
+		if filteredRoles(req.Query, roles) && filteredLastSession(req.Query, user.LastSessionCreatedAt) {
+			items = append(items, u.toDomain(user, roles, user.LastSessionCreatedAt))
 		}
 	}
 
@@ -558,7 +553,12 @@ func filteredLastSession(reqQuery *domain.UserQuery, lastSessionCreatedAt *time.
 		return true
 	}
 
-	if lastSessionCreatedAt != nil {
+	if lastSessionCreatedAt == nil {
+		return false
+	}
+
+	if reqQuery.LastSessionCreatedAt.From.Compare(*lastSessionCreatedAt) <= 0 &&
+		reqQuery.LastSessionCreatedAt.To.Compare(*lastSessionCreatedAt) >= 0 {
 		return true
 	}
 

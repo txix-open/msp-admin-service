@@ -205,6 +205,10 @@ func (s *AuthTestSuite) Test_Logout_NotFound() {
 			Limit:  10,
 			Offset: 0,
 		},
+		Order: &domain.OrderParams{
+			Field: "created_at",
+			Type:  "desc",
+		},
 	})
 	s.Require().NoError(err)
 	s.Require().Len(auditList, 1) //nolint:mnd

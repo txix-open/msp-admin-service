@@ -78,6 +78,13 @@ func (u User) GetProfile(ctx context.Context, authData grpc.AuthData) (*domain.A
 // @Failure 500 {object} domain.GrpcError
 // @Router /user/get_users [POST]
 func (u User) GetUsers(ctx context.Context, req domain.UsersPageRequest) (*domain.UsersResponse, error) {
+	if req.Order == nil {
+		req.Order = &domain.OrderParams{
+			Field: domain.DefaultOrderField,
+			Type:  domain.DefaultOrderType,
+		}
+	}
+
 	users, err := u.userService.GetUsers(ctx, req)
 	if err != nil {
 		return nil, errors.WithMessage(err, "get users")

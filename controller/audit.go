@@ -38,6 +38,13 @@ func NewAudit(service AuditService) Audit {
 // @Failure 500 {object} domain.GrpcError
 // @Router /log/all [POST]
 func (c Audit) All(ctx context.Context, req domain.AuditPageRequest) (*domain.AuditResponse, error) {
+	if req.Order == nil {
+		req.Order = &domain.OrderParams{
+			Field: domain.DefaultOrderField,
+			Type:  domain.DefaultOrderType,
+		}
+	}
+
 	return c.service.All(ctx, req)
 }
 

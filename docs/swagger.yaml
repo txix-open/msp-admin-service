@@ -424,6 +424,8 @@ definitions:
         items:
           type: integer
         type: array
+      userId:
+        type: integer
     type: object
   domain.UsersPageRequest:
     properties:

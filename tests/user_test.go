@@ -204,11 +204,34 @@ func (s *UserTestSuite) TestGetUsers() {
 	s.Require().EqualValues(roles, response.Items[0].Roles)
 	s.Require().EqualValues("a1@c.ru", response.Items[1].Email)
 	s.Require().EqualValues(roles, response.Items[1].Roles)
+
+	id := int(userId2)
+	email = "test@mail.ru"
+	err = s.grpcCli.Invoke("admin/user/get_users").
+		JsonRequestBody(domain.UsersPageRequest{
+			LimitOffestParams: domain.LimitOffestParams{
+				Limit:  10,
+				Offset: 0,
+			},
+			Order: &domain.OrderParams{
+				Field: "id",
+				Type:  "asc",
+			},
+			Query: &domain.UserQuery{
+				Id:    &id,
+				Email: &email,
+			},
+		}).
+		JsonResponseBody(&response).
+		Do(context.Background())
+	s.Require().NoError(err)
+	s.Require().Empty(response.Items)
 }
 
 func (s *UserTestSuite) TestGetUsersFilterByLastActiveAt() {
 	userId1 := InsertUser(s.db, entity.User{Email: "test1@a.ru"})
 	userId2 := InsertUser(s.db, entity.User{Email: "test2@a.ru"})
+	userId3 := InsertUser(s.db, entity.User{Email: "test3@a.ru"})
 
 	userTime1, err := time.Parse("2006-01-02T15:04:05Z", "2018-01-01T00:00:00Z")
 	s.Require().NoError(err)
@@ -217,7 +240,7 @@ func (s *UserTestSuite) TestGetUsersFilterByLastActiveAt() {
 	s.Require().NoError(err)
 
 	InsertTokenEntity(s.db, entity.Token{
-		Token:     "test_token",
+		Token:     "test_token1",
 		UserId:    userId1,
 		Status:    entity.TokenStatusAllowed,
 		ExpiredAt: userTime1.Add(1 * time.Hour),
@@ -228,6 +251,15 @@ func (s *UserTestSuite) TestGetUsersFilterByLastActiveAt() {
 	InsertTokenEntity(s.db, entity.Token{
 		Token:     "test_token2",
 		UserId:    userId2,
+		Status:    entity.TokenStatusAllowed,
+		ExpiredAt: userTime1.Add(25 * time.Hour),
+		CreatedAt: userTime1.Add(24 * time.Hour),
+		UpdatedAt: userTime1.Add(24 * time.Hour),
+	})
+
+	InsertTokenEntity(s.db, entity.Token{
+		Token:     "test_token3",
+		UserId:    userId3,
 		Status:    entity.TokenStatusAllowed,
 		ExpiredAt: userTime2.Add(1 * time.Hour),
 		CreatedAt: userTime2,
@@ -241,6 +273,10 @@ func (s *UserTestSuite) TestGetUsersFilterByLastActiveAt() {
 				Limit:  5,
 				Offset: 0,
 			},
+			Order: &domain.OrderParams{
+				Field: "lastSessionCreatedAt",
+				Type:  "desc",
+			},
 			Query: &domain.UserQuery{
 				LastSessionCreatedAt: &domain.DateFromToParams{
 					From: userTime1.Add(-24 * time.Hour),
@@ -252,8 +288,40 @@ func (s *UserTestSuite) TestGetUsersFilterByLastActiveAt() {
 		Do(context.Background())
 	s.Require().NoError(err)
 
-	s.Require().Len(response.Items, 1) //nolint:mnd
-	s.Require().EqualValues(userId1, response.Items[0].Id)
+	s.Require().Len(response.Items, 2) //nolint:mnd
+	s.Require().EqualValues(userId2, response.Items[0].Id)
+	s.Require().EqualValues(userId1, response.Items[1].Id)
+}
+
+func (s *UserTestSuite) TestGetUsersSortByName() {
+	userIdViser1 := InsertUser(s.db, entity.User{Email: "a1@a.ru", FirstName: "admin_viser", LastName: "admin_viser"})
+	userIdViser2 := InsertUser(s.db, entity.User{Email: "a1@b.ru", FirstName: "admin_viser", LastName: "admin_viser2"})
+	userIdScripts := InsertUser(s.db, entity.User{Email: "a1@c.ru", FirstName: "admin_scripts", LastName: "admin_scripts"})
+	userIdAL := InsertUser(s.db, entity.User{Email: "a1@d.ru", FirstName: "А", LastName: "Л"})
+
+	response := domain.UsersResponse{}
+	err := s.grpcCli.Invoke("admin/user/get_users").
+		JsonRequestBody(domain.UsersPageRequest{
+			LimitOffestParams: domain.LimitOffestParams{
+				Limit:  10,
+				Offset: 0,
+			},
+			Order: &domain.OrderParams{
+				Field: "userId",
+				Type:  "asc",
+			},
+		}).
+		JsonResponseBody(&response).
+		Do(context.Background())
+	s.Require().NoError(err)
+
+	s.Require().Len(response.Items, 6)
+	s.Require().EqualValues(1, response.Items[0].Id)
+	s.Require().EqualValues(userIdScripts, response.Items[1].Id)
+	s.Require().EqualValues(2, response.Items[2].Id)
+	s.Require().EqualValues(userIdViser1, response.Items[3].Id)
+	s.Require().EqualValues(userIdViser2, response.Items[4].Id)
+	s.Require().EqualValues(userIdAL, response.Items[5].Id)
 }
 
 func (s *UserTestSuite) TestCreateUserHappyPath() {

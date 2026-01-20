@@ -4,7 +4,7 @@ import "time"
 
 const (
 	DefaultOrderField = "created_at"
-	DefaultOrderType  = "DESC"
+	DefaultOrderType  = "desc"
 )
 
 type LimitOffestParams struct {
