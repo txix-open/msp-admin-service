@@ -80,15 +80,35 @@ func (r Token) RevokeByUserId(ctx context.Context, userId int64, updatedAt time.
 	return nil
 }
 
-func (r Token) All(ctx context.Context, req domain.SessionPageRequest, timeNowUTC time.Time) ([]entity.Token, error) {
+func (r Token) All(ctx context.Context) ([]entity.Token, error) {
 	ctx = sql_metrics.OperationLabelToContext(ctx, "Token.All")
+
+	query, args, err := query.New().Select("*").From("tokens").ToSql()
+	if err != nil {
+		return nil, errors.WithMessage(err, "build query")
+	}
+
+	tokens := make([]entity.Token, 0)
+	err = r.db.Select(ctx, &tokens, query, args...)
+	if err != nil {
+		return nil, errors.WithMessagef(err, "select query %s", query)
+	}
+
+	return tokens, nil
+}
+
+//nolint:dupl,gosec
+func (r Token) AllByRequest(ctx context.Context, req domain.SessionPageRequest) ([]entity.Token, error) {
+	ctx = sql_metrics.OperationLabelToContext(ctx, "Token.AllByRequest")
 
 	q := query.New().
 		Select("*").
 		From("tokens").
-		OrderBy(strcase.ToSnake(req.Order.Field) + " " + req.Order.Type)
+		OrderBy(strcase.ToSnake(req.Order.Field) + " " + req.Order.Type).
+		Offset(uint64(req.Offset)).
+		Limit(uint64(req.Limit))
 
-	query, args, err := reqTokenQuery(q, req.Query, timeNowUTC).ToSql()
+	query, args, err := reqTokenQuery(q, req.Query).ToSql()
 	if err != nil {
 		return nil, errors.WithMessage(err, "build query")
 	}
@@ -116,14 +136,34 @@ func (r Token) UpdateStatus(ctx context.Context, id int, status string) error {
 	return nil
 }
 
-func (r Token) Count(ctx context.Context, reqQuery *domain.SessionQuery, timeNowUTC time.Time) (int64, error) {
+func (r Token) SetExpiredStatusById(ctx context.Context, ids []int) error {
+	ctx = sql_metrics.OperationLabelToContext(ctx, "Token.SetExpiredStatusById")
+
+	query, args, err := query.New().
+		Update("tokens").
+		Set("status", entity.TokenStatusExpired).
+		Where(squirrel.Eq{"id": ids}).
+		ToSql()
+	if err != nil {
+		return errors.WithMessage(err, "build query")
+	}
+
+	_, err = r.db.Exec(ctx, query, args...)
+	if err != nil {
+		return errors.WithMessage(err, "set tokens expired status")
+	}
+
+	return nil
+}
+
+func (r Token) Count(ctx context.Context, reqQuery *domain.SessionQuery) (int64, error) {
 	ctx = sql_metrics.OperationLabelToContext(ctx, "Token.Count")
 
 	q := query.New().
 		Select("count(*)").
 		From("tokens")
 
-	query, args, err := reqTokenQuery(q, reqQuery, timeNowUTC).ToSql()
+	query, args, err := reqTokenQuery(q, reqQuery).ToSql()
 	if err != nil {
 		return 0, errors.WithMessage(err, "build query")
 	}
@@ -186,7 +226,7 @@ func (r Token) LastAccessByUserIds(ctx context.Context, userIds []int, reqQuery 
 	return result, nil
 }
 
-func reqTokenQuery(q squirrel.SelectBuilder, reqQuery *domain.SessionQuery, timeNowUTC time.Time) squirrel.SelectBuilder {
+func reqTokenQuery(q squirrel.SelectBuilder, reqQuery *domain.SessionQuery) squirrel.SelectBuilder {
 	if reqQuery == nil {
 		return q
 	}
@@ -200,16 +240,7 @@ func reqTokenQuery(q squirrel.SelectBuilder, reqQuery *domain.SessionQuery, time
 	}
 
 	if reqQuery.Status != nil {
-		switch *reqQuery.Status {
-		case entity.TokenStatusExpired: // Статус EXPIRED в БД представлен как REVOKED c expiredAt < time.Now.UTC()
-			q = q.Where("status = ?", entity.TokenStatusRevoked).
-				Where("expired_at <= ?", timeNowUTC)
-		case entity.TokenStatusRevoked:
-			q = q.Where("status = ?", *reqQuery.Status).
-				Where("expired_at > ?", timeNowUTC)
-		default:
-			q = q.Where("status = ?", *reqQuery.Status)
-		}
+		q = q.Where("status = ?", *reqQuery.Status)
 	}
 
 	if reqQuery.CreatedAt != nil {

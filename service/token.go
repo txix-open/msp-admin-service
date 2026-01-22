@@ -4,8 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"slices"
-	"strings"
 	"time"
 
 	"msp-admin-service/domain"
@@ -19,8 +17,8 @@ type TokenRep interface {
 	TokenSaver
 	Get(ctx context.Context, token string) (*entity.Token, error)
 	RevokeByUserId(ctx context.Context, userId int64, updatedAt time.Time) error
-	All(ctx context.Context, req domain.SessionPageRequest, timeNowUTC time.Time) ([]entity.Token, error)
-	Count(ctx context.Context, reqQuery *domain.SessionQuery, timeNowUTC time.Time) (int64, error)
+	AllByRequest(ctx context.Context, req domain.SessionPageRequest) ([]entity.Token, error)
+	Count(ctx context.Context, reqQuery *domain.SessionQuery) (int64, error)
 	UpdateStatus(ctx context.Context, id int, status string) error
 }
 
@@ -80,12 +78,10 @@ func (s Token) All(ctx context.Context, req domain.SessionPageRequest) (*domain.
 	var tokens []entity.Token
 	var total int64
 
-	timeNowUTC := time.Now().UTC()
-
 	group, ctx := errgroup.WithContext(ctx)
 	group.Go(func() error {
 		var err error
-		tokens, err = s.tokenRep.All(ctx, req, timeNowUTC)
+		tokens, err = s.tokenRep.AllByRequest(ctx, req)
 		if err != nil {
 			return errors.WithMessage(err, "get all tokens")
 		}
@@ -93,7 +89,7 @@ func (s Token) All(ctx context.Context, req domain.SessionPageRequest) (*domain.
 	})
 	group.Go(func() error {
 		var err error
-		total, err = s.tokenRep.Count(ctx, req.Query, timeNowUTC)
+		total, err = s.tokenRep.Count(ctx, req.Query)
 		if err != nil {
 			return errors.WithMessage(err, "count all tokens")
 		}
@@ -106,34 +102,18 @@ func (s Token) All(ctx context.Context, req domain.SessionPageRequest) (*domain.
 
 	items := make([]domain.Session, 0)
 	for _, token := range tokens {
-		status := token.Status
-		if timeNowUTC.After(token.ExpiredAt) {
-			status = entity.TokenStatusExpired
-		}
 		items = append(items, domain.Session{
 			Id:        token.Id,
 			UserId:    int(token.UserId),
-			Status:    status,
+			Status:    token.Status,
 			ExpiredAt: token.ExpiredAt,
 			CreatedAt: token.CreatedAt,
 		})
 	}
 
-	if req.Order.Field == "status" {
-		if strings.ToUpper(req.Order.Type) == "ASC" {
-			slices.SortFunc(items, func(a, b domain.Session) int {
-				return strings.Compare(a.Status, b.Status)
-			})
-		} else {
-			slices.SortFunc(items, func(a, b domain.Session) int {
-				return strings.Compare(b.Status, a.Status)
-			})
-		}
-	}
-
 	result := domain.SessionResponse{
 		TotalCount: int(total),
-		Items:      applyLimitOffset(items, req.Limit, req.Offset),
+		Items:      items,
 	}
 
 	return &result, nil
@@ -145,17 +125,4 @@ func (s Token) Revoke(ctx context.Context, id int) error {
 		return errors.WithMessage(err, "token update status")
 	}
 	return nil
-}
-
-func applyLimitOffset(items []domain.Session, limit int, offset int) []domain.Session {
-	result := make([]domain.Session, 0)
-	for i := offset; i < offset+limit; i++ {
-		if i == len(items) {
-			break
-		}
-
-		result = append(result, items[i])
-	}
-
-	return result
 }

@@ -47,7 +47,7 @@ func (r Audit) Insert(ctx context.Context, log entity.Audit) (int, error) {
 	return id, nil
 }
 
-//nolint:gosec
+//nolint:dupl,gosec
 func (r Audit) All(ctx context.Context, req domain.AuditPageRequest) ([]entity.Audit, error) {
 	ctx = sql_metrics.OperationLabelToContext(ctx, "Audit.All")
 

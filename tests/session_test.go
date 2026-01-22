@@ -10,8 +10,10 @@ import (
 	"msp-admin-service/conf"
 	"msp-admin-service/domain"
 	"msp-admin-service/entity"
+	"msp-admin-service/service/session_worker"
 
 	"github.com/stretchr/testify/suite"
+	"github.com/txix-open/isp-kit/bgjobx"
 	"github.com/txix-open/isp-kit/dbx"
 	"github.com/txix-open/isp-kit/grpc/client"
 	"github.com/txix-open/isp-kit/http/httpcli"
@@ -30,6 +32,7 @@ type SessionSuite struct {
 
 	test    *test.Test
 	db      *dbt.TestDb
+	config  assembly.Config
 	grpcCli *client.Client
 }
 
@@ -69,10 +72,10 @@ func (t *SessionSuite) SetupTest() {
 			AuditTTl: conf.AuditTTlSetting{},
 		},
 	}
-	cfg := assembly.NewLocator(testInstance.Logger(), httpcli.New(), t.db).
-		Config(context.Background(), remote, time.Minute)
+	t.config = assembly.NewLocator(testInstance.Logger(), httpcli.New(), t.db).
+		Config(context.Background(), remote, 500*time.Millisecond)
 
-	server, apiCli := grpct.TestServer(testInstance, cfg.Handler)
+	server, apiCli := grpct.TestServer(testInstance, t.config.Handler)
 	t.grpcCli = apiCli
 
 	testInstance.T().Cleanup(func() {
@@ -83,52 +86,43 @@ func (t *SessionSuite) SetupTest() {
 //nolint:funlen
 func (t *SessionSuite) Test_All_Session() {
 	userId := InsertUser(t.db, entity.User{Email: "test_1@aa.ru"})
-
-	userTime1, err := time.Parse("2006-01-02T15:04:05Z", "2018-01-01T00:00:00Z")
-	t.Require().NoError(err)
-	userTime2, err := time.Parse("2006-01-02T15:04:05Z", "2018-02-01T00:00:00Z")
-	t.Require().NoError(err)
-	userTime3, err := time.Parse("2006-01-02T15:04:05Z", "2019-01-01T00:00:00Z")
-	t.Require().NoError(err)
+	timeNow := time.Now().UTC()
 
 	InsertTokenEntity(t.db, entity.Token{
 		Token:     "test_token_1",
 		UserId:    userId,
 		Status:    entity.TokenStatusAllowed,
-		ExpiredAt: userTime1.Add(1 * time.Hour),
-		CreatedAt: userTime1,
-		UpdatedAt: userTime1,
+		ExpiredAt: timeNow.Add(1 * time.Hour),
+		CreatedAt: timeNow.Add(-1 * time.Hour),
+		UpdatedAt: timeNow,
 	})
 	InsertTokenEntity(t.db, entity.Token{
 		Token:     "test_token_2",
 		UserId:    userId,
-		Status:    entity.TokenStatusAllowed,
-		ExpiredAt: userTime2.Add(1 * time.Hour),
-		CreatedAt: userTime2,
-		UpdatedAt: userTime2,
+		Status:    entity.TokenStatusRevoked,
+		ExpiredAt: timeNow.Add(1 * time.Hour),
+		CreatedAt: timeNow.Add(-2 * time.Hour),
+		UpdatedAt: timeNow,
 	})
 	InsertTokenEntity(t.db, entity.Token{
 		Token:     "test_token_3",
 		UserId:    userId,
-		Status:    entity.TokenStatusAllowed,
-		ExpiredAt: userTime3.Add(1 * time.Hour),
-		CreatedAt: userTime3,
-		UpdatedAt: userTime3,
+		Status:    entity.TokenStatusExpired,
+		ExpiredAt: timeNow.Add(-1 * time.Hour),
+		CreatedAt: timeNow.Add(-3 * time.Hour),
+		UpdatedAt: timeNow,
 	})
 
+	// Дефолт сортировка, лимит и оффсет
 	request := domain.SessionPageRequest{
 		LimitOffestParams: domain.LimitOffestParams{
 			Limit:  5,
 			Offset: 1,
 		},
-		Order: &domain.OrderParams{
-			Field: "created_at",
-			Type:  "asc",
-		},
 	}
 
 	var response *domain.SessionResponse
-	err = t.grpcCli.
+	err := t.grpcCli.
 		Invoke("admin/session/all").
 		JsonRequestBody(request).
 		JsonResponseBody(&response).
@@ -140,13 +134,54 @@ func (t *SessionSuite) Test_All_Session() {
 	t.Require().EqualValues(2, response.Items[0].Id)
 	t.Require().EqualValues(3, response.Items[1].Id)
 
+	// Дефолт сортировка, поиск по expired_at
 	request.Offset = 0
 	request.Query = &domain.SessionQuery{
 		ExpiredAt: &domain.DateFromToParams{
-			From: userTime3.Add(-24 * time.Hour),
-			To:   userTime3.Add(24 * time.Hour),
+			From: timeNow,
+			To:   timeNow.Add(24 * time.Hour),
 		},
 	}
+	err = t.grpcCli.
+		Invoke("admin/session/all").
+		JsonRequestBody(request).
+		JsonResponseBody(&response).
+		Do(context.Background())
+	t.Require().NoError(err)
+
+	t.Require().Len(response.Items, 2)
+	t.Require().EqualValues(2, response.TotalCount)
+	t.Require().EqualValues(1, response.Items[0].Id)
+	t.Require().EqualValues(2, response.Items[1].Id)
+
+	// Сортировка по статусу, пустой запрос
+	request.Query = nil
+	request.Order = &domain.OrderParams{
+		Field: "status",
+		Type:  "asc",
+	}
+
+	err = t.grpcCli.
+		Invoke("admin/session/all").
+		JsonRequestBody(request).
+		JsonResponseBody(&response).
+		Do(context.Background())
+	t.Require().NoError(err)
+
+	t.Require().Len(response.Items, 3)
+	t.Require().EqualValues(3, response.TotalCount)
+	t.Require().EqualValues(1, response.Items[0].Id)
+	t.Require().EqualValues(3, response.Items[1].Id)
+	t.Require().EqualValues(2, response.Items[2].Id)
+
+	// Сортировка по статусу, поиск по userId & status
+	resUserId := int(userId)
+	reqStatus := entity.TokenStatusExpired
+	request.Query = &domain.SessionQuery{
+		UserId: &resUserId,
+		Status: &reqStatus,
+	}
+
 	err = t.grpcCli.
 		Invoke("admin/session/all").
 		JsonRequestBody(request).
@@ -158,15 +193,16 @@ func (t *SessionSuite) Test_All_Session() {
 	t.Require().EqualValues(1, response.TotalCount)
 	t.Require().EqualValues(3, response.Items[0].Id)
 
+	// Сортировка по id, поиск по id
 	for i := range 20 {
 		userId = InsertUser(t.db, entity.User{Email: "test_11" + strconv.Itoa(i) + "@aa.ru"})
 		InsertTokenEntity(t.db, entity.Token{
 			Token:     "test_token_1" + strconv.Itoa(i),
 			UserId:    userId,
 			Status:    entity.TokenStatusAllowed,
-			ExpiredAt: userTime3.Add(1 * time.Hour),
-			CreatedAt: userTime3,
-			UpdatedAt: userTime3,
+			ExpiredAt: timeNow.Add(1 * time.Hour),
+			CreatedAt: timeNow,
+			UpdatedAt: timeNow,
 		})
 	}
 
@@ -200,136 +236,41 @@ func (t *SessionSuite) Test_All_Session() {
 	t.Require().EqualValues(2, response.Items[4].Id)
 }
 
-func (t *SessionSuite) Test_All_Session_Expired_Revoked() {
-	userId := InsertUser(t.db, entity.User{Email: "test_1@aa.ru"})
-
-	userTime, err := time.Parse("2006-01-02T15:04:05Z", "2025-01-01T00:00:00Z")
-	t.Require().NoError(err)
-	expiredTime, err := time.Parse("2006-01-02T15:04:05Z", "2426-01-01T00:00:00Z")
-	t.Require().NoError(err)
+func (t *SessionSuite) Test_Session_Expired_Worker() {
+	userId := InsertUser(t.db, entity.User{Email: "a@test"})
 
 	InsertTokenEntity(t.db, entity.Token{
-		Token:     "allowed_token",
+		Token:     "token_allowed",
 		UserId:    userId,
 		Status:    entity.TokenStatusAllowed,
-		ExpiredAt: expiredTime,
-		CreatedAt: userTime,
-		UpdatedAt: userTime,
-	})
-	InsertTokenEntity(t.db, entity.Token{
-		Token:     "revoked_token",
-		UserId:    userId,
-		Status:    entity.TokenStatusRevoked,
-		ExpiredAt: expiredTime,
-		CreatedAt: userTime,
-		UpdatedAt: userTime,
-	})
-	InsertTokenEntity(t.db, entity.Token{
-		Token:     "expired_token",
-		UserId:    userId,
-		Status:    entity.TokenStatusRevoked,
-		ExpiredAt: userTime.Add(1 * time.Hour),
-		CreatedAt: userTime,
-		UpdatedAt: userTime,
-	})
-
-	status := "EXPIRED"
-	request := domain.SessionPageRequest{
-		LimitOffestParams: domain.LimitOffestParams{
-			Limit:  5,
-			Offset: 0,
-		},
-		Order: &domain.OrderParams{
-			Field: "expired_at",
-			Type:  "desc",
-		},
-		Query: &domain.SessionQuery{
-			Status: &status,
-		},
-	}
-
-	var response *domain.SessionResponse
-	err = t.grpcCli.
-		Invoke("admin/session/all").
-		JsonRequestBody(request).
-		JsonResponseBody(&response).
-		Do(context.Background())
-	t.Require().NoError(err)
-
-	t.Require().Len(response.Items, 1)
-	t.Require().EqualValues(1, response.TotalCount)
-	t.Require().EqualValues(3, response.Items[0].Id)
-
-	status = "REVOKED"
-	request.Query.Status = &status
-
-	err = t.grpcCli.
-		Invoke("admin/session/all").
-		JsonRequestBody(request).
-		JsonResponseBody(&response).
-		Do(context.Background())
-	t.Require().NoError(err)
-
-	t.Require().Len(response.Items, 1)
-	t.Require().EqualValues(1, response.TotalCount)
-	t.Require().EqualValues(2, response.Items[0].Id)
-}
-
-func (t *SessionSuite) Test_All_Session_Status() {
-	userId := InsertUser(t.db, entity.User{Email: "test_1@aa.ru"})
-
-	userTime, err := time.Parse("2006-01-02T15:04:05Z", "2025-01-01T00:00:00Z")
-	t.Require().NoError(err)
-	expiredTime, err := time.Parse("2006-01-02T15:04:05Z", "2426-01-01T00:00:00Z")
-	t.Require().NoError(err)
+		ExpiredAt: time.Now().UTC().Add(24 * time.Hour)})
 
 	InsertTokenEntity(t.db, entity.Token{
-		Token:     "allowed_token",
+		Token:     "token_expired",
 		UserId:    userId,
 		Status:    entity.TokenStatusAllowed,
-		ExpiredAt: expiredTime,
-		CreatedAt: userTime,
-		UpdatedAt: userTime,
-	})
-	InsertTokenEntity(t.db, entity.Token{
-		Token:     "revoked_token",
-		UserId:    userId,
-		Status:    entity.TokenStatusRevoked,
-		ExpiredAt: expiredTime,
-		CreatedAt: userTime,
-		UpdatedAt: userTime,
-	})
-	InsertTokenEntity(t.db, entity.Token{
-		Token:     "expired_token",
-		UserId:    userId,
-		Status:    entity.TokenStatusRevoked,
-		ExpiredAt: userTime.Add(1 * time.Hour),
-		CreatedAt: userTime,
-		UpdatedAt: userTime,
-	})
+		ExpiredAt: time.Now().UTC().Add(-2 * time.Hour)})
 
-	request := domain.SessionPageRequest{
-		LimitOffestParams: domain.LimitOffestParams{
-			Limit:  5,
-			Offset: 0,
-		},
-		Order: &domain.OrderParams{
-			Field: "status",
-			Type:  "asc",
-		},
-	}
+	InsertTokenEntity(t.db, entity.Token{
+		Token:     "token_expired2",
+		UserId:    userId,
+		Status:    entity.TokenStatusAllowed,
+		ExpiredAt: time.Now().UTC().Add(-24 * time.Hour)})
 
-	var response *domain.SessionResponse
-	err = t.grpcCli.
-		Invoke("admin/session/all").
-		JsonRequestBody(request).
-		JsonResponseBody(&response).
-		Do(context.Background())
+	bgjobCli := bgjobx.NewClient(t.db, t.test.Logger())
+
+	err := session_worker.EnqueueSeedJob(t.T().Context(), bgjobCli)
 	t.Require().NoError(err)
 
-	t.Require().Len(response.Items, 3)
-	t.Require().EqualValues(3, response.TotalCount)
-	t.Require().EqualValues(1, response.Items[0].Id)
-	t.Require().EqualValues(3, response.Items[1].Id)
-	t.Require().EqualValues(2, response.Items[2].Id)
+	err = bgjobCli.Upgrade(t.T().Context(), t.config.BgJobCfg)
+	t.Require().NoError(err)
+
+	time.Sleep(2 * time.Second)
+
+	tokens := make([]entity.Token, 0)
+	t.db.Must().Select(&tokens, "SELECT * FROM tokens ORDER BY status ASC")
+
+	t.Require().EqualValues(entity.TokenStatusAllowed, tokens[0].Status)
+	t.Require().EqualValues(entity.TokenStatusExpired, tokens[1].Status)
+	t.Require().EqualValues(entity.TokenStatusExpired, tokens[2].Status)
 }
