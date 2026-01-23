@@ -47,16 +47,15 @@ func (r Audit) Insert(ctx context.Context, log entity.Audit) (int, error) {
 	return id, nil
 }
 
-//nolint:dupl,gosec
-func (r Audit) All(ctx context.Context, req domain.AuditPageRequest) ([]entity.Audit, error) {
+func (r Audit) AllByRequest(ctx context.Context, req domain.AuditPageRequest) ([]entity.Audit, error) {
 	ctx = sql_metrics.OperationLabelToContext(ctx, "Audit.All")
 
 	q := query.New().
 		Select("*").
 		From("audit").
 		OrderBy(strcase.ToSnake(req.Order.Field) + " " + req.Order.Type).
-		Offset(uint64(req.Offset)).
-		Limit(uint64(req.Limit))
+		Offset(req.Offset).
+		Limit(req.Limit)
 
 	query, args, err := reqAuditQuery(q, req.Query).ToSql()
 	if err != nil {
@@ -130,7 +129,7 @@ func reqAuditQuery(q squirrel.SelectBuilder, reqQuery *domain.AuditQuery) squirr
 
 	if reqQuery.CreatedAt != nil {
 		q = q.Where(squirrel.GtOrEq{"created_at": reqQuery.CreatedAt.From}).
-			Where(squirrel.LtOrEq{"created_at": reqQuery.CreatedAt.To})
+			Where(squirrel.Lt{"created_at": reqQuery.CreatedAt.To})
 	}
 
 	return q

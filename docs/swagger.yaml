@@ -69,6 +69,7 @@ definitions:
       limit:
         type: integer
       offset:
+        format: int64
         type: integer
       order:
         $ref: '#/definitions/domain.OrderParams'
@@ -311,6 +312,7 @@ definitions:
       limit:
         type: integer
       offset:
+        format: int64
         type: integer
       order:
         $ref: '#/definitions/domain.OrderParams'
@@ -432,6 +434,7 @@ definitions:
       limit:
         type: integer
       offset:
+        format: int64
         type: integer
       order:
         $ref: '#/definitions/domain.OrderParams'

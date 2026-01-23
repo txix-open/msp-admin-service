@@ -97,7 +97,6 @@ func (r Token) All(ctx context.Context) ([]entity.Token, error) {
 	return tokens, nil
 }
 
-//nolint:dupl,gosec
 func (r Token) AllByRequest(ctx context.Context, req domain.SessionPageRequest) ([]entity.Token, error) {
 	ctx = sql_metrics.OperationLabelToContext(ctx, "Token.AllByRequest")
 
@@ -105,8 +104,8 @@ func (r Token) AllByRequest(ctx context.Context, req domain.SessionPageRequest) 
 		Select("*").
 		From("tokens").
 		OrderBy(strcase.ToSnake(req.Order.Field) + " " + req.Order.Type).
-		Offset(uint64(req.Offset)).
-		Limit(uint64(req.Limit))
+		Offset(req.Offset).
+		Limit(req.Limit)
 
 	query, args, err := reqTokenQuery(q, req.Query).ToSql()
 	if err != nil {
@@ -136,8 +135,8 @@ func (r Token) UpdateStatus(ctx context.Context, id int, status string) error {
 	return nil
 }
 
-func (r Token) SetExpiredStatusById(ctx context.Context, ids []int) error {
-	ctx = sql_metrics.OperationLabelToContext(ctx, "Token.SetExpiredStatusById")
+func (r Token) SetExpiredStatusByIds(ctx context.Context, ids []int) error {
+	ctx = sql_metrics.OperationLabelToContext(ctx, "Token.SetExpiredStatusByIds")
 
 	query, args, err := query.New().
 		Update("tokens").
@@ -190,23 +189,15 @@ func (r Token) UpdateStatusByUserId(ctx context.Context, userId int, status stri
 	return nil
 }
 
-func (r Token) LastAccessByUserIds(ctx context.Context, userIds []int, reqQuery *domain.UserQuery) (map[int64]*time.Time, error) {
-	ctx = sql_metrics.OperationLabelToContext(ctx, "Token.LastAccessNotBlockedUsers")
+func (r Token) LastAccessByUserIds(ctx context.Context, userIds []int) (map[int64]*time.Time, error) {
+	ctx = sql_metrics.OperationLabelToContext(ctx, "Token.LastAccessByUserIds")
 
-	q := query.New().
+	query, args, err := query.New().
 		Select("user_id", "max(created_at) as created_at").
 		From("tokens").
 		Where(squirrel.Eq{"user_id": userIds}).
-		GroupBy("user_id")
-
-	if reqQuery != nil {
-		if reqQuery.LastSessionCreatedAt != nil {
-			q = q.Where(squirrel.GtOrEq{"created_at": reqQuery.LastSessionCreatedAt.From}).
-				Where(squirrel.LtOrEq{"created_at": reqQuery.LastSessionCreatedAt.To})
-		}
-	}
-
-	query, args, err := q.ToSql()
+		GroupBy("user_id").
+		ToSql()
 	if err != nil {
 		return nil, errors.WithMessage(err, "build query")
 	}
@@ -245,12 +236,12 @@ func reqTokenQuery(q squirrel.SelectBuilder, reqQuery *domain.SessionQuery) squi
 
 	if reqQuery.CreatedAt != nil {
 		q = q.Where(squirrel.GtOrEq{"created_at": reqQuery.CreatedAt.From}).
-			Where(squirrel.LtOrEq{"created_at": reqQuery.CreatedAt.To})
+			Where(squirrel.Lt{"created_at": reqQuery.CreatedAt.To})
 	}
 
 	if reqQuery.ExpiredAt != nil {
 		q = q.Where(squirrel.GtOrEq{"expired_at": reqQuery.ExpiredAt.From}).
-			Where(squirrel.LtOrEq{"expired_at": reqQuery.ExpiredAt.To})
+			Where(squirrel.Lt{"expired_at": reqQuery.ExpiredAt.To})
 	}
 
 	return q

@@ -8,8 +8,8 @@ const (
 )
 
 type LimitOffestParams struct {
-	Limit  int `validate:"required"`
-	Offset int
+	Limit  uint64 `validate:"required"`
+	Offset uint64
 }
 
 type OrderParams struct {

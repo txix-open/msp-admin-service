@@ -23,7 +23,7 @@ type TokenTransactionRunner interface {
 
 type TokenTransaction interface {
 	All(ctx context.Context) ([]entity.Token, error)
-	SetExpiredStatusById(ctx context.Context, ids []int) error
+	SetExpiredStatusByIds(ctx context.Context, ids []int) error
 }
 
 type Service struct {
@@ -73,7 +73,7 @@ func (w Service) do(ctx context.Context) error {
 			return nil
 		}
 
-		err = tx.SetExpiredStatusById(ctx, expiredTokenIds)
+		err = tx.SetExpiredStatusByIds(ctx, expiredTokenIds)
 		if err != nil {
 			return errors.WithMessage(err, "set expired status by id")
 		}

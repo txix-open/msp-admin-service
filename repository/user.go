@@ -134,15 +134,14 @@ func (u User) UpsertBySudirUserId(ctx context.Context, user entity.User) (*entit
 	return &result, nil
 }
 
-//nolint:gosec
 func (u User) GetUsers(ctx context.Context, req domain.UsersPageRequest) ([]entity.User, error) {
 	ctx = sql_metrics.OperationLabelToContext(ctx, "User.GetUsers")
 
 	q := query.New().
 		Select("*", "(SELECT max(created_at) FROM tokens WHERE tokens.user_id = users.id) as last_session_created_at").
 		From("users").
-		Offset(uint64(req.Offset)).
-		Limit(uint64(req.Limit))
+		Offset(req.Offset).
+		Limit(req.Limit)
 
 	if req.Order.Field == "userId" {
 		q = q.OrderBy("last_name "+req.Order.Type, "first_name "+req.Order.Type)

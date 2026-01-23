@@ -41,7 +41,7 @@ type UserRepo interface {
 
 type TokenRepo interface {
 	UpdateStatusByUserId(ctx context.Context, userId int, status string) error
-	LastAccessByUserIds(ctx context.Context, userIds []int, reqQuery *domain.UserQuery) (map[int64]*time.Time, error)
+	LastAccessByUserIds(ctx context.Context, userIds []int) (map[int64]*time.Time, error)
 }
 
 type UserRoleRepo interface {
@@ -293,7 +293,7 @@ func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, admi
 			return errors.WithMessage(err, "update user role links")
 		}
 
-		userLastSession, err := tx.LastAccessByUserIds(ctx, []int{int(user.Id)}, nil)
+		userLastSession, err := tx.LastAccessByUserIds(ctx, []int{int(user.Id)})
 		if err != nil {
 			return errors.WithMessage(err, "get last user session")
 		}
@@ -357,7 +357,7 @@ func (u User) GetById(ctx context.Context, userId int) (*domain.User, error) {
 		return nil, errors.WithMessage(err, "get roles by user id")
 	}
 
-	lastSessions, err := u.tokenRepo.LastAccessByUserIds(ctx, []int{userId}, nil)
+	lastSessions, err := u.tokenRepo.LastAccessByUserIds(ctx, []int{userId})
 	if err != nil {
 		return nil, errors.WithMessage(err, "get last sessions by user id")
 	}
@@ -558,7 +558,7 @@ func filteredLastSession(reqQuery *domain.UserQuery, lastSessionCreatedAt *time.
 	}
 
 	if reqQuery.LastSessionCreatedAt.From.Compare(*lastSessionCreatedAt) <= 0 &&
-		reqQuery.LastSessionCreatedAt.To.Compare(*lastSessionCreatedAt) >= 0 {
+		reqQuery.LastSessionCreatedAt.To.Compare(*lastSessionCreatedAt) > 0 {
 		return true
 	}
 

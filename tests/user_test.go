@@ -199,7 +199,7 @@ func (s *UserTestSuite) TestGetUsers() {
 
 	roles := []int{int(roleId1), int(roleId2)}
 
-	s.Require().Len(response.Items, 2) //nolint:mnd
+	s.Require().Len(response.Items, 2)
 	s.Require().EqualValues("a1@b.ru", response.Items[0].Email)
 	s.Require().EqualValues(roles, response.Items[0].Roles)
 	s.Require().EqualValues("a1@c.ru", response.Items[1].Email)
@@ -279,8 +279,8 @@ func (s *UserTestSuite) TestGetUsersFilterByLastActiveAt() {
 			},
 			Query: &domain.UserQuery{
 				LastSessionCreatedAt: &domain.DateFromToParams{
-					From: userTime1.Add(-24 * time.Hour),
-					To:   userTime1.Add(24 * time.Hour),
+					From: userTime1.Add(-48 * time.Hour),
+					To:   userTime1.Add(48 * time.Hour),
 				},
 			},
 		}).
@@ -288,7 +288,7 @@ func (s *UserTestSuite) TestGetUsersFilterByLastActiveAt() {
 		Do(context.Background())
 	s.Require().NoError(err)
 
-	s.Require().Len(response.Items, 2) //nolint:mnd
+	s.Require().Len(response.Items, 2)
 	s.Require().EqualValues(userId2, response.Items[0].Id)
 	s.Require().EqualValues(userId1, response.Items[1].Id)
 }
