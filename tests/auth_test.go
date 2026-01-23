@@ -100,6 +100,8 @@ func (s *AuthTestSuite) TestLoginHappyPath() {
 
 	tokenInfo := SelectTokenEntityByToken(s.db, response.Token)
 	s.Require().Equal(tokenInfo.UserId, id)
+
+	time.Sleep(1 * time.Second) // wait for go SaveAuditAsync()
 }
 
 func (s *AuthTestSuite) TestLoginNotFound() {
@@ -113,6 +115,8 @@ func (s *AuthTestSuite) TestLoginNotFound() {
 	st, ok := status.FromError(err)
 	s.Require().True(ok)
 	s.Require().Equal(codes.Unauthenticated, st.Code())
+
+	time.Sleep(1 * time.Second) // wait for go SaveAuditAsync()
 }
 
 func (s *AuthTestSuite) TestBlockedUser() {
@@ -134,6 +138,8 @@ func (s *AuthTestSuite) TestBlockedUser() {
 	st, ok := status.FromError(err)
 	s.Require().True(ok)
 	s.Require().Equal(codes.Unauthenticated, st.Code())
+
+	time.Sleep(1 * time.Second) // wait for go SaveAuditAsync()
 }
 
 func (s *AuthTestSuite) TestLoginWrongPassword() {
@@ -154,6 +160,8 @@ func (s *AuthTestSuite) TestLoginWrongPassword() {
 	st, ok := status.FromError(err)
 	s.Require().True(ok)
 	s.Require().Equal(codes.Unauthenticated, st.Code())
+
+	time.Sleep(1 * time.Second) // wait for go SaveAuditAsync()
 }
 
 func (s *AuthTestSuite) TestSudirLoginHappyPath() {
@@ -172,6 +180,8 @@ func (s *AuthTestSuite) TestSudirLoginHappyPath() {
 
 	tokenInfo := SelectTokenEntityByToken(s.db, response.Token)
 	s.Require().Equal(tokenInfo.UserId, user.Id)
+
+	time.Sleep(1 * time.Second) // wait for go SaveAuditAsync()
 }
 
 func (s *AuthTestSuite) Test_Logout_HappyPath() {
@@ -190,6 +200,8 @@ func (s *AuthTestSuite) Test_Logout_HappyPath() {
 
 	tokenInfo := SelectTokenEntityByToken(s.db, "token-841297641213")
 	s.Require().Equal(entity.TokenStatusRevoked, tokenInfo.Status)
+
+	time.Sleep(1 * time.Second) // wait for go SaveAuditAsync()
 }
 
 func (s *AuthTestSuite) Test_Logout_NotFound() {
@@ -213,6 +225,8 @@ func (s *AuthTestSuite) Test_Logout_NotFound() {
 	s.Require().NoError(err)
 	s.Require().Len(auditList, 1)
 	s.Require().Equal(entity.EventSuccessLogout, auditList[0].Event)
+
+	time.Sleep(1 * time.Second) // wait for go SaveAuditAsync()
 }
 
 func (s *AuthTestSuite) Test_Logout_AlreadyRevoke() {
@@ -231,6 +245,8 @@ func (s *AuthTestSuite) Test_Logout_AlreadyRevoke() {
 
 	tokenInfo := SelectTokenEntityByToken(s.db, "token-148623719462")
 	s.Require().Equal(entity.TokenStatusRevoked, tokenInfo.Status)
+
+	time.Sleep(1 * time.Second) // wait for go SaveAuditAsync()
 }
 
 func (s *AuthTestSuite) TestBruteForceLogin() {
@@ -277,6 +293,8 @@ func (s *AuthTestSuite) TestBruteForceLogin() {
 
 	s.Require().EqualValues(97, tooManyRequestsErrorCount.Load())
 	s.Require().EqualValues(3, unauthorizedErrorCount.Load())
+
+	time.Sleep(2 * time.Second) // wait for go SaveAuditAsync()
 }
 
 func (s *AuthTestSuite) initMockSudir() (*httptest.Server, string) {

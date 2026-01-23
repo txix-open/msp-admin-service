@@ -348,6 +348,7 @@ func (s *UserTestSuite) TestCreateUserHappyPath() {
 	s.db.Must().SelectRow(&postCount, "select count(*) from users")
 
 	s.Require().Equal(preCount+1, postCount)
+	time.Sleep(1 * time.Second) // wait for go SaveAuditAsync()
 }
 
 func (s *UserTestSuite) TestCreateUserWithSameEmailSudirHappyPath() {
@@ -375,6 +376,7 @@ func (s *UserTestSuite) TestCreateUserWithSameEmailSudirHappyPath() {
 	s.db.Must().SelectRow(&postCount, "select count(*) from users")
 
 	s.Require().Equal(preCount+1, postCount)
+	time.Sleep(1 * time.Second) // wait for go SaveAuditAsync()
 }
 
 func (s *UserTestSuite) TestCreateUserAlreadyExist() {
@@ -419,6 +421,8 @@ func (s *AuthTestSuite) TestUpdateUserHappyPath() {
 		Email:     response.Email,
 	}
 	s.Require().Equal(expected, req)
+
+	time.Sleep(1 * time.Second) // wait for go SaveAuditAsync()
 }
 
 func (s *AuthTestSuite) TestUpdateSudirUserHappyPath() {
@@ -444,6 +448,8 @@ func (s *AuthTestSuite) TestUpdateSudirUserHappyPath() {
 		Email:     response.Email,
 	}
 	s.Require().Equal(expected, req)
+
+	time.Sleep(1 * time.Second) // wait for go SaveAuditAsync()
 }
 
 func (s *AuthTestSuite) TestUpdateUserAlreadyExist() {
@@ -505,6 +511,8 @@ func (s *UserTestSuite) TestDeleteUsers() {
 	s.Require().NoError(err)
 
 	s.Require().Equal(2, response.Deleted)
+
+	time.Sleep(1 * time.Second) // wait for go SaveAuditAsync()
 }
 
 func (s *UserTestSuite) TestBlockUser() {
@@ -538,6 +546,8 @@ func (s *UserTestSuite) TestBlockUser() {
 	t, err := repository.NewToken(s.db).Get(context.Background(), token)
 	s.Require().NoError(err)
 	s.EqualValues(entity.TokenStatusRevoked, t.Status)
+
+	time.Sleep(1 * time.Second) // wait for go SaveAuditAsync()
 }
 
 func (s *UserTestSuite) TestChangePasswordUser() {
@@ -579,4 +589,6 @@ func (s *UserTestSuite) TestChangePasswordUser() {
 
 	tokenInfo := SelectTokenEntityByToken(s.db, "token-841297641213")
 	s.Require().Equal(entity.TokenStatusRevoked, tokenInfo.Status)
+
+	time.Sleep(1 * time.Second) // wait for go SaveAuditAsync()
 }

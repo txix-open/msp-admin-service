@@ -59,4 +59,6 @@ func TestInactiveWorker(t *testing.T) {
 	})
 	require.NoError(err)
 	require.Len(list, 1)
+
+	time.Sleep(1 * time.Second) // wait for go SaveAuditAsync()
 }
