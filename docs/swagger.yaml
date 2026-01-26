@@ -1147,6 +1147,23 @@ paths:
       summary: Получение внешнего вида
       tags:
       - user
+  /user/get_permissions:
+    post:
+      consumes:
+      - application/json
+      description: Получить все разрашения
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.Permission'
+            type: array
+      summary: Получить все разрашения
+      tags:
+      - user
   /user/get_profile:
     post:
       consumes:

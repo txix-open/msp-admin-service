@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"strconv"
 	"time"
 
 	"msp-admin-service/domain"
@@ -351,7 +352,7 @@ func reqUsersQuery(q squirrel.SelectBuilder, reqQuery *domain.UserQuery) squirre
 	}
 
 	if reqQuery.Id != nil {
-		q = q.Where("id = ?", *reqQuery.Id)
+		q = q.Where(squirrel.ILike{"id::text": strconv.Itoa(*reqQuery.Id) + "%"})
 	}
 
 	if reqQuery.UserId != nil { // поиск в ui по имени, но в бд - по id юзера
