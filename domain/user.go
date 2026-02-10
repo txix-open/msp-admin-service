@@ -9,6 +9,7 @@ type User struct {
 	Roles                []int
 	FirstName            string
 	LastName             string
+	FullName             string
 	Email                string
 	Description          string
 	Blocked              bool
@@ -40,6 +41,7 @@ type UsersPageRequest struct {
 type AdminUserShort struct {
 	FirstName     string
 	LastName      string
+	FullName      string
 	Email         string `validate:"required"`
 	Role          string
 	Roles         []int

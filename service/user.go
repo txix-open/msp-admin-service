@@ -125,6 +125,7 @@ func (u User) GetProfileById(ctx context.Context, userId int64) (*domain.AdminUs
 	return &domain.AdminUserShort{
 		FirstName:     user.FirstName,
 		LastName:      user.LastName,
+		FullName:      user.FullName,
 		Email:         user.Email,
 		Role:          roleName,
 		Roles:         roleIds,
@@ -192,6 +193,7 @@ func (u User) CreateUser(ctx context.Context, req domain.CreateUserRequest, admi
 			Id:          0,
 			FirstName:   req.FirstName,
 			LastName:    req.LastName,
+			FullName:    createFullName(req.FirstName, req.LastName),
 			Email:       req.Email,
 			Password:    encryptedPassword,
 			Description: req.Description,
@@ -219,12 +221,14 @@ func (u User) CreateUser(ctx context.Context, req domain.CreateUserRequest, admi
 	diff := diffToString(map[string]any{
 		"Имя":       "",
 		"Фамилия":   "",
+		"ФИО":       "",
 		"Описание":  "",
 		"Email":     "",
 		"Роли (ID)": []int{},
 	}, map[string]any{
 		"Имя":       req.FirstName,
 		"Фамилия":   req.LastName,
+		"ФИО":       usr.FullName,
 		"Описание":  req.Description,
 		"Email":     req.Email,
 		"Роли (ID)": req.Roles,
@@ -242,6 +246,7 @@ func (u User) CreateUser(ctx context.Context, req domain.CreateUserRequest, admi
 func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, adminId int64) (*domain.User, error) {
 	var (
 		user                 *entity.User
+		updatedUser          *entity.User
 		lastSessionCreatedAt *time.Time
 	)
 	oldRoles, err := u.userRoleRepo.GetRolesByUserIds(ctx, []int{int(req.Id)})
@@ -280,24 +285,25 @@ func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, admi
 		updateEntity := entity.UpdateUser{
 			FirstName:   req.FirstName,
 			LastName:    req.LastName,
+			FullName:    updateFullName(user.FullName, req.FirstName, req.LastName),
 			Email:       req.Email,
 			Description: req.Description,
 		}
-		user, err = tx.UpdateUser(ctx, req.Id, updateEntity)
+		updatedUser, err = tx.UpdateUser(ctx, req.Id, updateEntity)
 		if err != nil {
 			return errors.WithMessage(err, "update user")
 		}
 
-		err = tx.UpsertUserRoleLinks(ctx, int(user.Id), req.Roles)
+		err = tx.UpsertUserRoleLinks(ctx, int(updatedUser.Id), req.Roles)
 		if err != nil {
 			return errors.WithMessage(err, "update user role links")
 		}
 
-		userLastSession, err := tx.LastAccessByUserIds(ctx, []int{int(user.Id)})
+		userLastSession, err := tx.LastAccessByUserIds(ctx, []int{int(updatedUser.Id)})
 		if err != nil {
 			return errors.WithMessage(err, "get last user session")
 		}
-		lastSessionCreatedAt = userLastSession[user.Id]
+		lastSessionCreatedAt = userLastSession[updatedUser.Id]
 
 		return nil
 	})
@@ -309,22 +315,24 @@ func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, admi
 	diff := diffToString(map[string]any{
 		"Имя":       user.FirstName,
 		"Фамилия":   user.LastName,
+		"ФИО":       user.FullName,
 		"Описание":  user.Description,
 		"Email":     user.Email,
 		"Роли (ID)": RolesIds(oldRoles),
 	}, map[string]any{
 		"Имя":       req.FirstName,
 		"Фамилия":   req.LastName,
+		"ФИО":       updatedUser.FullName,
 		"Описание":  req.Description,
 		"Email":     req.Email,
 		"Роли (ID)": req.Roles,
 	})
 	u.auditService.SaveAuditAsync(ctx, adminId,
-		fmt.Sprintf("Пользователь. Изменение пользователя %d.\n %s", user.Id, diff),
+		fmt.Sprintf("Пользователь. Изменение пользователя %d.\n %s", updatedUser.Id, diff),
 		entity.EventUserChanged,
 	)
 
-	result := u.toDomain(*user, req.Roles, lastSessionCreatedAt)
+	result := u.toDomain(*updatedUser, req.Roles, lastSessionCreatedAt)
 	return &result, nil
 }
 
@@ -512,8 +520,9 @@ func (u User) toDomain(user entity.User, roleIds []int, lastSessionCreatedAt *ti
 		Id:                   user.Id,
 		Roles:                roleIds,
 		FirstName:            user.FirstName,
-		Description:          user.Description,
 		LastName:             user.LastName,
+		FullName:             user.FullName,
+		Description:          user.Description,
 		Email:                user.Email,
 		Blocked:              user.Blocked,
 		UpdatedAt:            user.UpdatedAt,
@@ -563,4 +572,33 @@ func filteredLastSession(reqQuery *domain.UserQuery, lastSessionCreatedAt *time.
 	}
 
 	return false
+}
+
+//nolint:mnd
+func updateFullName(fullName string, firstName string, lastName string) string {
+	names := strings.Split(fullName, " ")
+
+	switch len(names) {
+	case 0, 1: // "", "Имя"
+		return createFullName(firstName, lastName)
+	case 2: // "Фамилия Имя"
+		if len(lastName) == 0 {
+			lastName = names[0]
+		}
+		return createFullName(firstName, lastName)
+	default: // "Фамилия Имя Отчество"
+		names[1] = firstName
+		if len(lastName) != 0 {
+			names[0] = lastName
+		}
+		return strings.Join(names, " ")
+	}
+}
+
+func createFullName(firstName string, lastName string) string {
+	if len(lastName) == 0 {
+		return firstName
+	}
+
+	return strings.Join([]string{lastName, firstName}, " ")
 }

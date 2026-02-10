@@ -74,6 +74,7 @@ func (s *UserTestSuite) TestGetProfileHappyPath() {
 	id := InsertUser(s.db, entity.User{
 		FirstName: "name",
 		LastName:  "surname",
+		FullName:  "surname name",
 		Email:     "a@a.ru",
 		Password:  "password",
 	})
@@ -96,6 +97,7 @@ func (s *UserTestSuite) TestGetProfileHappyPath() {
 	expected := domain.AdminUserShort{
 		FirstName:   "name",
 		LastName:    "surname",
+		FullName:    "surname name",
 		Email:       "a@a.ru",
 		Role:        "admin",
 		Roles:       []int{1},
@@ -109,6 +111,7 @@ func (s *UserTestSuite) TestGetProfileNotFound() {
 	id := InsertUser(s.db, entity.User{
 		FirstName: "name",
 		LastName:  "surname",
+		FullName:  "surname name",
 		Email:     "a@b.ru",
 		Password:  "password",
 	})
@@ -127,6 +130,7 @@ func (s *UserTestSuite) TestGetProfileSudir() {
 		SudirUserId: "sudirUser1",
 		FirstName:   "name",
 		LastName:    "surname",
+		FullName:    "surname name",
 		Email:       "a@b.ru",
 	})
 
@@ -149,6 +153,7 @@ func (s *UserTestSuite) TestGetProfileSudir() {
 	expected := domain.AdminUserShort{
 		FirstName:   "name",
 		LastName:    "surname",
+		FullName:    "surname name",
 		Email:       "a@b.ru",
 		Role:        "admin",
 		Roles:       []int{1},
@@ -294,10 +299,13 @@ func (s *UserTestSuite) TestGetUsersFilterByLastActiveAt() {
 }
 
 func (s *UserTestSuite) TestGetUsersSortByName() {
-	userIdViser1 := InsertUser(s.db, entity.User{Email: "a1@a.ru", FirstName: "admin_viser", LastName: "admin_viser"})
-	userIdViser2 := InsertUser(s.db, entity.User{Email: "a1@b.ru", FirstName: "admin_viser", LastName: "admin_viser2"})
-	userIdScripts := InsertUser(s.db, entity.User{Email: "a1@c.ru", FirstName: "admin_scripts", LastName: "admin_scripts"})
-	userIdAL := InsertUser(s.db, entity.User{Email: "a1@d.ru", FirstName: "А", LastName: "Л"})
+	userIdViser1 := InsertUser(s.db, entity.User{Email: "a1@a.ru",
+		FirstName: "admin_viser", LastName: "admin_viser", FullName: "admin_viser admin_viser"})
+	userIdViser2 := InsertUser(s.db, entity.User{Email: "a1@b.ru",
+		FirstName: "admin_viser", LastName: "admin_viser2", FullName: "admin_viser2 admin_viser"})
+	userIdScripts := InsertUser(s.db, entity.User{Email: "a1@c.ru",
+		FirstName: "admin_scripts", LastName: "admin_scripts", FullName: "admin_scripts admin_scripts"})
+	userIdAL := InsertUser(s.db, entity.User{Email: "a1@d.ru", FirstName: "А", LastName: "Л", FullName: "Л А"})
 
 	response := domain.UsersResponse{}
 	err := s.grpcCli.Invoke("admin/user/get_users").
@@ -426,11 +434,11 @@ func (s *AuthTestSuite) TestUpdateUserHappyPath() {
 }
 
 func (s *AuthTestSuite) TestUpdateSudirUserHappyPath() {
-	id := InsertSudirUser(s.db, entity.SudirUser{SudirUserId: "123", Email: "sudir@a.ru"})
+	id := InsertSudirUser(s.db, entity.SudirUser{SudirUserId: "123", Email: "sudir@a.ru", FullName: "surname name patronymic"})
 	req := domain.UpdateUserRequest{
 		Id:        id,
-		FirstName: "name",
-		LastName:  "surname",
+		FirstName: "nameUpd",
+		LastName:  "surnameUpd",
 		Email:     "sudir@a.ru",
 	}
 	response := domain.User{}
@@ -448,6 +456,7 @@ func (s *AuthTestSuite) TestUpdateSudirUserHappyPath() {
 		Email:     response.Email,
 	}
 	s.Require().Equal(expected, req)
+	s.Require().Equal("surnameUpd nameUpd patronymic", response.FullName)
 
 	time.Sleep(1 * time.Second) // wait for go SaveAuditAsync()
 }

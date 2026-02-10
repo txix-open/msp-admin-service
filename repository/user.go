@@ -109,11 +109,12 @@ func (u User) UpsertBySudirUserId(ctx context.Context, user entity.User) (*entit
 	ctx = sql_metrics.OperationLabelToContext(ctx, "User.UpsertBySudirUserId")
 
 	selectQ := `
-	insert into users as u (first_name, last_name, email, created_at, updated_at, sudir_user_id) 
-	values ($1, $2, $3, $4, $5, $6)
+	insert into users as u (first_name, last_name, full_name, email, created_at, updated_at, sudir_user_id) 
+	values ($1, $2, $3, $4, $5, $6, $7)
     on conflict (sudir_user_id) do update 
     set first_name = excluded.first_name,
         last_name = excluded.last_name,
+        full_name = excluded.full_name,
         email = excluded.email,
         updated_at = excluded.updated_at
     where u.blocked = false
@@ -123,7 +124,7 @@ func (u User) UpsertBySudirUserId(ctx context.Context, user entity.User) (*entit
 	err := u.db.SelectRow(ctx,
 		&result,
 		selectQ,
-		user.FirstName, user.LastName, user.Email, user.CreatedAt, user.UpdatedAt, user.SudirUserId,
+		user.FirstName, user.LastName, user.FullName, user.Email, user.CreatedAt, user.UpdatedAt, user.SudirUserId,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, domain.ErrUserIsBlocked
@@ -145,7 +146,8 @@ func (u User) GetUsers(ctx context.Context, req domain.UsersPageRequest) ([]enti
 		Limit(req.Limit)
 
 	if req.Order.Field == "userId" {
-		q = q.OrderBy("last_name "+req.Order.Type, "first_name "+req.Order.Type)
+		// todo
+		q = q.OrderBy("full_name " + req.Order.Type)
 	} else {
 		q = q.OrderBy(strcase.ToSnake(req.Order.Field) + " " + req.Order.Type)
 	}
@@ -194,9 +196,9 @@ func (u User) Insert(ctx context.Context, user entity.User) (int, error) {
 
 	insertQ, args, err := query.New().
 		Insert("users").
-		Columns("first_name", "last_name", "description",
+		Columns("first_name", "last_name", "full_name", "description",
 			"email", "password", "created_at", "updated_at").
-		Values(user.FirstName, user.LastName, user.Description,
+		Values(user.FirstName, user.LastName, user.FullName, user.Description,
 			user.Email, user.Password, user.CreatedAt, user.UpdatedAt).
 		Suffix("returning id").
 		ToSql()
@@ -222,11 +224,12 @@ func (u User) UpdateUser(ctx context.Context, id int64, user entity.UpdateUser) 
 		SetMap(map[string]interface{}{
 			"first_name":  user.FirstName,
 			"last_name":   user.LastName,
+			"full_name":   user.FullName,
 			"email":       user.Email,
 			"description": user.Description,
 		}).
 		Where(squirrel.Eq{"id": id}).
-		Suffix("RETURNING id, first_name, last_name, email, sudir_user_id, description, created_at, updated_at").
+		Suffix("RETURNING id, first_name, last_name, full_name, email, sudir_user_id, description, created_at, updated_at").
 		ToSql()
 	if err != nil {
 		return nil, errors.WithMessage(err, "build query")
@@ -355,7 +358,7 @@ func reqUsersQuery(q squirrel.SelectBuilder, reqQuery *domain.UserQuery) squirre
 		q = q.Where(squirrel.ILike{"id::text": strconv.Itoa(*reqQuery.Id) + "%"})
 	}
 
-	if reqQuery.UserId != nil { // поиск в ui по имени, но в бд - по id юзера
+	if reqQuery.UserId != nil { // поиск в ui по фио, но в бд - по id юзера
 		q = q.Where("id = ?", *reqQuery.UserId)
 	}
 

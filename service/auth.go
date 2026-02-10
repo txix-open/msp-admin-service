@@ -5,11 +5,12 @@ import (
 	"sync/atomic"
 	"time"
 
+	"msp-admin-service/domain"
+	"msp-admin-service/entity"
+
 	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/log"
 	"golang.org/x/crypto/bcrypt"
-	"msp-admin-service/domain"
-	"msp-admin-service/entity"
 )
 
 type AuthTransaction interface {
@@ -169,6 +170,7 @@ func (a Auth) LoginWithSudir(ctx context.Context, request domain.LoginSudirReque
 			SudirUserId: &sudirUser.SudirUserId,
 			FirstName:   sudirUser.FirstName,
 			LastName:    sudirUser.LastName,
+			FullName:    sudirUser.FullName,
 			Email:       sudirUser.Email,
 			Password:    "",
 			Blocked:     false,

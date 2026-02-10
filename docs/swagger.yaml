@@ -23,6 +23,8 @@ definitions:
         type: string
       firstName:
         type: string
+      fullName:
+        type: string
       idleTimeoutMs:
         type: integer
       lastName:
@@ -397,6 +399,8 @@ definitions:
       email:
         type: string
       firstName:
+        type: string
+      fullName:
         type: string
       id:
         format: int64

@@ -15,17 +15,17 @@ func InsertUser(db *dbt.TestDb, user entity.User) int64 {
 		user.Password = string(passwordBytes)
 	}
 	var id int64
-	db.Must().SelectRow(&id, `insert into users (first_name, last_name, email, password, blocked, last_active_at)
-	values($1,$2,$3,$4,$5,$6) returning id`,
-		user.FirstName, user.LastName, user.Email, user.Password, user.Blocked, user.LastActiveAt)
+	db.Must().SelectRow(&id, `insert into users (first_name, last_name, full_name, email, password, blocked, last_active_at)
+	values($1,$2,$3,$4,$5,$6,$7) returning id`,
+		user.FirstName, user.LastName, user.FullName, user.Email, user.Password, user.Blocked, user.LastActiveAt)
 	return id
 }
 
 func InsertSudirUser(db *dbt.TestDb, user entity.SudirUser) int64 {
 	q, args, err := query.New().
 		Insert("users").
-		Columns("sudir_user_id", "first_name", "last_name", "email").
-		Values(user.SudirUserId, user.FirstName, user.LastName, user.Email).
+		Columns("sudir_user_id", "first_name", "last_name", "full_name", "email").
+		Values(user.SudirUserId, user.FirstName, user.LastName, user.FullName, user.Email).
 		Suffix("RETURNING id").
 		ToSql()
 	if err != nil {

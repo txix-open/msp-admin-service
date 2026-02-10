@@ -175,8 +175,9 @@ func (s *AuthTestSuite) TestSudirLoginHappyPath() {
 		Do(context.Background())
 	s.Require().NoError(err)
 	user := entity.User{}
-	s.db.Must().SelectRow(&user, "select id, email from users where sudir_user_id = $1", "sudirUser1")
+	s.db.Must().SelectRow(&user, "select id, email, full_name from users where sudir_user_id = $1", "sudirUser1")
 	s.Require().Equal("sudir@email.ru", user.Email)
+	s.Require().Equal("surname name patronymic", user.FullName)
 
 	tokenInfo := SelectTokenEntityByToken(s.db, response.Token)
 	s.Require().Equal(tokenInfo.UserId, user.Id)
@@ -318,6 +319,7 @@ func (s *AuthTestSuite) initMockSudir() (*httptest.Server, string) {
 			Sub:            "sudirUser1",
 			GivenName:      "name",
 			FamilyName:     "surname",
+			Name:           "surname name patronymic",
 		}
 		data, err := json.Marshal(res)
 		s.Require().NoError(err) //nolint:testifylint
