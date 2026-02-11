@@ -146,7 +146,6 @@ func (u User) GetUsers(ctx context.Context, req domain.UsersPageRequest) ([]enti
 		Limit(req.Limit)
 
 	if req.Order.Field == "userId" {
-		// todo
 		q = q.OrderBy("full_name " + req.Order.Type)
 	} else {
 		q = q.OrderBy(strcase.ToSnake(req.Order.Field) + " " + req.Order.Type)

@@ -219,15 +219,11 @@ func (u User) CreateUser(ctx context.Context, req domain.CreateUserRequest, admi
 
 	slices.Sort(req.Roles)
 	diff := diffToString(map[string]any{
-		"Имя":       "",
-		"Фамилия":   "",
 		"ФИО":       "",
 		"Описание":  "",
 		"Email":     "",
 		"Роли (ID)": []int{},
 	}, map[string]any{
-		"Имя":       req.FirstName,
-		"Фамилия":   req.LastName,
 		"ФИО":       usr.FullName,
 		"Описание":  req.Description,
 		"Email":     req.Email,
@@ -285,7 +281,7 @@ func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, admi
 		updateEntity := entity.UpdateUser{
 			FirstName:   req.FirstName,
 			LastName:    req.LastName,
-			FullName:    updateFullName(user.FullName, req.FirstName, req.LastName),
+			FullName:    createFullName(req.FirstName, req.LastName),
 			Email:       req.Email,
 			Description: req.Description,
 		}
@@ -313,15 +309,11 @@ func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, admi
 
 	slices.Sort(req.Roles)
 	diff := diffToString(map[string]any{
-		"Имя":       user.FirstName,
-		"Фамилия":   user.LastName,
 		"ФИО":       user.FullName,
 		"Описание":  user.Description,
 		"Email":     user.Email,
 		"Роли (ID)": RolesIds(oldRoles),
 	}, map[string]any{
-		"Имя":       req.FirstName,
-		"Фамилия":   req.LastName,
 		"ФИО":       updatedUser.FullName,
 		"Описание":  req.Description,
 		"Email":     req.Email,
@@ -572,27 +564,6 @@ func filteredLastSession(reqQuery *domain.UserQuery, lastSessionCreatedAt *time.
 	}
 
 	return false
-}
-
-//nolint:mnd
-func updateFullName(fullName string, firstName string, lastName string) string {
-	names := strings.Split(fullName, " ")
-
-	switch len(names) {
-	case 0, 1: // "", "Имя"
-		return createFullName(firstName, lastName)
-	case 2: // "Фамилия Имя"
-		if len(lastName) == 0 {
-			lastName = names[0]
-		}
-		return createFullName(firstName, lastName)
-	default: // "Фамилия Имя Отчество"
-		names[1] = firstName
-		if len(lastName) != 0 {
-			names[0] = lastName
-		}
-		return strings.Join(names, " ")
-	}
 }
 
 func createFullName(firstName string, lastName string) string {

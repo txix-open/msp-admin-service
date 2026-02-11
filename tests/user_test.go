@@ -456,7 +456,7 @@ func (s *AuthTestSuite) TestUpdateSudirUserHappyPath() {
 		Email:     response.Email,
 	}
 	s.Require().Equal(expected, req)
-	s.Require().Equal("surnameUpd nameUpd patronymic", response.FullName)
+	s.Require().Equal("surnameUpd nameUpd", response.FullName)
 
 	time.Sleep(1 * time.Second) // wait for go SaveAuditAsync()
 }
