@@ -13,7 +13,7 @@ RUN --mount=type=cache,target=/go/pkg/mod/ \
     --mount=type=bind,target=. \
     go build -ldflags="-X 'main.version=$version_env'" -o /main .
 
-FROM alpine:3.21
+FROM alpine:3.23
 
 RUN apk add --no-cache tzdata
 RUN cp /usr/share/zoneinfo/Europe/Moscow /etc/localtime
