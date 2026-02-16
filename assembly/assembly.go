@@ -4,6 +4,11 @@ import (
 	"context"
 	"time"
 
+	"msp-admin-service/conf"
+	"msp-admin-service/service/delete_old_audit_worker"
+	"msp-admin-service/service/inactive_worker"
+	"msp-admin-service/service/session_worker"
+
 	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/app"
 	"github.com/txix-open/isp-kit/bgjobx"
@@ -15,9 +20,6 @@ import (
 	"github.com/txix-open/isp-kit/http/httpcli"
 	"github.com/txix-open/isp-kit/http/httpclix"
 	"github.com/txix-open/isp-kit/log"
-	"msp-admin-service/conf"
-	"msp-admin-service/service/delete_old_audit_worker"
-	"msp-admin-service/service/inactive_worker"
 )
 
 type Assembly struct {
@@ -79,6 +81,10 @@ func (a *Assembly) ReceiveConfig(ctx context.Context, remoteConfig []byte) error
 	err = inactive_worker.EnqueueSeedJob(ctx, a.bgjobCli)
 	if err != nil {
 		a.logger.Fatal(ctx, errors.WithMessage(err, "seed inactive user worker"))
+	}
+	err = session_worker.EnqueueSeedJob(ctx, a.bgjobCli)
+	if err != nil {
+		a.logger.Fatal(ctx, errors.WithMessage(err, "seed expire session worker"))
 	}
 
 	return nil

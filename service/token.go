@@ -6,18 +6,19 @@ import (
 	"encoding/hex"
 	"time"
 
-	"github.com/pkg/errors"
-	"golang.org/x/sync/errgroup"
 	"msp-admin-service/domain"
 	"msp-admin-service/entity"
+
+	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 )
 
 type TokenRep interface {
 	TokenSaver
 	Get(ctx context.Context, token string) (*entity.Token, error)
 	RevokeByUserId(ctx context.Context, userId int64, updatedAt time.Time) error
-	All(ctx context.Context, limit int, offset int) ([]entity.Token, error)
-	Count(ctx context.Context) (int64, error)
+	AllByRequest(ctx context.Context, req domain.SessionPageRequest) ([]entity.Token, error)
+	Count(ctx context.Context, reqQuery *domain.SessionQuery) (int64, error)
 	UpdateStatus(ctx context.Context, id int, status string) error
 }
 
@@ -73,44 +74,43 @@ func (s Token) RevokeAllByUserId(ctx context.Context, userId int64) error {
 	return nil
 }
 
-func (s Token) All(ctx context.Context, limit int, offset int) (*domain.SessionResponse, error) {
-	group, ctx := errgroup.WithContext(ctx)
+func (s Token) All(ctx context.Context, req domain.SessionPageRequest) (*domain.SessionResponse, error) {
 	var tokens []entity.Token
 	var total int64
-	var err error
+
+	group, ctx := errgroup.WithContext(ctx)
 	group.Go(func() error {
-		tokens, err = s.tokenRep.All(ctx, limit, offset)
+		var err error
+		tokens, err = s.tokenRep.AllByRequest(ctx, req)
 		if err != nil {
 			return errors.WithMessage(err, "get all tokens")
 		}
 		return nil
 	})
 	group.Go(func() error {
-		total, err = s.tokenRep.Count(ctx)
+		var err error
+		total, err = s.tokenRep.Count(ctx, req.Query)
 		if err != nil {
 			return errors.WithMessage(err, "count all tokens")
 		}
 		return nil
 	})
-	err = group.Wait()
+	err := group.Wait()
 	if err != nil {
 		return nil, errors.WithMessage(err, "wait workers")
 	}
 
 	items := make([]domain.Session, 0)
 	for _, token := range tokens {
-		status := token.Status
-		if time.Now().UTC().After(token.ExpiredAt) {
-			status = entity.TokenStatusExpired
-		}
 		items = append(items, domain.Session{
 			Id:        token.Id,
 			UserId:    int(token.UserId),
-			Status:    status,
+			Status:    token.Status,
 			ExpiredAt: token.ExpiredAt,
 			CreatedAt: token.CreatedAt,
 		})
 	}
+
 	result := domain.SessionResponse{
 		TotalCount: int(total),
 		Items:      items,

@@ -22,6 +22,7 @@ type SudirUserResponse struct {
 	Sub        string   `json:"sub"`
 	GivenName  string   `json:"given_name"`
 	FamilyName string   `json:"family_name"`
+	Name       string   `json:"name"`
 }
 
 type SudirTokenResponse struct {

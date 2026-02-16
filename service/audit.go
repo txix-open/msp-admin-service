@@ -15,8 +15,8 @@ import (
 
 type AuditRepository interface {
 	Insert(ctx context.Context, log entity.Audit) (int, error)
-	All(ctx context.Context, limit int, offset int) ([]entity.Audit, error)
-	Count(ctx context.Context) (int64, error)
+	AllByRequest(ctx context.Context, req domain.AuditPageRequest) ([]entity.Audit, error)
+	Count(ctx context.Context, reqQuery *domain.AuditQuery) (int64, error)
 }
 
 type AuditEventRepository interface {
@@ -94,37 +94,39 @@ func (s Audit) SaveAuditAsync(ctx context.Context, userId int64, message string,
 	}()
 }
 
-func (s Audit) All(ctx context.Context, limit int, offset int) (*domain.AuditResponse, error) {
-	group, ctx := errgroup.WithContext(ctx)
-	var tokens []entity.Audit
+func (s Audit) All(ctx context.Context, req domain.AuditPageRequest) (*domain.AuditResponse, error) {
+	var logs []entity.Audit
 	var total int64
-	var err error
+
+	group, ctx := errgroup.WithContext(ctx)
 	group.Go(func() error {
-		tokens, err = s.auditRep.All(ctx, limit, offset)
+		var err error
+		logs, err = s.auditRep.AllByRequest(ctx, req)
 		if err != nil {
 			return errors.WithMessage(err, "get all audit")
 		}
 		return nil
 	})
 	group.Go(func() error {
-		total, err = s.auditRep.Count(ctx)
+		var err error
+		total, err = s.auditRep.Count(ctx, req.Query)
 		if err != nil {
 			return errors.WithMessage(err, "count all audit")
 		}
 		return nil
 	})
-	err = group.Wait()
+	err := group.Wait()
 	if err != nil {
 		return nil, errors.WithMessage(err, "wait workers")
 	}
 
 	items := make([]domain.Audit, 0)
-	for _, token := range tokens {
+	for _, log := range logs {
 		items = append(items, domain.Audit{
-			Id:        token.Id,
-			UserId:    token.UserId,
-			Message:   token.Message,
-			CreatedAt: token.CreatedAt,
+			Id:        log.Id,
+			UserId:    log.UserId,
+			Message:   log.Message,
+			CreatedAt: log.CreatedAt,
 		})
 	}
 	result := domain.AuditResponse{
