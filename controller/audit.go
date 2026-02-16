@@ -3,14 +3,15 @@ package controller
 import (
 	"context"
 
+	"msp-admin-service/domain"
+
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"msp-admin-service/domain"
 )
 
 type AuditService interface {
-	All(ctx context.Context, limit int, offset int) (*domain.AuditResponse, error)
+	All(ctx context.Context, req domain.AuditPageRequest) (*domain.AuditResponse, error)
 	Events(ctx context.Context) ([]domain.AuditEvent, error)
 	SetEvents(ctx context.Context, req []domain.SetAuditEvent) error
 }
@@ -31,13 +32,20 @@ func NewAudit(service AuditService) Audit {
 // @Accept json
 // @Produce json
 // @Param X-AUTH-ADMIN header string true "Токен администратора"
-// @Param body body domain.PageRequest true "Тело запроса"
+// @Param body body domain.AuditPageRequest true "Тело запроса"
 // @Success 200 {object} domain.AuditResponse
 // @Failure 400 {object} domain.GrpcError "Невалидное тело запроса"
 // @Failure 500 {object} domain.GrpcError
 // @Router /log/all [POST]
-func (c Audit) All(ctx context.Context, req domain.PageRequest) (*domain.AuditResponse, error) {
-	return c.service.All(ctx, req.Limit, req.Offset)
+func (c Audit) All(ctx context.Context, req domain.AuditPageRequest) (*domain.AuditResponse, error) {
+	if req.Order == nil {
+		req.Order = &domain.OrderParams{
+			Field: domain.DefaultOrderField,
+			Type:  domain.DefaultOrderType,
+		}
+	}
+
+	return c.service.All(ctx, req)
 }
 
 // Events

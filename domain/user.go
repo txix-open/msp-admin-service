@@ -9,6 +9,7 @@ type User struct {
 	Roles                []int
 	FirstName            string
 	LastName             string
+	FullName             string
 	Email                string
 	Description          string
 	Blocked              bool
@@ -21,16 +22,26 @@ type UsersResponse struct {
 	Items []User
 }
 
-type UsersRequest struct {
-	Ids    []int64
-	Offset int
-	Limit  int
-	Email  string
+type UserQuery struct {
+	Id                   *int
+	UserId               *int
+	Description          *string
+	Email                *string
+	Roles                []int
+	LastSessionCreatedAt *DateFromToParams
+}
+
+type UsersPageRequest struct {
+	LimitOffestParams
+
+	Order *OrderParams
+	Query *UserQuery
 }
 
 type AdminUserShort struct {
 	FirstName     string
 	LastName      string
+	FullName      string
 	Email         string `validate:"required"`
 	Role          string
 	Roles         []int

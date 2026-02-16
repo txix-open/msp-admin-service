@@ -3,9 +3,11 @@ package transaction
 import (
 	"context"
 
-	"github.com/txix-open/isp-kit/db"
 	"msp-admin-service/repository"
 	"msp-admin-service/service"
+	"msp-admin-service/service/session_worker"
+
+	"github.com/txix-open/isp-kit/db"
 )
 
 type Manager struct {
@@ -22,6 +24,10 @@ type userTx struct {
 	repository.User
 	repository.Role
 	repository.UserRole
+	repository.Token
+}
+
+type tokenTx struct {
 	repository.Token
 }
 
@@ -42,5 +48,12 @@ func (m Manager) AuthTransaction(ctx context.Context, msgTx func(ctx context.Con
 		userRole := repository.NewUserRole(tx)
 		token := repository.NewToken(tx)
 		return msgTx(ctx, userTx{user, role, userRole, token})
+	})
+}
+
+func (m Manager) TokenTransaction(ctx context.Context, msgTx func(ctx context.Context, tx session_worker.TokenTransaction) error) error {
+	return m.db.RunInTransaction(ctx, func(ctx context.Context, tx *db.Tx) error {
+		token := repository.NewToken(tx)
+		return msgTx(ctx, tokenTx{token})
 	})
 }

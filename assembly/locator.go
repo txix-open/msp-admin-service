@@ -4,12 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/txix-open/isp-kit/bgjobx"
-	"github.com/txix-open/isp-kit/db"
-	"github.com/txix-open/isp-kit/grpc/endpoint"
-	"github.com/txix-open/isp-kit/grpc/isp"
-	"github.com/txix-open/isp-kit/http/httpcli"
-	"github.com/txix-open/isp-kit/log"
 	"msp-admin-service/conf"
 	"msp-admin-service/controller"
 	"msp-admin-service/repository"
@@ -18,7 +12,15 @@ import (
 	"msp-admin-service/service/delete_old_audit_worker"
 	"msp-admin-service/service/inactive_worker"
 	"msp-admin-service/service/secure"
+	"msp-admin-service/service/session_worker"
 	"msp-admin-service/transaction"
+
+	"github.com/txix-open/isp-kit/bgjobx"
+	"github.com/txix-open/isp-kit/db"
+	"github.com/txix-open/isp-kit/grpc/endpoint"
+	"github.com/txix-open/isp-kit/grpc/isp"
+	"github.com/txix-open/isp-kit/http/httpcli"
+	"github.com/txix-open/isp-kit/log"
 )
 
 type DB interface {
@@ -117,6 +119,7 @@ func (l Locator) Config(
 		l.logger,
 	)
 	deleteOldAuditWorker := delete_old_audit_worker.NewService(l.logger, auditRepo, cfg.Audit.AuditTTl)
+	expireSessionWorker := session_worker.NewExpireSessionWorker(l.logger, txManager)
 
 	return Config{
 		Handler: handler,
@@ -130,6 +133,11 @@ func (l Locator) Config(
 			Concurrency:  1,
 			PollInterval: jobPollInterval,
 			Handle:       inactiveBlocker,
+		}, {
+			Queue:        session_worker.QueueName,
+			Concurrency:  1,
+			PollInterval: jobPollInterval,
+			Handle:       expireSessionWorker,
 		}},
 	}
 }

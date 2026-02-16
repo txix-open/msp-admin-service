@@ -74,6 +74,8 @@ func (t *AuditSuite) SetupTest() {
 	cfg := assembly.NewLocator(testInstance.Logger(), httpcli.New(), t.db).
 		Config(context.Background(), remote, time.Minute)
 
+	t.insertAuditLogs()
+
 	server, apiCli := grpct.TestServer(testInstance, cfg.Handler)
 	t.grpcCli = apiCli
 
@@ -179,4 +181,67 @@ func (t *AuditSuite) Test_SetEvents_InvalidEvent() {
 	s, isStatus := status.FromError(err)
 	t.Require().True(isStatus)
 	t.Require().Equal(codes.InvalidArgument, s.Code())
+}
+
+func (t *AuditSuite) Test_All_Logs() {
+	request := domain.AuditPageRequest{
+		LimitOffestParams: domain.LimitOffestParams{
+			Limit:  3,
+			Offset: 5,
+		},
+		Order: &domain.OrderParams{
+			Field: "user_id",
+			Type:  "desc",
+		},
+	}
+
+	var response *domain.AuditResponse
+	err := t.grpcCli.
+		Invoke("admin/log/all").
+		JsonRequestBody(request).
+		JsonResponseBody(&response).
+		Do(context.Background())
+	t.Require().NoError(err)
+
+	t.Require().Len(response.Items, 3)
+	t.Require().EqualValues(5, response.Items[0].UserId)
+	t.Require().EqualValues(4, response.Items[1].UserId)
+	t.Require().EqualValues(3, response.Items[2].UserId)
+
+	msg := "Выход"
+	request.Query = &domain.AuditQuery{
+		Message: &msg,
+	}
+	request.Limit = 10
+	request.Offset = 0
+
+	err = t.grpcCli.
+		Invoke("admin/log/all").
+		JsonRequestBody(request).
+		JsonResponseBody(&response).
+		Do(context.Background())
+	t.Require().NoError(err)
+
+	t.Require().Len(response.Items, 6)
+	t.Require().EqualValues(6, response.TotalCount)
+	t.Require().EqualValues(10, response.Items[0].UserId)
+	t.Require().EqualValues(9, response.Items[1].UserId)
+	t.Require().EqualValues(8, response.Items[2].UserId)
+	t.Require().EqualValues(7, response.Items[3].UserId)
+	t.Require().EqualValues(6, response.Items[4].UserId)
+	t.Require().EqualValues(5, response.Items[5].UserId)
+}
+
+func (t *AuditSuite) insertAuditLogs() {
+	t.db.Must().Exec(`INSERT INTO audit (user_id, message, created_at, event)
+	VALUES (1, 'Успешный вход', NOW(), 'success_login'),
+	       (2, 'Успешный вход', NOW(), 'success_login'),
+	       (3, 'Неуспешный вход', NOW(), 'unsuccess_login'),
+	       (4, 'Неуспешный вход', NOW(), 'unsuccess_login'),
+	       (5, 'Успешный выход', NOW(), 'success_logout'),
+	       (6, 'Успешный выход', NOW(), 'success_logout'),
+	       (7, 'Неуспешный выход', NOW(), 'unsuccess_logout'),
+	       (8, 'Неуспешный выход', NOW(), 'unsuccess_logout'),
+	       (9, 'Выход', NOW(), 'logout'),
+	       (10, 'Выход', NOW(), 'logout')`)
 }

@@ -3,10 +3,11 @@ package service
 import (
 	"context"
 
-	"github.com/pkg/errors"
 	"msp-admin-service/conf"
 	"msp-admin-service/domain"
 	"msp-admin-service/entity"
+
+	"github.com/pkg/errors"
 )
 
 type sudirRepo interface {
@@ -72,6 +73,7 @@ func (s Sudir) Authenticate(ctx context.Context, authCode string, roleRepo roleR
 		SudirUserId: user.Sub,
 		FirstName:   user.GivenName,
 		LastName:    user.FamilyName,
+		FullName:    user.Name,
 		Email:       email,
 	}, nil
 }

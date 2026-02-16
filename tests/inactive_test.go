@@ -1,18 +1,21 @@
 package tests_test
 
 import (
-	"msp-admin-service/service/inactive_worker"
 	"testing"
 	"time"
+
+	"msp-admin-service/domain"
+	"msp-admin-service/service/inactive_worker"
+
+	"msp-admin-service/assembly"
+	"msp-admin-service/conf"
+	"msp-admin-service/entity"
+	"msp-admin-service/repository"
 
 	"github.com/txix-open/isp-kit/bgjobx"
 	"github.com/txix-open/isp-kit/dbx"
 	"github.com/txix-open/isp-kit/test"
 	"github.com/txix-open/isp-kit/test/dbt"
-	"msp-admin-service/assembly"
-	"msp-admin-service/conf"
-	"msp-admin-service/entity"
-	"msp-admin-service/repository"
 )
 
 func TestInactiveWorker(t *testing.T) {
@@ -44,7 +47,18 @@ func TestInactiveWorker(t *testing.T) {
 	require.NoError(err)
 	require.True(user.Blocked)
 
-	list, err := repository.NewAudit(db).All(t.Context(), 10, 0)
+	list, err := repository.NewAudit(db).AllByRequest(t.Context(), domain.AuditPageRequest{
+		LimitOffestParams: domain.LimitOffestParams{
+			Limit:  10,
+			Offset: 0,
+		},
+		Order: &domain.OrderParams{
+			Field: "created_at",
+			Type:  "desc",
+		},
+	})
 	require.NoError(err)
 	require.Len(list, 1)
+
+	time.Sleep(1 * time.Second) // wait for go SaveAuditAsync()
 }

@@ -4,12 +4,13 @@ import (
 	"context"
 	"time"
 
+	"msp-admin-service/conf"
+	"msp-admin-service/entity"
+
 	"github.com/pkg/errors"
 	"github.com/txix-open/bgjob"
 	"github.com/txix-open/isp-kit/bgjobx/handler"
 	"github.com/txix-open/isp-kit/log"
-	"msp-admin-service/conf"
-	"msp-admin-service/entity"
 )
 
 const (
@@ -63,7 +64,7 @@ func (w Service) Handle(ctx context.Context, _ bgjob.Job) handler.Result {
 		return handler.Retry(defaultRetryTimeout, errors.WithMessage(err, "sync state with worker"))
 	}
 	w.logger.Debug(ctx, "end work")
-	return handler.Reschedule(w.syncPeriod)
+	return handler.Reschedule(handler.ByAfterTime(w.syncPeriod, time.Now()))
 }
 
 func (w Service) do(ctx context.Context) error {

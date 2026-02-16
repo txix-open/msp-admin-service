@@ -27,7 +27,7 @@ func NewPermissions(permissionsService permissionsService) Permissions {
 // @Accept json
 // @Produce json
 // @Success 200 {array} domain.Permission
-// @Router /user/get_profile [POST]
+// @Router /user/get_permissions [POST]
 func (u Permissions) GetPermissions(ctx context.Context) []domain.Permission {
 	return u.permissionsService.All(ctx)
 }

@@ -28,8 +28,8 @@ type UserTransactionRunner interface {
 
 type UserRepo interface {
 	GetUserById(ctx context.Context, identity int64) (*entity.User, error)
-	GetUsers(ctx context.Context, ids []int64, offset, limit int, email string) ([]entity.User, error)
-	GetUserByEmailAndSudirId(ctx context.Context, email string, sudir_user_id string) (*entity.User, error)
+	GetUsers(ctx context.Context, req domain.UsersPageRequest) ([]entity.User, error)
+	GetUserByEmailAndSudirId(ctx context.Context, email string, sudirUserId string) (*entity.User, error)
 	GetUsersByEmail(ctx context.Context, email string) ([]entity.User, error)
 	UpdateUser(ctx context.Context, id int64, user entity.UpdateUser) (*entity.User, error)
 	DeleteUser(ctx context.Context, ids []int64) (int, error)
@@ -125,6 +125,7 @@ func (u User) GetProfileById(ctx context.Context, userId int64) (*domain.AdminUs
 	return &domain.AdminUserShort{
 		FirstName:     user.FirstName,
 		LastName:      user.LastName,
+		FullName:      user.FullName,
 		Email:         user.Email,
 		Role:          roleName,
 		Roles:         roleIds,
@@ -134,8 +135,8 @@ func (u User) GetProfileById(ctx context.Context, userId int64) (*domain.AdminUs
 	}, nil
 }
 
-func (u User) GetUsers(ctx context.Context, req domain.UsersRequest) (*domain.UsersResponse, error) {
-	users, err := u.userRepo.GetUsers(ctx, req.Ids, req.Offset, req.Limit, req.Email)
+func (u User) GetUsers(ctx context.Context, req domain.UsersPageRequest) (*domain.UsersResponse, error) {
+	users, err := u.userRepo.GetUsers(ctx, req)
 	if err != nil {
 		return nil, errors.WithMessage(err, "get users from repo")
 	}
@@ -145,27 +146,24 @@ func (u User) GetUsers(ctx context.Context, req domain.UsersRequest) (*domain.Us
 		userIds = append(userIds, int(user.Id))
 	}
 
-	rolesByUsers, err := u.userRoleRepo.GetRolesByUserIds(ctx, userIds)
+	userRoles, err := u.userRoleRepo.GetRolesByUserIds(ctx, userIds)
 	if err != nil {
-		return nil, errors.WithMessage(err, "get roles by user ids")
-	}
-
-	lastSessionsByUsers, err := u.tokenRepo.LastAccessByUserIds(ctx, userIds)
-	if err != nil {
-		return nil, errors.WithMessage(err, "get last sessions by user ids")
+		return nil, errors.WithMessage(err, "get roles by user ids and roles id")
 	}
 
 	items := make([]domain.User, 0, len(users))
 	for _, user := range users {
 		roles := make([]int, 0)
 
-		for _, role := range rolesByUsers {
+		for _, role := range userRoles {
 			if role.UserId == int(user.Id) {
 				roles = append(roles, role.RoleId)
 			}
 		}
 
-		items = append(items, u.toDomain(user, roles, lastSessionsByUsers[user.Id]))
+		if filteredRoles(req.Query, roles) && filteredLastSession(req.Query, user.LastSessionCreatedAt) {
+			items = append(items, u.toDomain(user, roles, user.LastSessionCreatedAt))
+		}
 	}
 
 	return &domain.UsersResponse{Items: items}, nil
@@ -195,6 +193,7 @@ func (u User) CreateUser(ctx context.Context, req domain.CreateUserRequest, admi
 			Id:          0,
 			FirstName:   req.FirstName,
 			LastName:    req.LastName,
+			FullName:    createFullName(req.FirstName, req.LastName),
 			Email:       req.Email,
 			Password:    encryptedPassword,
 			Description: req.Description,
@@ -220,14 +219,12 @@ func (u User) CreateUser(ctx context.Context, req domain.CreateUserRequest, admi
 
 	slices.Sort(req.Roles)
 	diff := diffToString(map[string]any{
-		"Имя":       "",
-		"Фамилия":   "",
+		"ФИО":       "",
 		"Описание":  "",
 		"Email":     "",
 		"Роли (ID)": []int{},
 	}, map[string]any{
-		"Имя":       req.FirstName,
-		"Фамилия":   req.LastName,
+		"ФИО":       usr.FullName,
 		"Описание":  req.Description,
 		"Email":     req.Email,
 		"Роли (ID)": req.Roles,
@@ -245,6 +242,7 @@ func (u User) CreateUser(ctx context.Context, req domain.CreateUserRequest, admi
 func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, adminId int64) (*domain.User, error) {
 	var (
 		user                 *entity.User
+		updatedUser          *entity.User
 		lastSessionCreatedAt *time.Time
 	)
 	oldRoles, err := u.userRoleRepo.GetRolesByUserIds(ctx, []int{int(req.Id)})
@@ -283,24 +281,25 @@ func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, admi
 		updateEntity := entity.UpdateUser{
 			FirstName:   req.FirstName,
 			LastName:    req.LastName,
+			FullName:    createFullName(req.FirstName, req.LastName),
 			Email:       req.Email,
 			Description: req.Description,
 		}
-		user, err = tx.UpdateUser(ctx, req.Id, updateEntity)
+		updatedUser, err = tx.UpdateUser(ctx, req.Id, updateEntity)
 		if err != nil {
 			return errors.WithMessage(err, "update user")
 		}
 
-		err = tx.UpsertUserRoleLinks(ctx, int(user.Id), req.Roles)
+		err = tx.UpsertUserRoleLinks(ctx, int(updatedUser.Id), req.Roles)
 		if err != nil {
 			return errors.WithMessage(err, "update user role links")
 		}
 
-		userLastSession, err := tx.LastAccessByUserIds(ctx, []int{int(user.Id)})
+		userLastSession, err := tx.LastAccessByUserIds(ctx, []int{int(updatedUser.Id)})
 		if err != nil {
 			return errors.WithMessage(err, "get last user session")
 		}
-		lastSessionCreatedAt = userLastSession[user.Id]
+		lastSessionCreatedAt = userLastSession[updatedUser.Id]
 
 		return nil
 	})
@@ -310,24 +309,22 @@ func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, admi
 
 	slices.Sort(req.Roles)
 	diff := diffToString(map[string]any{
-		"Имя":       user.FirstName,
-		"Фамилия":   user.LastName,
+		"ФИО":       user.FullName,
 		"Описание":  user.Description,
 		"Email":     user.Email,
 		"Роли (ID)": RolesIds(oldRoles),
 	}, map[string]any{
-		"Имя":       req.FirstName,
-		"Фамилия":   req.LastName,
+		"ФИО":       updatedUser.FullName,
 		"Описание":  req.Description,
 		"Email":     req.Email,
 		"Роли (ID)": req.Roles,
 	})
 	u.auditService.SaveAuditAsync(ctx, adminId,
-		fmt.Sprintf("Пользователь. Изменение пользователя %d.\n %s", user.Id, diff),
+		fmt.Sprintf("Пользователь. Изменение пользователя %d.\n %s", updatedUser.Id, diff),
 		entity.EventUserChanged,
 	)
 
-	result := u.toDomain(*user, req.Roles, lastSessionCreatedAt)
+	result := u.toDomain(*updatedUser, req.Roles, lastSessionCreatedAt)
 	return &result, nil
 }
 
@@ -515,12 +512,64 @@ func (u User) toDomain(user entity.User, roleIds []int, lastSessionCreatedAt *ti
 		Id:                   user.Id,
 		Roles:                roleIds,
 		FirstName:            user.FirstName,
-		Description:          user.Description,
 		LastName:             user.LastName,
+		FullName:             user.FullName,
+		Description:          user.Description,
 		Email:                user.Email,
 		Blocked:              user.Blocked,
 		UpdatedAt:            user.UpdatedAt,
 		CreatedAt:            user.CreatedAt,
 		LastSessionCreatedAt: lastSessionCreatedAt,
 	}
+}
+
+func filteredRoles(reqQuery *domain.UserQuery, roleIds []int) bool {
+	if reqQuery == nil {
+		return true
+	}
+
+	if reqQuery.Roles == nil {
+		return true
+	}
+
+	if len(reqQuery.Roles) == 0 {
+		return true
+	}
+
+	for _, roleId := range roleIds {
+		if slices.Contains(reqQuery.Roles, roleId) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func filteredLastSession(reqQuery *domain.UserQuery, lastSessionCreatedAt *time.Time) bool {
+	if reqQuery == nil {
+		return true
+	}
+
+	if reqQuery.LastSessionCreatedAt == nil {
+		return true
+	}
+
+	if lastSessionCreatedAt == nil {
+		return false
+	}
+
+	if reqQuery.LastSessionCreatedAt.From.Compare(*lastSessionCreatedAt) <= 0 &&
+		reqQuery.LastSessionCreatedAt.To.Compare(*lastSessionCreatedAt) > 0 {
+		return true
+	}
+
+	return false
+}
+
+func createFullName(firstName string, lastName string) string {
+	if len(lastName) == 0 {
+		return firstName
+	}
+
+	return strings.Join([]string{lastName, firstName}, " ")
 }
