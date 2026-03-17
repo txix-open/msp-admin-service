@@ -189,7 +189,7 @@ func (t *SessionSuite) Test_All_Session() {
 	resUserId := int(userId)
 	request.Query = &domain.SessionQuery{
 		UserId: []int{resUserId},
-		Status: new(entity.TokenStatusExpired),
+		Status: []string{entity.TokenStatusExpired},
 	}
 
 	err = t.grpcCli.

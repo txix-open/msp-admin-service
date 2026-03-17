@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"strconv"
 	"time"
 
@@ -160,7 +159,6 @@ func (u User) UpsertBySudirUserId(ctx context.Context, user entity.User) (*entit
 
 func (u User) GetUsers(ctx context.Context, req domain.UsersPageRequest) ([]entity.User, error) {
 	ctx = sql_metrics.OperationLabelToContext(ctx, "User.GetUsers")
-	fmt.Printf("repo user ids %v\n", req.Query.UserIds) // nolint:forbidigo
 
 	q := query.New().
 		Select(idUsersColumn, firstNameUsersColumn, lastNameUsersColumn, emailUsersColumn, passwordUsersColumn, createdAtUsersColumn,
@@ -180,8 +178,6 @@ func (u User) GetUsers(ctx context.Context, req domain.UsersPageRequest) ([]enti
 	if err != nil {
 		return nil, errors.WithMessage(err, "build query")
 	}
-
-	fmt.Printf("query %s\n", query) // nolint:forbidigo
 
 	users := make([]entity.User, 0)
 	err = u.db.Select(ctx, &users, query, args...)
@@ -386,9 +382,8 @@ func reqUsersQuery(q squirrel.SelectBuilder, reqQuery *domain.UserQuery) squirre
 		q = q.Where(squirrel.ILike{"id::text": strconv.Itoa(*reqQuery.Id) + "%"})
 	}
 
-	fmt.Printf("repo user ids %v\n", reqQuery.UserIds) // nolint:forbidigo
-	if reqQuery.UserIds != nil {                       // поиск в ui по фио, но в бд - по id юзера
-		q = q.Where(squirrel.Eq{"id": reqQuery.UserIds})
+	if reqQuery.UserId != nil { // поиск в ui по фио, но в бд - по id юзера
+		q = q.Where(squirrel.Eq{"id": reqQuery.UserId})
 	}
 
 	if reqQuery.Description != nil {

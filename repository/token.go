@@ -242,7 +242,7 @@ func reqTokenQuery(q squirrel.SelectBuilder, reqQuery *domain.SessionQuery) squi
 	}
 
 	if reqQuery.Status != nil {
-		q = q.Where("status = ?", *reqQuery.Status)
+		q = q.Where(squirrel.Eq{"status": reqQuery.Status})
 	}
 
 	if reqQuery.CreatedAt != nil {

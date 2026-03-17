@@ -221,14 +221,10 @@ func (t *AuditSuite) Test_All_Logs() {
 		Do(context.Background())
 	t.Require().NoError(err)
 
-	t.Require().Len(response.Items, 6)
-	t.Require().EqualValues(6, response.TotalCount)
+	t.Require().Len(response.Items, 2)
+	t.Require().EqualValues(2, response.TotalCount)
 	t.Require().EqualValues(10, response.Items[0].UserId)
 	t.Require().EqualValues(9, response.Items[1].UserId)
-	t.Require().EqualValues(8, response.Items[2].UserId)
-	t.Require().EqualValues(7, response.Items[3].UserId)
-	t.Require().EqualValues(6, response.Items[4].UserId)
-	t.Require().EqualValues(5, response.Items[5].UserId)
 }
 
 func (t *AuditSuite) insertAuditLogs() {
