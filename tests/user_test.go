@@ -318,7 +318,7 @@ func (s *UserTestSuite) TestGetUsersSortByName() {
 				Type:  "asc",
 			},
 			Query: &domain.UserQuery{
-				UserIds: []int{int(userIdViser1), int(userIdViser2), int(userIdScripts), int(userIdAL)},
+				UserId: []int{int(userIdViser1), int(userIdViser2), int(userIdScripts), int(userIdAL)},
 			},
 		}).
 		JsonResponseBody(&response).

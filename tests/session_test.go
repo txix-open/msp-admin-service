@@ -188,8 +188,8 @@ func (t *SessionSuite) Test_All_Session() {
 	// Сортировка по статусу, поиск по userId & status
 	resUserId := int(userId)
 	request.Query = &domain.SessionQuery{
-		UserIds: []int{resUserId},
-		Status:  new(entity.TokenStatusExpired),
+		UserId: []int{resUserId},
+		Status: new(entity.TokenStatusExpired),
 	}
 
 	err = t.grpcCli.
