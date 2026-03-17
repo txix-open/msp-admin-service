@@ -71,7 +71,6 @@ definitions:
       limit:
         type: integer
       offset:
-        format: int64
         type: integer
       order:
         $ref: '#/definitions/domain.OrderParams'
@@ -88,8 +87,10 @@ definitions:
         type: integer
       message:
         type: string
-      userId:
-        type: integer
+      userIds:
+        items:
+          type: integer
+        type: array
     type: object
   domain.AuditResponse:
     properties:
@@ -277,7 +278,6 @@ definitions:
   domain.SecureAuthResponse:
     properties:
       adminId:
-        format: int64
         type: integer
       authenticated:
         type: boolean
@@ -314,7 +314,6 @@ definitions:
       limit:
         type: integer
       offset:
-        format: int64
         type: integer
       order:
         $ref: '#/definitions/domain.OrderParams'
@@ -333,8 +332,10 @@ definitions:
         type: integer
       status:
         type: string
-      userId:
-        type: integer
+      userIds:
+        items:
+          type: integer
+        type: array
     type: object
   domain.SessionResponse:
     properties:
@@ -403,7 +404,6 @@ definitions:
       fullName:
         type: string
       id:
-        format: int64
         type: integer
       lastName:
         type: string
@@ -430,15 +430,16 @@ definitions:
         items:
           type: integer
         type: array
-      userId:
-        type: integer
+      userIds:
+        items:
+          type: integer
+        type: array
     type: object
   domain.UsersPageRequest:
     properties:
       limit:
         type: integer
       offset:
-        format: int64
         type: integer
       order:
         $ref: '#/definitions/domain.OrderParams'
