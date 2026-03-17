@@ -21,7 +21,7 @@ func (s *Permission) All(_ context.Context) []domain.Permission {
 }
 
 func toDomain(permissions []conf.Permission) []domain.Permission {
-	permList := make([]domain.Permission, 0)
+	permList := make([]domain.Permission, 0, len(permissions))
 	for _, perm := range permissions {
 		permList = append(permList, domain.Permission{
 			Key:  perm.Key,

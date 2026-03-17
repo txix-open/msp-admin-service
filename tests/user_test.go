@@ -210,7 +210,6 @@ func (s *UserTestSuite) TestGetUsers() {
 	s.Require().EqualValues("a1@c.ru", response.Items[1].Email)
 	s.Require().EqualValues(roles, response.Items[1].Roles)
 
-	id := int(userId2)
 	email = "test@mail.ru"
 	err = s.grpcCli.Invoke("admin/user/get_users").
 		JsonRequestBody(domain.UsersPageRequest{
@@ -223,7 +222,7 @@ func (s *UserTestSuite) TestGetUsers() {
 				Type:  "asc",
 			},
 			Query: &domain.UserQuery{
-				Id:    &id,
+				Id:    new(int(userId2)),
 				Email: &email,
 			},
 		}).

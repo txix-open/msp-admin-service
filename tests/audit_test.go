@@ -208,9 +208,8 @@ func (t *AuditSuite) Test_All_Logs() {
 	t.Require().EqualValues(4, response.Items[1].UserId)
 	t.Require().EqualValues(3, response.Items[2].UserId)
 
-	msg := "Выход"
 	request.Query = &domain.AuditQuery{
-		Message: &msg,
+		Message: new("Выход"),
 	}
 	request.Limit = 10
 	request.Offset = 0

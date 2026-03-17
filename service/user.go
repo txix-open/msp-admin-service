@@ -234,8 +234,7 @@ func (u User) CreateUser(ctx context.Context, req domain.CreateUserRequest, admi
 		entity.EventUserChanged,
 	)
 
-	result := u.toDomain(usr, req.Roles, nil)
-	return &result, nil
+	return new(u.toDomain(usr, req.Roles, nil)), nil
 }
 
 //nolint:cyclop,funlen
@@ -324,8 +323,7 @@ func (u User) UpdateUser(ctx context.Context, req domain.UpdateUserRequest, admi
 		entity.EventUserChanged,
 	)
 
-	result := u.toDomain(*updatedUser, req.Roles, lastSessionCreatedAt)
-	return &result, nil
+	return new(u.toDomain(*updatedUser, req.Roles, lastSessionCreatedAt)), nil
 }
 
 func (u User) DeleteUsers(ctx context.Context, ids []int64, adminId int64) (int, error) {
@@ -362,8 +360,7 @@ func (u User) GetById(ctx context.Context, userId int) (*domain.User, error) {
 		return nil, errors.WithMessage(err, "get last sessions by user id")
 	}
 
-	result := u.toDomain(*user, RolesIds(roles), lastSessions[int64(userId)])
-	return &result, nil
+	return new(u.toDomain(*user, RolesIds(roles), lastSessions[int64(userId)])), nil
 }
 
 func (u User) Block(ctx context.Context, adminId int64, userId int) error {
@@ -406,7 +403,7 @@ func (u User) Block(ctx context.Context, adminId int64, userId int) error {
 }
 
 func RolesIds(roles []entity.UserRole) []int {
-	roleList := make([]int, 0)
+	roleList := make([]int, 0, len(roles))
 
 	for _, role := range roles {
 		roleList = append(roleList, role.RoleId)

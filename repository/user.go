@@ -17,6 +17,21 @@ import (
 	"github.com/txix-open/isp-kit/metrics/sql_metrics"
 )
 
+const (
+	idUsersColumn           = "id"
+	firstNameUsersColumn    = "first_name"
+	lastNameUsersColumn     = "last_name"
+	emailUsersColumn        = "email"
+	passwordUsersColumn     = "password"
+	createdAtUsersColumn    = "created_at"
+	updatedAtUsersColumn    = "updated_at"
+	sudirUserIdUsersColumn  = "sudir_user_id"
+	blockedUsersColumn      = "blocked"
+	descriptionUsersColumn  = "description"
+	lastActiveAtUsersColumn = "last_active_at"
+	fullNameUsersColumn     = "full_name"
+)
+
 type User struct {
 	db db.DB
 }
@@ -29,7 +44,20 @@ func (u User) GetUserByEmail(ctx context.Context, email string) (*entity.User, e
 	ctx = sql_metrics.OperationLabelToContext(ctx, "User.GetUserByEmail")
 
 	q, args, err := query.New().
-		Select("*").
+		Select(
+			idUsersColumn,
+			firstNameUsersColumn,
+			lastNameUsersColumn,
+			emailUsersColumn,
+			passwordUsersColumn,
+			createdAtUsersColumn,
+			updatedAtUsersColumn,
+			sudirUserIdUsersColumn,
+			blockedUsersColumn,
+			descriptionUsersColumn,
+			lastActiveAtUsersColumn,
+			fullNameUsersColumn,
+		).
 		From("users").
 		Where(squirrel.Eq{"email": email}).
 		ToSql()
@@ -54,7 +82,20 @@ func (u User) GetUserById(ctx context.Context, identity int64) (*entity.User, er
 	ctx = sql_metrics.OperationLabelToContext(ctx, "User.GetUserById")
 
 	q, args, err := query.New().
-		Select("*").
+		Select(
+			idUsersColumn,
+			firstNameUsersColumn,
+			lastNameUsersColumn,
+			emailUsersColumn,
+			passwordUsersColumn,
+			createdAtUsersColumn,
+			updatedAtUsersColumn,
+			sudirUserIdUsersColumn,
+			blockedUsersColumn,
+			descriptionUsersColumn,
+			lastActiveAtUsersColumn,
+			fullNameUsersColumn,
+		).
 		From("users").
 		Where(squirrel.Eq{"id": identity}).
 		ToSql()
@@ -84,7 +125,20 @@ func (u User) GetUserByEmailAndSudirId(ctx context.Context, email string, sudirU
 	}
 
 	q, args, err := query.New().
-		Select("*").
+		Select(
+			idUsersColumn,
+			firstNameUsersColumn,
+			lastNameUsersColumn,
+			emailUsersColumn,
+			passwordUsersColumn,
+			createdAtUsersColumn,
+			updatedAtUsersColumn,
+			sudirUserIdUsersColumn,
+			blockedUsersColumn,
+			descriptionUsersColumn,
+			lastActiveAtUsersColumn,
+			fullNameUsersColumn,
+		).
 		From("users").
 		Where(equalClause).
 		ToSql()
@@ -140,7 +194,20 @@ func (u User) GetUsers(ctx context.Context, req domain.UsersPageRequest) ([]enti
 	ctx = sql_metrics.OperationLabelToContext(ctx, "User.GetUsers")
 
 	q := query.New().
-		Select("*", "(SELECT max(created_at) FROM tokens WHERE tokens.user_id = users.id) as last_session_created_at").
+		Select(
+			idUsersColumn,
+			firstNameUsersColumn,
+			lastNameUsersColumn,
+			emailUsersColumn,
+			passwordUsersColumn,
+			createdAtUsersColumn,
+			updatedAtUsersColumn,
+			sudirUserIdUsersColumn,
+			blockedUsersColumn,
+			descriptionUsersColumn,
+			lastActiveAtUsersColumn,
+			fullNameUsersColumn,
+			"(SELECT max(created_at) FROM tokens WHERE tokens.user_id = users.id) as last_session_created_at").
 		From("users").
 		Offset(req.Offset).
 		Limit(req.Limit)
@@ -169,7 +236,20 @@ func (u User) GetUsersByEmail(ctx context.Context, email string) ([]entity.User,
 	ctx = sql_metrics.OperationLabelToContext(ctx, "User.GetUserByEmail")
 
 	q, args, err := query.New().
-		Select("*").
+		Select(
+			idUsersColumn,
+			firstNameUsersColumn,
+			lastNameUsersColumn,
+			emailUsersColumn,
+			passwordUsersColumn,
+			createdAtUsersColumn,
+			updatedAtUsersColumn,
+			sudirUserIdUsersColumn,
+			blockedUsersColumn,
+			descriptionUsersColumn,
+			lastActiveAtUsersColumn,
+			fullNameUsersColumn,
+		).
 		From("users").
 		Where(squirrel.Eq{"email": email}).
 		ToSql()
@@ -220,7 +300,7 @@ func (u User) UpdateUser(ctx context.Context, id int64, user entity.UpdateUser) 
 	// return every except password
 	q, args, err := query.New().
 		Update("users").
-		SetMap(map[string]interface{}{
+		SetMap(map[string]any{
 			"first_name":  user.FirstName,
 			"last_name":   user.LastName,
 			"full_name":   user.FullName,

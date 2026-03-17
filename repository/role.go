@@ -17,6 +17,17 @@ type Role struct {
 	db db.DB
 }
 
+const (
+	idRolesColumn            = "id"
+	nameRolesColumn          = "name"
+	createdAtRolesColumn     = "created_at"
+	updatedAtRolesColumn     = "updated_at"
+	permissionsRolesColumn   = "permissions"
+	externalGroupRolesColumn = "external_group"
+	immutableRolesColumn     = "immutable"
+	exclusiveRolesColumn     = "exclusive"
+)
+
 func NewRole(db db.DB) Role {
 	return Role{db: db}
 }
@@ -48,7 +59,16 @@ func (r Role) GetRoleByName(ctx context.Context, name string) (*entity.Role, err
 	ctx = sql_metrics.OperationLabelToContext(ctx, "Role.GetRoleByName")
 
 	q, args, err := query.New().
-		Select("*").
+		Select(
+			idRolesColumn,
+			nameRolesColumn,
+			createdAtRolesColumn,
+			updatedAtRolesColumn,
+			permissionsRolesColumn,
+			externalGroupRolesColumn,
+			immutableRolesColumn,
+			exclusiveRolesColumn,
+		).
 		From("roles").
 		Where(squirrel.Eq{"name": name}).
 		ToSql()
@@ -73,7 +93,16 @@ func (r Role) GetRolesByExternalGroup(ctx context.Context, groups []string) ([]e
 	ctx = sql_metrics.OperationLabelToContext(ctx, "Role.GetRolesByExternalGroup")
 
 	q, args, err := query.New().
-		Select("*").
+		Select(
+			idRolesColumn,
+			nameRolesColumn,
+			createdAtRolesColumn,
+			updatedAtRolesColumn,
+			permissionsRolesColumn,
+			externalGroupRolesColumn,
+			immutableRolesColumn,
+			exclusiveRolesColumn,
+		).
 		From("roles").
 		Where(squirrel.Eq{"external_group": groups}).
 		ToSql()

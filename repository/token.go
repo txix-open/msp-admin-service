@@ -18,6 +18,16 @@ import (
 	"github.com/txix-open/isp-kit/metrics/sql_metrics"
 )
 
+const (
+	idTokensColumn        = "id"
+	tokenColumn           = "token"
+	userIdTokensColumn    = "user_id"
+	statusTokensColumn    = "status"
+	expiredAtTokensColumn = "expired_at"
+	createdAtTokensColumn = "created_at"
+	updatedAtTokensColumn = "updated_at"
+)
+
 type Token struct {
 	db db.DB
 }
@@ -83,7 +93,15 @@ func (r Token) RevokeByUserId(ctx context.Context, userId int64, updatedAt time.
 func (r Token) All(ctx context.Context) ([]entity.Token, error) {
 	ctx = sql_metrics.OperationLabelToContext(ctx, "Token.All")
 
-	query, args, err := query.New().Select("*").From("tokens").ToSql()
+	query, args, err := query.New().Select(
+		idTokensColumn,
+		tokenColumn,
+		userIdTokensColumn,
+		statusTokensColumn,
+		expiredAtTokensColumn,
+		createdAtTokensColumn,
+		updatedAtTokensColumn,
+	).From("tokens").ToSql()
 	if err != nil {
 		return nil, errors.WithMessage(err, "build query")
 	}
@@ -101,7 +119,15 @@ func (r Token) AllByRequest(ctx context.Context, req domain.SessionPageRequest) 
 	ctx = sql_metrics.OperationLabelToContext(ctx, "Token.AllByRequest")
 
 	q := query.New().
-		Select("*").
+		Select(
+			idTokensColumn,
+			tokenColumn,
+			userIdTokensColumn,
+			statusTokensColumn,
+			expiredAtTokensColumn,
+			createdAtTokensColumn,
+			updatedAtTokensColumn,
+		).
 		From("tokens").
 		OrderBy(strcase.ToSnake(req.Order.Field) + " " + req.Order.Type).
 		Offset(req.Offset).
@@ -210,8 +236,7 @@ func (r Token) LastAccessByUserIds(ctx context.Context, userIds []int) (map[int6
 
 	result := make(map[int64]*time.Time)
 	for _, token := range tokens {
-		createdAt := token.CreatedAt
-		result[token.UserId] = &createdAt
+		result[token.UserId] = new(token.CreatedAt)
 	}
 
 	return result, nil

@@ -1,4 +1,3 @@
-// nolint:tagliatelle
 package domain
 
 const (
@@ -19,6 +18,7 @@ type LoginSudirRequest struct {
 	AuthCode string `validate:"required"`
 }
 
+// nolint:tagliatelle,godoclint
 type LoginResponse struct {
 	Token      string
 	Expired    string `json:",omitempty"`

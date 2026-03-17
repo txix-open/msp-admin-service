@@ -16,6 +16,14 @@ import (
 	"github.com/txix-open/isp-kit/metrics/sql_metrics"
 )
 
+const (
+	idAuditColumn        = "id"
+	userIdAuditColumn    = "user_id"
+	messageAuditColumn   = "message"
+	createdAtAuditColumn = "created_at"
+	eventAuditColumn     = "event"
+)
+
 type Audit struct {
 	db db.DB
 }
@@ -52,7 +60,13 @@ func (r Audit) AllByRequest(ctx context.Context, req domain.AuditPageRequest) ([
 	ctx = sql_metrics.OperationLabelToContext(ctx, "Audit.All")
 
 	q := query.New().
-		Select("*").
+		Select(
+			idAuditColumn,
+			userIdAuditColumn,
+			messageAuditColumn,
+			createdAtAuditColumn,
+			eventAuditColumn,
+		).
 		From("audit").
 		OrderBy(strcase.ToSnake(req.Order.Field) + " " + req.Order.Type).
 		Offset(req.Offset).

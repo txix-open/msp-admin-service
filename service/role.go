@@ -81,8 +81,7 @@ func (u Role) Create(ctx context.Context, req domain.CreateRoleRequest, adminId 
 		entity.EventRoleChanged,
 	)
 
-	result := u.toDomain(*role)
-	return &result, nil
+	return new(u.toDomain(*role)), nil
 }
 
 func (u Role) Update(ctx context.Context, req domain.UpdateRoleRequest, adminId int64) (*domain.Role, error) {
@@ -131,8 +130,7 @@ func (u Role) Update(ctx context.Context, req domain.UpdateRoleRequest, adminId 
 		fmt.Sprintf("Роль. Изменение роли %s. Причина: %s. \n %s", req.Name, req.ChangeMessage, diff),
 		entity.EventRoleChanged,
 	)
-	result := u.toDomain(*role)
-	return &result, nil
+	return new(u.toDomain(*role)), nil
 }
 
 func (u Role) Delete(ctx context.Context, req domain.DeleteRoleRequest, adminId int64) error {

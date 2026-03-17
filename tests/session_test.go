@@ -2,6 +2,7 @@ package tests_test
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"testing"
 	"time"
@@ -26,6 +27,16 @@ func TestSessionSuite(t *testing.T) {
 	t.Parallel()
 	suite.Run(t, &SessionSuite{})
 }
+
+const (
+	idTokenColumn        = "id"
+	tokenColumn          = "token"
+	userIdTokenColumn    = "user_id"
+	statusTokenColumn    = "status"
+	expiredAtTokenColumn = "expired_at"
+	createdAtTokenColumn = "created_at"
+	updatedAtTokenColumn = "updated_at"
+)
 
 type SessionSuite struct {
 	suite.Suite
@@ -176,10 +187,9 @@ func (t *SessionSuite) Test_All_Session() {
 
 	// Сортировка по статусу, поиск по userId & status
 	resUserId := int(userId)
-	reqStatus := entity.TokenStatusExpired
 	request.Query = &domain.SessionQuery{
 		UserIds: []int{resUserId},
-		Status:  &reqStatus,
+		Status:  new(entity.TokenStatusExpired),
 	}
 
 	err = t.grpcCli.
@@ -206,7 +216,6 @@ func (t *SessionSuite) Test_All_Session() {
 		})
 	}
 
-	tokenId := 2
 	request = domain.SessionPageRequest{
 		LimitOffestParams: domain.LimitOffestParams{
 			Limit:  5,
@@ -217,7 +226,7 @@ func (t *SessionSuite) Test_All_Session() {
 			Type:  "desc",
 		},
 		Query: &domain.SessionQuery{
-			Id: &tokenId,
+			Id: new(2),
 		},
 	}
 	err = t.grpcCli.
@@ -268,7 +277,13 @@ func (t *SessionSuite) Test_Session_Expired_Worker() {
 	time.Sleep(2 * time.Second)
 
 	tokens := make([]entity.Token, 0)
-	t.db.Must().Select(&tokens, "SELECT * FROM tokens ORDER BY status ASC")
+	t.db.Must().Select(
+		&tokens,
+		fmt.Sprintf(
+			"SELECT %s,%s,%s,%s,%s,%s,%s FROM tokens ORDER BY status ASC",
+			idTokenColumn, tokenColumn, userIdTokenColumn, statusTokenColumn, expiredAtTokenColumn, createdAtTokenColumn, updatedAtTokenColumn,
+		),
+	)
 
 	t.Require().EqualValues(entity.TokenStatusAllowed, tokens[0].Status)
 	t.Require().EqualValues(entity.TokenStatusExpired, tokens[1].Status)
