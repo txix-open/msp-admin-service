@@ -134,8 +134,8 @@ func reqAuditQuery(q squirrel.SelectBuilder, reqQuery *domain.AuditQuery) squirr
 		q = q.Where("id = ?", *reqQuery.Id)
 	}
 
-	if reqQuery.UserIds != nil {
-		q = q.Where(squirrel.Eq{"user_id": reqQuery.UserIds})
+	if reqQuery.UserId != nil {
+		q = q.Where(squirrel.Eq{"user_id": reqQuery.UserId})
 	}
 
 	if reqQuery.Message != nil {

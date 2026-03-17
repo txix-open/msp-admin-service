@@ -237,8 +237,8 @@ func reqTokenQuery(q squirrel.SelectBuilder, reqQuery *domain.SessionQuery) squi
 		q = q.Where(squirrel.ILike{"id::text": strconv.Itoa(*reqQuery.Id) + "%"})
 	}
 
-	if reqQuery.UserIds != nil {
-		q = q.Where(squirrel.Eq{"user_id": reqQuery.UserIds})
+	if reqQuery.UserId != nil {
+		q = q.Where(squirrel.Eq{"user_id": reqQuery.UserId})
 	}
 
 	if reqQuery.Status != nil {

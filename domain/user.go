@@ -24,7 +24,7 @@ type UsersResponse struct {
 
 type UserQuery struct {
 	Id                   *int
-	UserIds              []int
+	UserId               []int
 	Description          *string
 	Email                *string
 	Roles                []int
