@@ -93,15 +93,8 @@ func (r Token) RevokeByUserId(ctx context.Context, userId int64, updatedAt time.
 func (r Token) All(ctx context.Context) ([]entity.Token, error) {
 	ctx = sql_metrics.OperationLabelToContext(ctx, "Token.All")
 
-	query, args, err := query.New().Select(
-		idTokensColumn,
-		tokenColumn,
-		userIdTokensColumn,
-		statusTokensColumn,
-		expiredAtTokensColumn,
-		createdAtTokensColumn,
-		updatedAtTokensColumn,
-	).From("tokens").ToSql()
+	query, args, err := query.New().Select(idTokensColumn, tokenColumn, userIdTokensColumn, statusTokensColumn,
+		expiredAtTokensColumn, createdAtTokensColumn, updatedAtTokensColumn).From("tokens").ToSql()
 	if err != nil {
 		return nil, errors.WithMessage(err, "build query")
 	}
@@ -119,15 +112,8 @@ func (r Token) AllByRequest(ctx context.Context, req domain.SessionPageRequest) 
 	ctx = sql_metrics.OperationLabelToContext(ctx, "Token.AllByRequest")
 
 	q := query.New().
-		Select(
-			idTokensColumn,
-			tokenColumn,
-			userIdTokensColumn,
-			statusTokensColumn,
-			expiredAtTokensColumn,
-			createdAtTokensColumn,
-			updatedAtTokensColumn,
-		).
+		Select(idTokensColumn, tokenColumn, userIdTokensColumn, statusTokensColumn, expiredAtTokensColumn, createdAtTokensColumn,
+			updatedAtTokensColumn).
 		From("tokens").
 		OrderBy(strcase.ToSnake(req.Order.Field) + " " + req.Order.Type).
 		Offset(req.Offset).

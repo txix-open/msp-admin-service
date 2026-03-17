@@ -136,6 +136,8 @@ func (u User) GetProfileById(ctx context.Context, userId int64) (*domain.AdminUs
 }
 
 func (u User) GetUsers(ctx context.Context, req domain.UsersPageRequest) (*domain.UsersResponse, error) {
+	fmt.Printf("service user ids %v\n", req.Query.UserIds) // nolint:forbidigo
+
 	users, err := u.userRepo.GetUsers(ctx, req)
 	if err != nil {
 		return nil, errors.WithMessage(err, "get users from repo")

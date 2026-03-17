@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/txix-open/isp-kit/grpc/apierrors"
 
@@ -85,6 +86,7 @@ func (u User) GetUsers(ctx context.Context, req domain.UsersPageRequest) (*domai
 		}
 	}
 
+	fmt.Printf("controller user ids %v\n", req.Query.UserIds) // nolint:forbidigo
 	users, err := u.userService.GetUsers(ctx, req)
 	if err != nil {
 		return nil, errors.WithMessage(err, "get users")
