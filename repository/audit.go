@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"msp-admin-service/domain"
@@ -119,12 +120,20 @@ func reqAuditQuery(q squirrel.SelectBuilder, reqQuery *domain.AuditQuery) squirr
 		q = q.Where("id = ?", *reqQuery.Id)
 	}
 
-	if reqQuery.UserId != nil {
-		q = q.Where("user_id = ?", *reqQuery.UserId)
+	if reqQuery.UserIds != nil {
+		q = q.Where(squirrel.Eq{"user_id": reqQuery.UserIds})
 	}
 
 	if reqQuery.Message != nil {
-		q = q.Where(squirrel.ILike{"message": "%" + *reqQuery.Message + "%"})
+		// Postgres ILIKE/LOWER are collation-dependent and may not fold non-ASCII (e.g. Cyrillic)
+		// as expected. Use several LIKE patterns to make the search stable across locales.
+		msg := *reqQuery.Message
+		q = q.Where(
+			"(message LIKE ? OR message LIKE ? OR message LIKE ?)",
+			"%"+msg+"%",
+			"%"+strings.ToLower(msg)+"%",
+			"%"+strings.ToUpper(msg)+"%",
+		)
 	}
 
 	if reqQuery.CreatedAt != nil {

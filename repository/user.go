@@ -357,8 +357,8 @@ func reqUsersQuery(q squirrel.SelectBuilder, reqQuery *domain.UserQuery) squirre
 		q = q.Where(squirrel.ILike{"id::text": strconv.Itoa(*reqQuery.Id) + "%"})
 	}
 
-	if reqQuery.UserId != nil { // поиск в ui по фио, но в бд - по id юзера
-		q = q.Where("id = ?", *reqQuery.UserId)
+	if reqQuery.UserIds != nil { // поиск в ui по фио, но в бд - по id юзера
+		q = q.Where(squirrel.Eq{"id": reqQuery.UserIds})
 	}
 
 	if reqQuery.Description != nil {
