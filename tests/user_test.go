@@ -317,18 +317,19 @@ func (s *UserTestSuite) TestGetUsersSortByName() {
 				Field: "userId",
 				Type:  "asc",
 			},
+			Query: &domain.UserQuery{
+				UserIds: []int{int(userIdViser1), int(userIdViser2), int(userIdScripts), int(userIdAL)},
+			},
 		}).
 		JsonResponseBody(&response).
 		Do(context.Background())
 	s.Require().NoError(err)
 
-	s.Require().Len(response.Items, 6)
-	s.Require().EqualValues(1, response.Items[0].Id)
-	s.Require().EqualValues(userIdScripts, response.Items[1].Id)
-	s.Require().EqualValues(2, response.Items[2].Id)
-	s.Require().EqualValues(userIdViser1, response.Items[3].Id)
-	s.Require().EqualValues(userIdViser2, response.Items[4].Id)
-	s.Require().EqualValues(userIdAL, response.Items[5].Id)
+	s.Require().Len(response.Items, 4)
+	s.Require().EqualValues(userIdScripts, response.Items[0].Id)
+	s.Require().EqualValues(userIdViser1, response.Items[1].Id)
+	s.Require().EqualValues(userIdViser2, response.Items[2].Id)
+	s.Require().EqualValues(userIdAL, response.Items[3].Id)
 }
 
 func (s *UserTestSuite) TestCreateUserHappyPath() {

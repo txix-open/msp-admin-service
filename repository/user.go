@@ -196,20 +196,9 @@ func (u User) GetUsersByEmail(ctx context.Context, email string) ([]entity.User,
 	ctx = sql_metrics.OperationLabelToContext(ctx, "User.GetUserByEmail")
 
 	q, args, err := query.New().
-		Select(
-			idUsersColumn,
-			firstNameUsersColumn,
-			lastNameUsersColumn,
-			emailUsersColumn,
-			passwordUsersColumn,
-			createdAtUsersColumn,
-			updatedAtUsersColumn,
-			sudirUserIdUsersColumn,
-			blockedUsersColumn,
-			descriptionUsersColumn,
-			lastActiveAtUsersColumn,
-			fullNameUsersColumn,
-		).
+		Select(idUsersColumn, firstNameUsersColumn, lastNameUsersColumn, emailUsersColumn, passwordUsersColumn, createdAtUsersColumn,
+			updatedAtUsersColumn, sudirUserIdUsersColumn, blockedUsersColumn, descriptionUsersColumn, lastActiveAtUsersColumn,
+			fullNameUsersColumn).
 		From("users").
 		Where(squirrel.Eq{"email": email}).
 		ToSql()
