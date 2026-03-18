@@ -2,7 +2,6 @@ package tests_test
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"testing"
 	"time"
@@ -27,16 +26,6 @@ func TestSessionSuite(t *testing.T) {
 	t.Parallel()
 	suite.Run(t, &SessionSuite{})
 }
-
-const (
-	idTokenColumn        = "id"
-	tokenColumn          = "token"
-	userIdTokenColumn    = "user_id"
-	statusTokenColumn    = "status"
-	expiredAtTokenColumn = "expired_at"
-	createdAtTokenColumn = "created_at"
-	updatedAtTokenColumn = "updated_at"
-)
 
 type SessionSuite struct {
 	suite.Suite
@@ -277,13 +266,7 @@ func (t *SessionSuite) Test_Session_Expired_Worker() {
 	time.Sleep(2 * time.Second)
 
 	tokens := make([]entity.Token, 0)
-	t.db.Must().Select(
-		&tokens,
-		fmt.Sprintf(
-			"SELECT %s,%s,%s,%s,%s,%s,%s FROM tokens ORDER BY status ASC",
-			idTokenColumn, tokenColumn, userIdTokenColumn, statusTokenColumn, expiredAtTokenColumn, createdAtTokenColumn, updatedAtTokenColumn,
-		),
-	)
+	t.db.Must().Select(&tokens, "SELECT * FROM tokens ORDER BY status ASC")
 
 	t.Require().EqualValues(entity.TokenStatusAllowed, tokens[0].Status)
 	t.Require().EqualValues(entity.TokenStatusExpired, tokens[1].Status)
