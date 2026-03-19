@@ -1096,6 +1096,35 @@ paths:
       summary: Удалить пользователя
       tags:
       - user
+  /user/get_all_users:
+    post:
+      consumes:
+      - application/json
+      description: Получить список пользователей
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.UsersResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Список пользователей
+      tags:
+      - user
   /user/get_by_id:
     post:
       consumes:

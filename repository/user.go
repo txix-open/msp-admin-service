@@ -188,6 +188,27 @@ func (u User) GetUsers(ctx context.Context, req domain.UsersPageRequest) ([]enti
 	return users, nil
 }
 
+func (u User) GetAllUsers(ctx context.Context) ([]entity.User, error) {
+	ctx = sql_metrics.OperationLabelToContext(ctx, "User.GetUsers")
+
+	query, args, err := query.New().
+		Select(idUsersColumn, firstNameUsersColumn, lastNameUsersColumn, emailUsersColumn, passwordUsersColumn, createdAtUsersColumn,
+			updatedAtUsersColumn, sudirUserIdUsersColumn, blockedUsersColumn, descriptionUsersColumn, lastActiveAtUsersColumn,
+			fullNameUsersColumn, "(SELECT max(created_at) FROM tokens WHERE tokens.user_id = users.id) as last_session_created_at").
+		From("users").ToSql()
+	if err != nil {
+		return nil, errors.WithMessage(err, "build query")
+	}
+
+	users := make([]entity.User, 0)
+	err = u.db.Select(ctx, &users, query, args...)
+	if err != nil {
+		return nil, errors.WithMessage(err, "db select")
+	}
+
+	return users, nil
+}
+
 func (u User) GetUsersByEmail(ctx context.Context, email string) ([]entity.User, error) {
 	ctx = sql_metrics.OperationLabelToContext(ctx, "User.GetUserByEmail")
 
@@ -382,7 +403,7 @@ func reqUsersQuery(q squirrel.SelectBuilder, reqQuery *domain.UserQuery) squirre
 		q = q.Where(squirrel.ILike{"id::text": "%" + strconv.Itoa(*reqQuery.Id) + "%"})
 	}
 
-	if reqQuery.UserId != nil { // поиск в ui по фио, но в бд - по id юзера
+	if reqQuery.UserId != nil || len(reqQuery.UserId) != 0 { // поиск в ui по фио, но в бд - по id юзера
 		q = q.Where(squirrel.Eq{"id": reqQuery.UserId})
 	}
 

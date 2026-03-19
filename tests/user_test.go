@@ -232,6 +232,30 @@ func (s *UserTestSuite) TestGetUsers() {
 	s.Require().Empty(response.Items)
 }
 
+func (s *UserTestSuite) TestAllGetUsers() {
+	InsertUser(s.db, entity.User{Email: "a1@a.ru"})
+	InsertUser(s.db, entity.User{Email: "b1@a.ru"})
+	userId1 := InsertUser(s.db, entity.User{Email: "a1@b.ru"})
+	userId2 := InsertUser(s.db, entity.User{Email: "a1@c.ru"})
+	userId3 := InsertUser(s.db, entity.User{Email: "a1@d.ru"})
+
+	roleId1 := InsertRole(s.db, entity.Role{Name: "test_role_1"})
+	roleId2 := InsertRole(s.db, entity.Role{Name: "test_role_2"})
+
+	InsertUserRole(s.db, entity.UserRole{RoleId: int(roleId1), UserId: int(userId1)})
+	InsertUserRole(s.db, entity.UserRole{RoleId: int(roleId1), UserId: int(userId2)})
+	InsertUserRole(s.db, entity.UserRole{RoleId: int(roleId1), UserId: int(userId3)})
+
+	InsertUserRole(s.db, entity.UserRole{RoleId: int(roleId2), UserId: int(userId1)})
+	InsertUserRole(s.db, entity.UserRole{RoleId: int(roleId2), UserId: int(userId2)})
+
+	response := domain.UsersResponse{}
+	err := s.grpcCli.Invoke("admin/user/get_all_users").JsonResponseBody(&response).Do(context.Background())
+	s.Require().NoError(err)
+
+	s.Require().Len(response.Items, 7)
+}
+
 func (s *UserTestSuite) TestGetUsersFilterByLastActiveAt() {
 	userId1 := InsertUser(s.db, entity.User{Email: "test1@a.ru"})
 	userId2 := InsertUser(s.db, entity.User{Email: "test2@a.ru"})

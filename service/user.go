@@ -26,9 +26,11 @@ type UserTransactionRunner interface {
 	UserTransaction(ctx context.Context, tx func(ctx context.Context, tx UserTransaction) error) error
 }
 
+// nolint:interfacebloat
 type UserRepo interface {
 	GetUserById(ctx context.Context, identity int64) (*entity.User, error)
 	GetUsers(ctx context.Context, req domain.UsersPageRequest) ([]entity.User, error)
+	GetAllUsers(ctx context.Context) ([]entity.User, error)
 	GetUserByEmailAndSudirId(ctx context.Context, email string, sudirUserId string) (*entity.User, error)
 	GetUsersByEmail(ctx context.Context, email string) ([]entity.User, error)
 	UpdateUser(ctx context.Context, id int64, user entity.UpdateUser) (*entity.User, error)
@@ -164,6 +166,38 @@ func (u User) GetUsers(ctx context.Context, req domain.UsersPageRequest) (*domai
 		if filteredRoles(req.Query, roles) && filteredLastSession(req.Query, user.LastSessionCreatedAt) {
 			items = append(items, u.toDomain(user, roles, user.LastSessionCreatedAt))
 		}
+	}
+
+	return &domain.UsersResponse{Items: items}, nil
+}
+
+func (u User) GetAllUsers(ctx context.Context) (*domain.UsersResponse, error) {
+	users, err := u.userRepo.GetAllUsers(ctx)
+	if err != nil {
+		return nil, errors.WithMessage(err, "get all users from repo")
+	}
+
+	userIds := make([]int, 0)
+	for _, user := range users {
+		userIds = append(userIds, int(user.Id))
+	}
+
+	userRoles, err := u.userRoleRepo.GetRolesByUserIds(ctx, userIds)
+	if err != nil {
+		return nil, errors.WithMessage(err, "get roles by user ids and roles id")
+	}
+
+	items := make([]domain.User, 0, len(users))
+	for _, user := range users {
+		roles := make([]int, 0)
+
+		for _, role := range userRoles {
+			if role.UserId == int(user.Id) {
+				roles = append(roles, role.RoleId)
+			}
+		}
+
+		items = append(items, u.toDomain(user, roles, user.LastSessionCreatedAt))
 	}
 
 	return &domain.UsersResponse{Items: items}, nil
