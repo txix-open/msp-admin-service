@@ -1,10 +1,10 @@
-// nolint:tagliatelle,errname
 package entity
 
 import (
 	"fmt"
 )
 
+// nolint:tagliatelle,godoclint
 type SudirAuthError struct {
 	ErrorName        string `json:"error"`
 	ErrorDescription string `json:"error_description"`
@@ -14,6 +14,7 @@ func (s *SudirAuthError) Error() string {
 	return fmt.Sprintf("error: %s; description: %s", s.ErrorName, s.ErrorDescription)
 }
 
+// nolint:tagliatelle,errname,godoclint
 type SudirUserResponse struct {
 	*SudirAuthError
 
@@ -25,6 +26,7 @@ type SudirUserResponse struct {
 	Name       string   `json:"name"`
 }
 
+// nolint:tagliatelle,errname,godoclint
 type SudirTokenResponse struct {
 	*SudirAuthError
 

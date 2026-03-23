@@ -16,6 +16,7 @@ import (
 type userService interface {
 	GetProfileById(ctx context.Context, userId int64) (*domain.AdminUserShort, error)
 	GetUsers(ctx context.Context, req domain.UsersPageRequest) (*domain.UsersResponse, error)
+	GetAllUsers(ctx context.Context) (*domain.UsersResponse, error)
 	CreateUser(ctx context.Context, req domain.CreateUserRequest, adminId int64) (*domain.User, error)
 	UpdateUser(ctx context.Context, req domain.UpdateUserRequest, adminId int64) (*domain.User, error)
 	DeleteUsers(ctx context.Context, ids []int64, adminId int64) (int, error)
@@ -88,6 +89,26 @@ func (u User) GetUsers(ctx context.Context, req domain.UsersPageRequest) (*domai
 	users, err := u.userService.GetUsers(ctx, req)
 	if err != nil {
 		return nil, errors.WithMessage(err, "get users")
+	}
+
+	return users, nil
+}
+
+// GetAllUsers
+// @Tags user
+// @Summary Список пользователей
+// @Description Получить список пользователей
+// @Accept json
+// @Produce json
+// @Param X-AUTH-ADMIN header string true "Токен администратора"
+// @Success 200 {object} domain.UsersResponse
+// @Failure 400 {object} domain.GrpcError
+// @Failure 500 {object} domain.GrpcError
+// @Router /user/get_all_users [POST]
+func (u User) GetAllUsers(ctx context.Context) (*domain.UsersResponse, error) {
+	users, err := u.userService.GetAllUsers(ctx)
+	if err != nil {
+		return nil, errors.WithMessage(err, "get all users")
 	}
 
 	return users, nil

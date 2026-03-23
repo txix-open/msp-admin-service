@@ -87,7 +87,7 @@ func (s Audit) SaveAuditAsync(ctx context.Context, userId int64, message string,
 			Event:     event,
 			CreatedAt: time.Now().UTC(),
 		}
-		_, err = s.auditRep.Insert(context.Background(), audit)
+		_, err = s.auditRep.Insert(ctx, audit)
 		if err != nil {
 			s.logger.Error(ctx, "insert audit", log.Any("error", err))
 		}
