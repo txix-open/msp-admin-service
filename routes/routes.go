@@ -1,11 +1,12 @@
 package routes
 
 import (
+	"msp-admin-service/controller"
+
 	"github.com/txix-open/isp-kit/cluster"
 	"github.com/txix-open/isp-kit/grpc"
 	"github.com/txix-open/isp-kit/grpc/endpoint"
 	"github.com/txix-open/isp-kit/grpc/isp"
-	"msp-admin-service/controller"
 )
 
 type Controllers struct {
@@ -68,6 +69,11 @@ func endpointDescriptors(c Controllers) []cluster.EndpointDescriptor {
 			Path:    "admin/user/get_users",
 			Inner:   true,
 			Handler: c.User.GetUsers,
+		},
+		{
+			Path:    "admin/user/get_all_users",
+			Inner:   true,
+			Handler: c.User.GetAllUsers,
 		},
 		{
 			Path:    "admin/user/create_user",

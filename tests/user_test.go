@@ -210,7 +210,6 @@ func (s *UserTestSuite) TestGetUsers() {
 	s.Require().EqualValues("a1@c.ru", response.Items[1].Email)
 	s.Require().EqualValues(roles, response.Items[1].Roles)
 
-	id := int(userId2)
 	email = "test@mail.ru"
 	err = s.grpcCli.Invoke("admin/user/get_users").
 		JsonRequestBody(domain.UsersPageRequest{
@@ -223,7 +222,7 @@ func (s *UserTestSuite) TestGetUsers() {
 				Type:  "asc",
 			},
 			Query: &domain.UserQuery{
-				Id:    &id,
+				Id:    new(int(userId2)),
 				Email: &email,
 			},
 		}).
@@ -231,6 +230,30 @@ func (s *UserTestSuite) TestGetUsers() {
 		Do(context.Background())
 	s.Require().NoError(err)
 	s.Require().Empty(response.Items)
+}
+
+func (s *UserTestSuite) TestAllGetUsers() {
+	InsertUser(s.db, entity.User{Email: "a1@a.ru"})
+	InsertUser(s.db, entity.User{Email: "b1@a.ru"})
+	userId1 := InsertUser(s.db, entity.User{Email: "a1@b.ru"})
+	userId2 := InsertUser(s.db, entity.User{Email: "a1@c.ru"})
+	userId3 := InsertUser(s.db, entity.User{Email: "a1@d.ru"})
+
+	roleId1 := InsertRole(s.db, entity.Role{Name: "test_role_1"})
+	roleId2 := InsertRole(s.db, entity.Role{Name: "test_role_2"})
+
+	InsertUserRole(s.db, entity.UserRole{RoleId: int(roleId1), UserId: int(userId1)})
+	InsertUserRole(s.db, entity.UserRole{RoleId: int(roleId1), UserId: int(userId2)})
+	InsertUserRole(s.db, entity.UserRole{RoleId: int(roleId1), UserId: int(userId3)})
+
+	InsertUserRole(s.db, entity.UserRole{RoleId: int(roleId2), UserId: int(userId1)})
+	InsertUserRole(s.db, entity.UserRole{RoleId: int(roleId2), UserId: int(userId2)})
+
+	response := domain.UsersResponse{}
+	err := s.grpcCli.Invoke("admin/user/get_all_users").JsonResponseBody(&response).Do(context.Background())
+	s.Require().NoError(err)
+
+	s.Require().Len(response.Items, 7)
 }
 
 func (s *UserTestSuite) TestGetUsersFilterByLastActiveAt() {
@@ -318,18 +341,19 @@ func (s *UserTestSuite) TestGetUsersSortByName() {
 				Field: "userId",
 				Type:  "asc",
 			},
+			Query: &domain.UserQuery{
+				UserId: []int{int(userIdViser1), int(userIdViser2), int(userIdScripts), int(userIdAL)},
+			},
 		}).
 		JsonResponseBody(&response).
 		Do(context.Background())
 	s.Require().NoError(err)
 
-	s.Require().Len(response.Items, 6)
-	s.Require().EqualValues(1, response.Items[0].Id)
-	s.Require().EqualValues(userIdScripts, response.Items[1].Id)
-	s.Require().EqualValues(2, response.Items[2].Id)
-	s.Require().EqualValues(userIdViser1, response.Items[3].Id)
-	s.Require().EqualValues(userIdViser2, response.Items[4].Id)
-	s.Require().EqualValues(userIdAL, response.Items[5].Id)
+	s.Require().Len(response.Items, 4)
+	s.Require().EqualValues(userIdScripts, response.Items[0].Id)
+	s.Require().EqualValues(userIdViser1, response.Items[1].Id)
+	s.Require().EqualValues(userIdViser2, response.Items[2].Id)
+	s.Require().EqualValues(userIdAL, response.Items[3].Id)
 }
 
 func (s *UserTestSuite) TestCreateUserHappyPath() {
