@@ -4,12 +4,18 @@ import (
 	"context"
 	"database/sql"
 
+	"msp-admin-service/entity"
+
 	"github.com/Masterminds/squirrel"
 	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/db"
 	"github.com/txix-open/isp-kit/db/query"
 	"github.com/txix-open/isp-kit/metrics/sql_metrics"
-	"msp-admin-service/entity"
+)
+
+const (
+	eventAuditEventColumn  = "event"
+	enableAuditEventColumn = "enable"
 )
 
 type AuditEvent struct {
@@ -26,7 +32,7 @@ func (r AuditEvent) All(ctx context.Context) ([]entity.AuditEvent, error) {
 	ctx = sql_metrics.OperationLabelToContext(ctx, "Audit_Event.All")
 
 	q, args, err := query.New().
-		Select("*").
+		Select(eventAuditEventColumn, enableAuditEventColumn).
 		From("audit_event").
 		OrderBy("enable DESC").
 		ToSql()

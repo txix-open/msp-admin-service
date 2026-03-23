@@ -176,10 +176,9 @@ func (t *SessionSuite) Test_All_Session() {
 
 	// Сортировка по статусу, поиск по userId & status
 	resUserId := int(userId)
-	reqStatus := entity.TokenStatusExpired
 	request.Query = &domain.SessionQuery{
-		UserId: &resUserId,
-		Status: &reqStatus,
+		UserId: []int{resUserId},
+		Status: []string{entity.TokenStatusExpired},
 	}
 
 	err = t.grpcCli.
@@ -206,7 +205,6 @@ func (t *SessionSuite) Test_All_Session() {
 		})
 	}
 
-	tokenId := 2
 	request = domain.SessionPageRequest{
 		LimitOffestParams: domain.LimitOffestParams{
 			Limit:  5,
@@ -217,7 +215,7 @@ func (t *SessionSuite) Test_All_Session() {
 			Type:  "desc",
 		},
 		Query: &domain.SessionQuery{
-			Id: &tokenId,
+			Id: new(2),
 		},
 	}
 	err = t.grpcCli.
@@ -228,12 +226,12 @@ func (t *SessionSuite) Test_All_Session() {
 	t.Require().NoError(err)
 
 	t.Require().Len(response.Items, 5)
-	t.Require().EqualValues(5, response.TotalCount)
+	t.Require().EqualValues(6, response.TotalCount)
 	t.Require().EqualValues(23, response.Items[0].Id)
 	t.Require().EqualValues(22, response.Items[1].Id)
 	t.Require().EqualValues(21, response.Items[2].Id)
 	t.Require().EqualValues(20, response.Items[3].Id)
-	t.Require().EqualValues(2, response.Items[4].Id)
+	t.Require().EqualValues(12, response.Items[4].Id)
 }
 
 func (t *SessionSuite) Test_Session_Expired_Worker() {

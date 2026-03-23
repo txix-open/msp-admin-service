@@ -25,7 +25,7 @@ type AuditPageRequest struct {
 
 type AuditQuery struct {
 	Id        *int
-	UserId    *int
+	UserId    []int
 	Message   *string
 	CreatedAt *DateFromToParams
 }

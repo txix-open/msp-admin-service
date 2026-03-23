@@ -71,7 +71,6 @@ definitions:
       limit:
         type: integer
       offset:
-        format: int64
         type: integer
       order:
         $ref: '#/definitions/domain.OrderParams'
@@ -89,7 +88,9 @@ definitions:
       message:
         type: string
       userId:
-        type: integer
+        items:
+          type: integer
+        type: array
     type: object
   domain.AuditResponse:
     properties:
@@ -277,7 +278,6 @@ definitions:
   domain.SecureAuthResponse:
     properties:
       adminId:
-        format: int64
         type: integer
       authenticated:
         type: boolean
@@ -314,7 +314,6 @@ definitions:
       limit:
         type: integer
       offset:
-        format: int64
         type: integer
       order:
         $ref: '#/definitions/domain.OrderParams'
@@ -332,9 +331,13 @@ definitions:
       id:
         type: integer
       status:
-        type: string
+        items:
+          type: string
+        type: array
       userId:
-        type: integer
+        items:
+          type: integer
+        type: array
     type: object
   domain.SessionResponse:
     properties:
@@ -403,7 +406,6 @@ definitions:
       fullName:
         type: string
       id:
-        format: int64
         type: integer
       lastName:
         type: string
@@ -431,14 +433,15 @@ definitions:
           type: integer
         type: array
       userId:
-        type: integer
+        items:
+          type: integer
+        type: array
     type: object
   domain.UsersPageRequest:
     properties:
       limit:
         type: integer
       offset:
-        format: int64
         type: integer
       order:
         $ref: '#/definitions/domain.OrderParams'
@@ -1091,6 +1094,35 @@ paths:
           schema:
             $ref: '#/definitions/domain.GrpcError'
       summary: Удалить пользователя
+      tags:
+      - user
+  /user/get_all_users:
+    post:
+      consumes:
+      - application/json
+      description: Получить список пользователей
+      parameters:
+      - description: Токен администратора
+        in: header
+        name: X-AUTH-ADMIN
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.UsersResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.GrpcError'
+      summary: Список пользователей
       tags:
       - user
   /user/get_by_id:

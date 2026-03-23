@@ -21,8 +21,8 @@ type SessionPageRequest struct {
 
 type SessionQuery struct {
 	Id        *int
-	UserId    *int
-	Status    *string
+	UserId    []int
+	Status    []string
 	CreatedAt *DateFromToParams
 	ExpiredAt *DateFromToParams
 }
