@@ -96,7 +96,7 @@
                         }
                     },
                     "401": {
-                        "description": "Некорректный код для авторизации",
+                        "description": "Некорректный код для авторизации или неизвестное название клиента",
                         "schema": {
                             "$ref": "#/definitions/domain.GrpcError"
                         }
@@ -1086,7 +1086,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/conf.UIDesign"
+                            "$ref": "#/definitions/domain.UIDesign"
                         }
                     },
                     "400": {
@@ -1315,17 +1315,6 @@
                 }
             }
         },
-        "conf.UIDesign": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "primaryColor": {
-                    "type": "string"
-                }
-            }
-        },
         "domain.AdminUserShort": {
             "type": "object",
             "required": [
@@ -1333,36 +1322,45 @@
             ],
             "properties": {
                 "email": {
+                    "description": "Электронный адрес",
                     "type": "string"
                 },
                 "firstName": {
+                    "description": "Имя",
                     "type": "string"
                 },
                 "fullName": {
+                    "description": "ФИО",
                     "type": "string"
                 },
                 "idleTimeoutMs": {
+                    "description": "Время бездействия пользователя в мс",
                     "type": "integer"
                 },
                 "lastName": {
+                    "description": "Фамилия",
                     "type": "string"
                 },
                 "permissions": {
+                    "description": "Список прав",
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
                 },
                 "role": {
+                    "description": "Название роли",
                     "type": "string"
                 },
                 "roleNames": {
+                    "description": "Список названия ролей",
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
                 },
                 "roles": {
+                    "description": "Список идентификаторов ролей",
                     "type": "array",
                     "items": {
                         "type": "integer"
@@ -1374,15 +1372,19 @@
             "type": "object",
             "properties": {
                 "createdAt": {
+                    "description": "Дата события",
                     "type": "string"
                 },
                 "id": {
+                    "description": "Идентификатор audit'а",
                     "type": "integer"
                 },
                 "message": {
+                    "description": "Сообщение",
                     "type": "string"
                 },
                 "userId": {
+                    "description": "Идентификатор пользователя",
                     "type": "integer"
                 }
             }
@@ -1394,6 +1396,7 @@
                     "type": "boolean"
                 },
                 "event": {
+                    "description": "Название события",
                     "type": "string"
                 },
                 "name": {
@@ -1408,17 +1411,29 @@
             ],
             "properties": {
                 "limit": {
+                    "description": "Максимальное количество записей",
                     "type": "integer"
                 },
                 "offset": {
+                    "description": "Отступ для выборки",
                     "type": "integer",
                     "format": "int64"
                 },
                 "order": {
-                    "$ref": "#/definitions/domain.OrderParams"
+                    "description": "Параметры сортировки",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.OrderParams"
+                        }
+                    ]
                 },
                 "query": {
-                    "$ref": "#/definitions/domain.AuditQuery"
+                    "description": "Параметры выборки",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.AuditQuery"
+                        }
+                    ]
                 }
             }
         },
@@ -1426,15 +1441,23 @@
             "type": "object",
             "properties": {
                 "createdAt": {
-                    "$ref": "#/definitions/domain.DateFromToParams"
+                    "description": "Фильтр по дате",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.DateFromToParams"
+                        }
+                    ]
                 },
                 "id": {
+                    "description": "Фильтр по идентификатору audit",
                     "type": "integer"
                 },
                 "message": {
+                    "description": "Фильтр по сообщению",
                     "type": "string"
                 },
                 "userId": {
+                    "description": "Фильтр по идентификатору пользователей",
                     "type": "array",
                     "items": {
                         "type": "integer"
@@ -1446,12 +1469,14 @@
             "type": "object",
             "properties": {
                 "items": {
+                    "description": "Список audit'ов",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/domain.Audit"
                     }
                 },
                 "totalCount": {
+                    "description": "Количество audit'ов",
                     "type": "integer"
                 }
             }
@@ -1464,9 +1489,11 @@
             ],
             "properties": {
                 "newPassword": {
+                    "description": "Новый пароль",
                     "type": "string"
                 },
                 "oldPassword": {
+                    "description": "Старый пароль",
                     "type": "string"
                 }
             }
@@ -1475,15 +1502,19 @@
             "type": "object",
             "properties": {
                 "changeMessage": {
+                    "description": "Причина изменений",
                     "type": "string"
                 },
                 "externalGroup": {
+                    "description": "Внешнее название группы",
                     "type": "string"
                 },
                 "name": {
+                    "description": "Название роли",
                     "type": "string"
                 },
                 "permissions": {
+                    "description": "Набор прав",
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -1499,21 +1530,27 @@
             ],
             "properties": {
                 "description": {
+                    "description": "Описание",
                     "type": "string"
                 },
                 "email": {
+                    "description": "Электронный адрес",
                     "type": "string"
                 },
                 "firstName": {
+                    "description": "Имя",
                     "type": "string"
                 },
                 "lastName": {
+                    "description": "Фамилия",
                     "type": "string"
                 },
                 "password": {
+                    "description": "Пароль",
                     "type": "string"
                 },
                 "roles": {
+                    "description": "Список идентификаторов ролей",
                     "type": "array",
                     "items": {
                         "type": "integer"
@@ -1529,9 +1566,11 @@
             ],
             "properties": {
                 "from": {
+                    "description": "Дата с",
                     "type": "string"
                 },
                 "to": {
+                    "description": "Дата до",
                     "type": "string"
                 }
             }
@@ -1540,6 +1579,7 @@
             "type": "object",
             "properties": {
                 "deleted": {
+                    "description": "Количество удалённых УЗ",
                     "type": "integer"
                 }
             }
@@ -1548,6 +1588,7 @@
             "type": "object",
             "properties": {
                 "id": {
+                    "description": "Идентификатор роли",
                     "type": "integer"
                 }
             }
@@ -1574,6 +1615,7 @@
             ],
             "properties": {
                 "userId": {
+                    "description": "Идентификато пользователя",
                     "type": "integer"
                 }
             }
@@ -1585,6 +1627,7 @@
             ],
             "properties": {
                 "ids": {
+                    "description": "Список идентификаторов",
                     "type": "array",
                     "items": {
                         "type": "integer"
@@ -1600,9 +1643,11 @@
             ],
             "properties": {
                 "email": {
+                    "description": "Электронная почта",
                     "type": "string"
                 },
                 "password": {
+                    "description": "Пароль",
                     "type": "string"
                 }
             }
@@ -1611,12 +1656,15 @@
             "type": "object",
             "properties": {
                 "expired": {
+                    "description": "Дата истечения токена",
                     "type": "string"
                 },
                 "headerName": {
+                    "description": "Названия заголовка для передачи токена",
                     "type": "string"
                 },
                 "token": {
+                    "description": "Токен",
                     "type": "string"
                 }
             }
@@ -1629,9 +1677,11 @@
             ],
             "properties": {
                 "authCode": {
+                    "description": "Код для авторизации в СУДИР",
                     "type": "string"
                 },
                 "clientName": {
+                    "description": "Уникальное имя конфигурации клиента",
                     "type": "string"
                 }
             }
@@ -1640,6 +1690,7 @@
             "type": "object",
             "properties": {
                 "reason": {
+                    "description": "Причина выхода",
                     "type": "string"
                 }
             }
@@ -1648,9 +1699,11 @@
             "type": "object",
             "properties": {
                 "field": {
+                    "description": "Поле сортировки",
                     "type": "string"
                 },
                 "type": {
+                    "description": "Порядок сортировки",
                     "type": "string",
                     "enum": [
                         "asc",
@@ -1665,9 +1718,11 @@
             "type": "object",
             "properties": {
                 "key": {
+                    "description": "Ключ прав",
                     "type": "string"
                 },
                 "name": {
+                    "description": "Пользовательское название",
                     "type": "string"
                 }
             }
@@ -1679,6 +1734,7 @@
             ],
             "properties": {
                 "id": {
+                    "description": "Идентификатор сессии",
                     "type": "integer"
                 }
             }
@@ -1687,33 +1743,40 @@
             "type": "object",
             "properties": {
                 "changeMessage": {
+                    "description": "Причина изменений",
                     "type": "string"
                 },
                 "createdAt": {
+                    "description": "Дата создания",
                     "type": "string"
                 },
                 "exclusive": {
                     "type": "boolean"
                 },
                 "externalGroup": {
+                    "description": "Внешнее название группы",
                     "type": "string"
                 },
                 "id": {
+                    "description": "Идентификатор роли",
                     "type": "integer"
                 },
                 "immutable": {
                     "type": "boolean"
                 },
                 "name": {
+                    "description": "Название роли",
                     "type": "string"
                 },
                 "permissions": {
+                    "description": "Набор прав",
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
                 },
                 "updatedAt": {
+                    "description": "Дата обновления",
                     "type": "string"
                 }
             }
@@ -1722,6 +1785,7 @@
             "type": "object",
             "properties": {
                 "token": {
+                    "description": "Токен",
                     "type": "string"
                 }
             }
@@ -1730,13 +1794,16 @@
             "type": "object",
             "properties": {
                 "adminId": {
+                    "description": "Идентификатор администратора",
                     "type": "integer",
                     "format": "int64"
                 },
                 "authenticated": {
+                    "description": "Флаг успешной аутентикации",
                     "type": "boolean"
                 },
                 "errorReason": {
+                    "description": "Причина ошибки",
                     "type": "string"
                 }
             }
@@ -1745,9 +1812,11 @@
             "type": "object",
             "properties": {
                 "adminId": {
+                    "description": "Идентификатор администратора",
                     "type": "integer"
                 },
                 "permission": {
+                    "description": "Роль",
                     "type": "string"
                 }
             }
@@ -1756,6 +1825,7 @@
             "type": "object",
             "properties": {
                 "authorized": {
+                    "description": "Флаг успешноЙ авторизации",
                     "type": "boolean"
                 }
             }
@@ -1764,18 +1834,23 @@
             "type": "object",
             "properties": {
                 "createdAt": {
+                    "description": "Дата создания сессии",
                     "type": "string"
                 },
                 "expiredAt": {
+                    "description": "Дата протухания сессии",
                     "type": "string"
                 },
                 "id": {
+                    "description": "Идентификатор сессии",
                     "type": "integer"
                 },
                 "status": {
+                    "description": "Статус сессии",
                     "type": "string"
                 },
                 "userId": {
+                    "description": "Идентификатор пользоватеккля",
                     "type": "integer"
                 }
             }
@@ -1787,17 +1862,29 @@
             ],
             "properties": {
                 "limit": {
+                    "description": "Максимальное количество записей",
                     "type": "integer"
                 },
                 "offset": {
+                    "description": "Отступ для выборки",
                     "type": "integer",
                     "format": "int64"
                 },
                 "order": {
-                    "$ref": "#/definitions/domain.OrderParams"
+                    "description": "Параметры сортировки",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.OrderParams"
+                        }
+                    ]
                 },
                 "query": {
-                    "$ref": "#/definitions/domain.SessionQuery"
+                    "description": "Параметры выборки",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.SessionQuery"
+                        }
+                    ]
                 }
             }
         },
@@ -1805,21 +1892,34 @@
             "type": "object",
             "properties": {
                 "createdAt": {
-                    "$ref": "#/definitions/domain.DateFromToParams"
+                    "description": "Фильтр по дате создания",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.DateFromToParams"
+                        }
+                    ]
                 },
                 "expiredAt": {
-                    "$ref": "#/definitions/domain.DateFromToParams"
+                    "description": "Фильтр по дате протухания",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.DateFromToParams"
+                        }
+                    ]
                 },
                 "id": {
+                    "description": "Фильтр по идентификатору сессии",
                     "type": "integer"
                 },
                 "status": {
+                    "description": "Фильтр по статусам",
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
                 },
                 "userId": {
+                    "description": "Фильтр по идентификаторам пользователей",
                     "type": "array",
                     "items": {
                         "type": "integer"
@@ -1831,12 +1931,14 @@
             "type": "object",
             "properties": {
                 "items": {
+                    "description": "Список сессий",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/domain.Session"
                     }
                 },
                 "totalCount": {
+                    "description": "Количество сессий",
                     "type": "integer"
                 }
             }
@@ -1845,10 +1947,26 @@
             "type": "object",
             "properties": {
                 "enabled": {
+                    "description": "Включено/выключено",
                     "type": "boolean"
                 },
                 "event": {
+                    "description": "Название события",
                     "type": "string"
+                }
+            }
+        },
+        "domain.UIDesign": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "description": "Название ui",
+                    "type": "string"
+                },
+                "primaryColor": {
+                    "description": "Цвет в HEX",
+                    "type": "string",
+                    "example": "#ff4d4f,#fa8c16,#a0d911,#1890ff,#722ed1,#d4b106,#e91e63,#ff5722,#795548,#abb8c3,#525252,#689f38"
                 }
             }
         },
@@ -1856,18 +1974,23 @@
             "type": "object",
             "properties": {
                 "changeMessage": {
+                    "description": "Причина изменений",
                     "type": "string"
                 },
                 "externalGroup": {
+                    "description": "Внешнее название группы",
                     "type": "string"
                 },
                 "id": {
+                    "description": "Идентификатор роли",
                     "type": "integer"
                 },
                 "name": {
+                    "description": "Название роли",
                     "type": "string"
                 },
                 "permissions": {
+                    "description": "Набор прав",
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -1882,24 +2005,31 @@
             ],
             "properties": {
                 "blocked": {
+                    "description": "Флаг блокировки",
                     "type": "boolean"
                 },
                 "description": {
+                    "description": "Описание",
                     "type": "string"
                 },
                 "email": {
+                    "description": "Электронный адрес",
                     "type": "string"
                 },
                 "firstName": {
+                    "description": "Имя",
                     "type": "string"
                 },
                 "id": {
+                    "description": "Идентификатор пользователя",
                     "type": "integer"
                 },
                 "lastName": {
+                    "description": "Фамилия",
                     "type": "string"
                 },
                 "roles": {
+                    "description": "Список идентификаторов ролей",
                     "type": "array",
                     "items": {
                         "type": "integer"
@@ -1911,40 +2041,51 @@
             "type": "object",
             "properties": {
                 "blocked": {
+                    "description": "Флаг блокировки",
                     "type": "boolean"
                 },
                 "createdAt": {
+                    "description": "Дата создания",
                     "type": "string"
                 },
                 "description": {
+                    "description": "Описание",
                     "type": "string"
                 },
                 "email": {
+                    "description": "Электронная почта",
                     "type": "string"
                 },
                 "firstName": {
+                    "description": "Имя",
                     "type": "string"
                 },
                 "fullName": {
+                    "description": "ФИО",
                     "type": "string"
                 },
                 "id": {
+                    "description": "Идентификатор пользователя",
                     "type": "integer",
                     "format": "int64"
                 },
                 "lastName": {
+                    "description": "Фамилия",
                     "type": "string"
                 },
                 "lastSessionCreatedAt": {
+                    "description": "Дата создания последней сессии",
                     "type": "string"
                 },
                 "roles": {
+                    "description": "Список идентификаторов ролей",
                     "type": "array",
                     "items": {
                         "type": "integer"
                     }
                 },
                 "updatedAt": {
+                    "description": "Дата обновлёния",
                     "type": "string"
                 }
             }
@@ -1953,24 +2094,34 @@
             "type": "object",
             "properties": {
                 "description": {
+                    "description": "Фильтр по описанию",
                     "type": "string"
                 },
                 "email": {
+                    "description": "Фильтр по электроннйо почты",
                     "type": "string"
                 },
                 "id": {
+                    "description": "Фильтр по идентификатору пользователя",
                     "type": "integer"
                 },
                 "lastSessionCreatedAt": {
-                    "$ref": "#/definitions/domain.DateFromToParams"
+                    "description": "Фильтр по дате создания последней сессии",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.DateFromToParams"
+                        }
+                    ]
                 },
                 "roles": {
+                    "description": "Фильтр по ролям",
                     "type": "array",
                     "items": {
                         "type": "integer"
                     }
                 },
                 "userId": {
+                    "description": "Фильтр по идентификаторам пользователя",
                     "type": "array",
                     "items": {
                         "type": "integer"
@@ -1985,17 +2136,29 @@
             ],
             "properties": {
                 "limit": {
+                    "description": "Максимальное количество записей",
                     "type": "integer"
                 },
                 "offset": {
+                    "description": "Отступ для выборки",
                     "type": "integer",
                     "format": "int64"
                 },
                 "order": {
-                    "$ref": "#/definitions/domain.OrderParams"
+                    "description": "Параметры сортировки",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.OrderParams"
+                        }
+                    ]
                 },
                 "query": {
-                    "$ref": "#/definitions/domain.UserQuery"
+                    "description": "Параметры выборки",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.UserQuery"
+                        }
+                    ]
                 }
             }
         },
@@ -2003,6 +2166,7 @@
             "type": "object",
             "properties": {
                 "items": {
+                    "description": "Список пользователей",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/domain.User"

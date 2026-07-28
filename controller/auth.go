@@ -121,7 +121,7 @@ func (a Auth) Login(ctx context.Context, authRequest domain.LoginRequest) (*doma
 // @Produce json
 // @Param body body domain.LoginSudirRequest true "Тело запроса"
 // @Success 200 {object} domain.LoginResponse
-// @Failure 401 {object} domain.GrpcError "Некорректный код для авторизации"
+// @Failure 401 {object} domain.GrpcError "Некорректный код для авторизации или неизвестное название клиента"
 // @Failure 412 {object} domain.GrpcError "Авторизация СУДИР не настроена на сервере"
 // @Failure 500 {object} domain.GrpcError
 // @Router /auth/login_with_sudir [POST]

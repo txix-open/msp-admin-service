@@ -8,16 +8,16 @@ const (
 )
 
 type LimitOffestParams struct {
-	Limit  uint64 `validate:"required"`
-	Offset uint64
+	Limit  uint64 `validate:"required"` // Максимальное количество записей
+	Offset uint64 // Отступ для выборки
 }
 
 type OrderParams struct {
-	Field string
-	Type  string `validate:"oneof=asc desc ASC DESC"`
+	Field string // Поле сортировки
+	Type  string `validate:"oneof=asc desc ASC DESC"` // Порядок сортировки
 }
 
 type DateFromToParams struct {
-	From time.Time `validate:"required"`
-	To   time.Time `validate:"required"`
+	From time.Time `validate:"required"` // Дата с
+	To   time.Time `validate:"required"` // Дата до
 }

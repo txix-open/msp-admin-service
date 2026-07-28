@@ -5,83 +5,83 @@ import (
 )
 
 type User struct {
-	Id                   int64
-	Roles                []int
-	FirstName            string
-	LastName             string
-	FullName             string
-	Email                string
-	Description          string
-	Blocked              bool
-	LastSessionCreatedAt *time.Time
-	UpdatedAt            time.Time
-	CreatedAt            time.Time
+	Id                   int64      // Идентификатор пользователя
+	Roles                []int      // Список идентификаторов ролей
+	FirstName            string     // Имя
+	LastName             string     // Фамилия
+	FullName             string     // ФИО
+	Email                string     // Электронная почта
+	Description          string     // Описание
+	Blocked              bool       // Флаг блокировки
+	LastSessionCreatedAt *time.Time // Дата создания последней сессии
+	UpdatedAt            time.Time  // Дата обновлёния
+	CreatedAt            time.Time  // Дата создания
 }
 
 type UsersResponse struct {
-	Items []User
+	Items []User // Список пользователей
 }
 
 type UserQuery struct {
-	Id                   *int
-	UserId               []int
-	Description          *string
-	Email                *string
-	Roles                []int
-	LastSessionCreatedAt *DateFromToParams
+	Id                   *int              // Фильтр по идентификатору пользователя
+	UserId               []int             // Фильтр по идентификаторам пользователя
+	Description          *string           // Фильтр по описанию
+	Email                *string           // Фильтр по электроннйо почты
+	Roles                []int             // Фильтр по ролям
+	LastSessionCreatedAt *DateFromToParams // Фильтр по дате создания последней сессии
 }
 
 type UsersPageRequest struct {
 	LimitOffestParams
 
-	Order *OrderParams
-	Query *UserQuery
+	Order *OrderParams // Параметры сортировки
+	Query *UserQuery   // Параметры выборки
 }
 
 type AdminUserShort struct {
-	FirstName     string
-	LastName      string
-	FullName      string
-	Email         string `validate:"required"`
-	Role          string
-	Roles         []int
-	RoleNames     []string
-	Permissions   []string
-	IdleTimeoutMs int
+	FirstName     string   // Имя
+	LastName      string   // Фамилия
+	FullName      string   // ФИО
+	Email         string   `validate:"required"` // Электронный адрес
+	Role          string   // Название роли
+	Roles         []int    // Список идентификаторов ролей
+	RoleNames     []string // Список названия ролей
+	Permissions   []string // Список прав
+	IdleTimeoutMs int      // Время бездействия пользователя в мс
 }
 
 type CreateUserRequest struct {
-	Roles       []int
-	FirstName   string
-	LastName    string
-	Email       string `validate:"required"`
-	Password    string `validate:"required"`
-	Description string
+	Roles       []int  // Список идентификаторов ролей
+	FirstName   string // Имя
+	LastName    string // Фамилия
+	Email       string `validate:"required"` // Электронный адрес
+	Password    string `validate:"required"` // Пароль
+	Description string // Описание
 }
 
 type UpdateUserRequest struct {
-	Id          int64 `validate:"required"`
-	Roles       []int
-	FirstName   string
-	LastName    string
-	Email       string
-	Description string
-	Blocked     bool
+	Id          int64  `validate:"required"` // Идентификатор пользователя
+	Roles       []int  // Список идентификаторов ролей
+	FirstName   string // Имя
+	LastName    string // Фамилия
+	Email       string // Электронный адрес
+	Description string // Описание
+	Blocked     bool   // Флаг блокировки
 }
 
 type DeleteResponse struct {
-	Deleted int
+	Deleted int // Количество удалённых УЗ
 }
 
 type IdentitiesRequest struct {
-	Ids []int64 `validate:"required"`
+	Ids []int64 `validate:"required"` // Список идентификаторов
 }
 
 type IdRequest struct {
-	UserId int `validate:"required"`
+	UserId int `validate:"required"` // Идентификато пользователя
 }
 
 type ChangePasswordRequest struct {
-	OldPassword string `validate:"required"`
-	NewPassword string `validate:"required"`
+	OldPassword string `validate:"required"` // Старый пароль
+	NewPassword string `validate:"required"` // Новый пароль
 }
