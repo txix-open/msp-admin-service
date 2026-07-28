@@ -2,8 +2,10 @@ package routes
 
 import (
 	"msp-admin-service/controller"
+	"msp-admin-service/docs"
 
 	"github.com/txix-open/isp-kit/cluster"
+	"github.com/txix-open/isp-kit/common_endpoints"
 	"github.com/txix-open/isp-kit/grpc"
 	"github.com/txix-open/isp-kit/grpc/endpoint"
 	"github.com/txix-open/isp-kit/grpc/isp"
@@ -21,12 +23,18 @@ type Controllers struct {
 }
 
 func EndpointDescriptors() []cluster.EndpointDescriptor {
-	return endpointDescriptors(Controllers{})
+	return concatEndpoints(
+		endpointDescriptors(Controllers{}),
+		commonEndpoints(),
+	)
 }
 
 func Handler(wrapper endpoint.Wrapper, c Controllers) isp.BackendServiceServer { // nolint:ireturn
 	muxer := grpc.NewMux()
 	for _, descriptor := range endpointDescriptors(c) {
+		muxer.Handle(descriptor.Path, wrapper.Endpoint(descriptor.Handler))
+	}
+	for _, descriptor := range commonEndpoints() {
 		muxer.Handle(descriptor.Path, wrapper.Endpoint(descriptor.Handler))
 	}
 	return muxer
@@ -180,4 +188,19 @@ func endpointDescriptors(c Controllers) []cluster.EndpointDescriptor {
 			Handler: c.Secure.Authorize,
 		},
 	}
+}
+
+func commonEndpoints() []cluster.EndpointDescriptor {
+	return common_endpoints.CommonEndpoints(
+		"msp-admin-service",
+		common_endpoints.WithSwaggerEndpoint(docs.SwaggerJson),
+	)
+}
+
+func concatEndpoints(endpoints ...[]cluster.EndpointDescriptor) []cluster.EndpointDescriptor {
+	var result []cluster.EndpointDescriptor
+	for _, desc := range endpoints {
+		result = append(result, desc...)
+	}
+	return result
 }
