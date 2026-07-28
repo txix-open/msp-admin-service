@@ -53,7 +53,7 @@ type UIDesign struct {
 
 type SudirAuth struct {
 	Host    string              `validate:"required" schema:"Базовый путь до методов СУДИР, пример https://sudir.mos.ru"`
-	Clients []SudirClientConfig `validate:"required,min=1" schema:"Настройка взаимодействия с СУДИР для логина по authCode"`
+	Clients []SudirClientConfig `validate:"omitempty,min=1" schema:"Настройка взаимодействия с СУДИР для логина по authCode"`
 }
 
 type SudirClientConfig struct {
