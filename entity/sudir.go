@@ -4,6 +4,13 @@ import (
 	"fmt"
 )
 
+type ClientSetting struct {
+	AuthCode     string
+	ClientId     string
+	ClientSecret string
+	RedirectURI  string
+}
+
 // nolint:tagliatelle,godoclint
 type SudirAuthError struct {
 	ErrorName        string `json:"error"`

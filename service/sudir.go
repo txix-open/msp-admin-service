@@ -11,7 +11,7 @@ import (
 )
 
 type sudirRepo interface {
-	GetToken(ctx context.Context, authCode string) (*entity.SudirTokenResponse, error)
+	GetToken(ctx context.Context, creds entity.ClientSetting) (*entity.SudirTokenResponse, error)
 	GetUser(ctx context.Context, accessToken string) (*entity.SudirUserResponse, error)
 }
 
@@ -21,23 +21,48 @@ type roleRepo interface {
 }
 
 type Sudir struct {
-	cfg       *conf.SudirAuth
-	sudirRepo sudirRepo
+	sudirRepo      sudirRepo
+	clientSettings map[string]conf.SudirClientConfig
 }
 
-func NewSudir(cfg *conf.SudirAuth, sudirRepo sudirRepo) Sudir {
-	return Sudir{
-		cfg:       cfg,
-		sudirRepo: sudirRepo,
+func NewSudir(cfg *conf.SudirAuth, sudirRepo sudirRepo) (Sudir, error) {
+	settings := make([]conf.SudirClientConfig, 0)
+	if cfg != nil {
+		settings = cfg.Clients
 	}
+
+	clientSettings := make(map[string]conf.SudirClientConfig, len(settings))
+	for i, setting := range settings {
+		_, ok := clientSettings[setting.ClientName]
+		if ok {
+			return Sudir{}, errors.Errorf("client setting [%d] has non-unique client name", i)
+		}
+		clientSettings[setting.ClientName] = setting
+	}
+
+	return Sudir{
+		sudirRepo:      sudirRepo,
+		clientSettings: clientSettings,
+	}, nil
 }
 
-func (s Sudir) Authenticate(ctx context.Context, authCode string, roleRepo roleRepo) (*entity.SudirUser, error) {
-	if s.cfg == nil {
+func (s Sudir) Authenticate(ctx context.Context, req domain.LoginSudirRequest, roleRepo roleRepo) (*entity.SudirUser, error) {
+	if len(s.clientSettings) == 0 {
 		return nil, domain.ErrSudirAuthIsMissed
 	}
 
-	tokenResponse, err := s.sudirRepo.GetToken(ctx, authCode)
+	setting, ok := s.clientSettings[req.ClientName]
+	if !ok {
+		return nil, domain.ErrUnauthenticated
+	}
+
+	creds := entity.ClientSetting{
+		AuthCode:     req.AuthCode,
+		ClientId:     setting.ClientId,
+		ClientSecret: setting.ClientSecret,
+		RedirectURI:  setting.RedirectURI,
+	}
+	tokenResponse, err := s.sudirRepo.GetToken(ctx, creds)
 	switch {
 	case err != nil:
 		return nil, errors.WithMessage(err, "get token")

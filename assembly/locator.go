@@ -15,6 +15,7 @@ import (
 	"msp-admin-service/service/session_worker"
 	"msp-admin-service/transaction"
 
+	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/bgjobx"
 	"github.com/txix-open/isp-kit/db"
 	"github.com/txix-open/isp-kit/grpc/endpoint"
@@ -52,8 +53,8 @@ func (l Locator) Config(
 	ctx context.Context,
 	cfg conf.Remote,
 	jobPollInterval time.Duration,
-) Config {
-	sudirRepo := repository.NewSudir(l.httpCli, cfg.SudirAuth)
+) (Config, error) {
+	sudirRepo := repository.NewSudir(l.sudirCli)
 	roleRepo := repository.NewRole(l.db)
 	userRepo := repository.NewUser(l.db)
 	tokenRepo := repository.NewToken(l.db)
@@ -63,7 +64,11 @@ func (l Locator) Config(
 
 	auditService := service.NewAudit(ctx, l.logger, auditRepo, auditEventRepo, cfg.Audit.EventSettings)
 	tokenService := service.NewToken(tokenRepo, cfg.ExpireSec)
-	sudirService := service.NewSudir(cfg.SudirAuth, sudirRepo)
+	sudirService, err := service.NewSudir(cfg.SudirAuth, sudirRepo)
+	if err != nil {
+		return Config{}, errors.WithMessage(err, "new sudir")
+	}
+
 	secureService := secure.NewService(tokenRepo, userRoleRepo)
 
 	txManager := transaction.NewManager(l.db)
@@ -139,5 +144,5 @@ func (l Locator) Config(
 			PollInterval: jobPollInterval,
 			Handle:       expireSessionWorker,
 		}},
-	}
+	}, nil
 }

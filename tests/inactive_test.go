@@ -27,16 +27,17 @@ func TestInactiveWorker(t *testing.T) {
 	userId := InsertUser(db, entity.User{Email: "a@test", LastActiveAt: time.Now().UTC().Add(-5 * 24 * time.Hour)})
 	InsertUser(db, entity.User{Email: "b@test", LastActiveAt: time.Now().UTC()})
 
-	config := assembly.NewLocator(test.Logger(), nil, db).
+	config, err := assembly.NewLocator(test.Logger(), nil, db).
 		Config(t.Context(), conf.Remote{
 			BlockInactiveWorker: conf.BlockInactiveWorker{
 				DaysThreshold:        1,
 				RunIntervalInMinutes: 1,
 			},
 		}, 500*time.Millisecond)
+	require.NoError(err)
 
 	bgjobCli := bgjobx.NewClient(db, test.Logger())
-	err := inactive_worker.EnqueueSeedJob(t.Context(), bgjobCli)
+	err = inactive_worker.EnqueueSeedJob(t.Context(), bgjobCli)
 	require.NoError(err)
 	err = bgjobCli.Upgrade(t.Context(), config.BgJobCfg)
 	require.NoError(err)

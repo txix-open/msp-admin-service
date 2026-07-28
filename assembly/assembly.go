@@ -66,7 +66,10 @@ func (a *Assembly) ReceiveConfig(ctx context.Context, remoteConfig []byte) error
 	a.httpCli.GlobalRequestConfig().BaseUrl = newCfg.SudirAuth.Host
 
 	locator := NewLocator(a.logger, a.httpCli, a.db)
-	config := locator.Config(ctx, newCfg, time.Minute)
+	config, err := locator.Config(ctx, newCfg, time.Minute)
+	if err != nil {
+		a.logger.Fatal(ctx, errors.WithMessage(err, "locator config"))
+	}
 
 	a.server.Upgrade(config.Handler)
 

@@ -40,8 +40,9 @@ func (s *CustomizationTestSuite) SetupTest() {
 		},
 		ExpireSec: 0,
 	}
-	cfg := assembly.NewLocator(testInstance.Logger(), nil, s.db).
+	cfg, err := assembly.NewLocator(testInstance.Logger(), nil, s.db).
 		Config(context.Background(), remote, time.Minute)
+	s.Require().NoError(err)
 
 	server, apiCli := grpct.TestServer(testInstance, cfg.Handler)
 	s.grpcCli = apiCli

@@ -56,8 +56,9 @@ func (s *UserTestSuite) SetupTest() {
 	remote := conf.Remote{
 		ExpireSec: 0,
 	}
-	cfg := assembly.NewLocator(testInstance.Logger(), s.httpCli, s.db).
+	cfg, err := assembly.NewLocator(testInstance.Logger(), s.httpCli, s.db).
 		Config(context.Background(), remote, time.Minute)
+	s.Require().NoError(err)
 
 	server, apiCli := grpct.TestServer(testInstance, cfg.Handler)
 	s.grpcCli = apiCli

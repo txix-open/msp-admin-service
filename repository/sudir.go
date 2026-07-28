@@ -4,13 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	"msp-admin-service/entity"
+
 	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/http/httpcli"
 	"github.com/txix-open/isp-kit/metrics/http_metrics"
-	"msp-admin-service/conf"
-	"msp-admin-service/entity"
 )
 
+//nolint:gosec
 const (
 	getTokenEndpoint = "/oauth/te"
 	getUserEndpoint  = "/oauth/me"
@@ -18,35 +19,32 @@ const (
 
 type Sudir struct {
 	cli *httpcli.Client
-	cfg *conf.SudirAuth
 }
 
-func NewSudir(httpCli *httpcli.Client, cfg *conf.SudirAuth) Sudir {
+func NewSudir(cli *httpcli.Client) Sudir {
 	return Sudir{
-		cli: httpCli,
-		cfg: cfg,
+		cli: cli,
 	}
 }
 
-func (s Sudir) GetToken(ctx context.Context, authCode string) (*entity.SudirTokenResponse, error) {
+func (s Sudir) GetToken(ctx context.Context, clientSetting entity.ClientSetting) (*entity.SudirTokenResponse, error) {
 	ctx = http_metrics.ClientEndpointToContext(ctx, getTokenEndpoint)
 
 	response := entity.SudirTokenResponse{}
 	err := s.cli.Post(getTokenEndpoint).
 		BasicAuth(httpcli.BasicAuth{
-			Username: s.cfg.ClientId,
-			Password: s.cfg.ClientSecret,
+			Username: clientSetting.ClientId,
+			Password: clientSetting.ClientSecret,
 		}).
 		Header("Content-Type", "application/x-www-form-urlencoded").
 		QueryParams(map[string]any{
 			"grant_type":   "authorization_code",
-			"code":         authCode,
-			"redirect_uri": s.cfg.RedirectURI,
+			"code":         clientSetting.AuthCode,
+			"redirect_uri": clientSetting.RedirectURI,
 		}).
 		JsonResponseBody(&response).
 		StatusCodeToError().
 		DoWithoutResponse(ctx)
-
 	if err != nil {
 		return nil, errors.WithMessagef(err, "call POST: '%s'", getTokenEndpoint)
 	}

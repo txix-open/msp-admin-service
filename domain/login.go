@@ -15,7 +15,8 @@ type LoginRequest struct {
 }
 
 type LoginSudirRequest struct {
-	AuthCode string `validate:"required"`
+	AuthCode   string `validate:"required"`
+	ClientName string `validate:"required"`
 }
 
 // nolint:tagliatelle,godoclint

@@ -36,10 +36,10 @@ type SessionSuite struct {
 	grpcCli *client.Client
 }
 
-func (t *SessionSuite) SetupTest() {
-	testInstance, _ := test.New(t.T())
-	t.test = testInstance
-	t.db = dbt.New(testInstance, dbx.WithMigrationRunner("../migrations", testInstance.Logger()))
+func (s *SessionSuite) SetupTest() {
+	testInstance, _ := test.New(s.T())
+	s.test = testInstance
+	s.db = dbt.New(testInstance, dbx.WithMigrationRunner("../migrations", testInstance.Logger()))
 
 	remote := conf.Remote{
 		Audit: conf.Audit{
@@ -72,11 +72,14 @@ func (t *SessionSuite) SetupTest() {
 			AuditTTl: conf.AuditTTlSetting{},
 		},
 	}
-	t.config = assembly.NewLocator(testInstance.Logger(), httpcli.New(), t.db).
+	config, err := assembly.NewLocator(testInstance.Logger(), httpcli.New(), s.db).
 		Config(context.Background(), remote, 500*time.Millisecond)
+	s.Require().NoError(err)
 
-	server, apiCli := grpct.TestServer(testInstance, t.config.Handler)
-	t.grpcCli = apiCli
+	s.config = config
+
+	server, apiCli := grpct.TestServer(testInstance, s.config.Handler)
+	s.grpcCli = apiCli
 
 	testInstance.T().Cleanup(func() {
 		server.Shutdown()
@@ -84,11 +87,11 @@ func (t *SessionSuite) SetupTest() {
 }
 
 //nolint:funlen
-func (t *SessionSuite) Test_All_Session() {
-	userId := InsertUser(t.db, entity.User{Email: "test_1@aa.ru"})
+func (s *SessionSuite) Test_All_Session() {
+	userId := InsertUser(s.db, entity.User{Email: "test_1@aa.ru"})
 	timeNow := time.Now().UTC()
 
-	InsertTokenEntity(t.db, entity.Token{
+	InsertTokenEntity(s.db, entity.Token{
 		Token:     "test_token_1",
 		UserId:    userId,
 		Status:    entity.TokenStatusAllowed,
@@ -96,7 +99,7 @@ func (t *SessionSuite) Test_All_Session() {
 		CreatedAt: timeNow.Add(-1 * time.Hour),
 		UpdatedAt: timeNow,
 	})
-	InsertTokenEntity(t.db, entity.Token{
+	InsertTokenEntity(s.db, entity.Token{
 		Token:     "test_token_2",
 		UserId:    userId,
 		Status:    entity.TokenStatusRevoked,
@@ -104,7 +107,7 @@ func (t *SessionSuite) Test_All_Session() {
 		CreatedAt: timeNow.Add(-2 * time.Hour),
 		UpdatedAt: timeNow,
 	})
-	InsertTokenEntity(t.db, entity.Token{
+	InsertTokenEntity(s.db, entity.Token{
 		Token:     "test_token_3",
 		UserId:    userId,
 		Status:    entity.TokenStatusExpired,
@@ -122,17 +125,17 @@ func (t *SessionSuite) Test_All_Session() {
 	}
 
 	var response *domain.SessionResponse
-	err := t.grpcCli.
+	err := s.grpcCli.
 		Invoke("admin/session/all").
 		JsonRequestBody(request).
 		JsonResponseBody(&response).
 		Do(context.Background())
-	t.Require().NoError(err)
+	s.Require().NoError(err)
 
-	t.Require().Len(response.Items, 2)
-	t.Require().EqualValues(3, response.TotalCount)
-	t.Require().EqualValues(2, response.Items[0].Id)
-	t.Require().EqualValues(3, response.Items[1].Id)
+	s.Require().Len(response.Items, 2)
+	s.Require().EqualValues(3, response.TotalCount)
+	s.Require().EqualValues(2, response.Items[0].Id)
+	s.Require().EqualValues(3, response.Items[1].Id)
 
 	// Дефолт сортировка, поиск по expired_at
 	request.Offset = 0
@@ -142,17 +145,17 @@ func (t *SessionSuite) Test_All_Session() {
 			To:   timeNow.Add(24 * time.Hour),
 		},
 	}
-	err = t.grpcCli.
+	err = s.grpcCli.
 		Invoke("admin/session/all").
 		JsonRequestBody(request).
 		JsonResponseBody(&response).
 		Do(context.Background())
-	t.Require().NoError(err)
+	s.Require().NoError(err)
 
-	t.Require().Len(response.Items, 2)
-	t.Require().EqualValues(2, response.TotalCount)
-	t.Require().EqualValues(1, response.Items[0].Id)
-	t.Require().EqualValues(2, response.Items[1].Id)
+	s.Require().Len(response.Items, 2)
+	s.Require().EqualValues(2, response.TotalCount)
+	s.Require().EqualValues(1, response.Items[0].Id)
+	s.Require().EqualValues(2, response.Items[1].Id)
 
 	// Сортировка по статусу, пустой запрос
 	request.Query = nil
@@ -161,18 +164,18 @@ func (t *SessionSuite) Test_All_Session() {
 		Type:  "asc",
 	}
 
-	err = t.grpcCli.
+	err = s.grpcCli.
 		Invoke("admin/session/all").
 		JsonRequestBody(request).
 		JsonResponseBody(&response).
 		Do(context.Background())
-	t.Require().NoError(err)
+	s.Require().NoError(err)
 
-	t.Require().Len(response.Items, 3)
-	t.Require().EqualValues(3, response.TotalCount)
-	t.Require().EqualValues(1, response.Items[0].Id)
-	t.Require().EqualValues(3, response.Items[1].Id)
-	t.Require().EqualValues(2, response.Items[2].Id)
+	s.Require().Len(response.Items, 3)
+	s.Require().EqualValues(3, response.TotalCount)
+	s.Require().EqualValues(1, response.Items[0].Id)
+	s.Require().EqualValues(3, response.Items[1].Id)
+	s.Require().EqualValues(2, response.Items[2].Id)
 
 	// Сортировка по статусу, поиск по userId & status
 	resUserId := int(userId)
@@ -181,21 +184,21 @@ func (t *SessionSuite) Test_All_Session() {
 		Status: []string{entity.TokenStatusExpired},
 	}
 
-	err = t.grpcCli.
+	err = s.grpcCli.
 		Invoke("admin/session/all").
 		JsonRequestBody(request).
 		JsonResponseBody(&response).
 		Do(context.Background())
-	t.Require().NoError(err)
+	s.Require().NoError(err)
 
-	t.Require().Len(response.Items, 1)
-	t.Require().EqualValues(1, response.TotalCount)
-	t.Require().EqualValues(3, response.Items[0].Id)
+	s.Require().Len(response.Items, 1)
+	s.Require().EqualValues(1, response.TotalCount)
+	s.Require().EqualValues(3, response.Items[0].Id)
 
 	// Сортировка по id, поиск по id
 	for i := range 20 {
-		userId = InsertUser(t.db, entity.User{Email: "test_11" + strconv.Itoa(i) + "@aa.ru"})
-		InsertTokenEntity(t.db, entity.Token{
+		userId = InsertUser(s.db, entity.User{Email: "test_11" + strconv.Itoa(i) + "@aa.ru"})
+		InsertTokenEntity(s.db, entity.Token{
 			Token:     "test_token_1" + strconv.Itoa(i),
 			UserId:    userId,
 			Status:    entity.TokenStatusAllowed,
@@ -218,57 +221,57 @@ func (t *SessionSuite) Test_All_Session() {
 			Id: new(2),
 		},
 	}
-	err = t.grpcCli.
+	err = s.grpcCli.
 		Invoke("admin/session/all").
 		JsonRequestBody(request).
 		JsonResponseBody(&response).
 		Do(context.Background())
-	t.Require().NoError(err)
+	s.Require().NoError(err)
 
-	t.Require().Len(response.Items, 5)
-	t.Require().EqualValues(6, response.TotalCount)
-	t.Require().EqualValues(23, response.Items[0].Id)
-	t.Require().EqualValues(22, response.Items[1].Id)
-	t.Require().EqualValues(21, response.Items[2].Id)
-	t.Require().EqualValues(20, response.Items[3].Id)
-	t.Require().EqualValues(12, response.Items[4].Id)
+	s.Require().Len(response.Items, 5)
+	s.Require().EqualValues(6, response.TotalCount)
+	s.Require().EqualValues(23, response.Items[0].Id)
+	s.Require().EqualValues(22, response.Items[1].Id)
+	s.Require().EqualValues(21, response.Items[2].Id)
+	s.Require().EqualValues(20, response.Items[3].Id)
+	s.Require().EqualValues(12, response.Items[4].Id)
 }
 
-func (t *SessionSuite) Test_Session_Expired_Worker() {
-	userId := InsertUser(t.db, entity.User{Email: "a@test"})
+func (s *SessionSuite) Test_Session_Expired_Worker() {
+	userId := InsertUser(s.db, entity.User{Email: "a@test"})
 
-	InsertTokenEntity(t.db, entity.Token{
+	InsertTokenEntity(s.db, entity.Token{
 		Token:     "token_allowed",
 		UserId:    userId,
 		Status:    entity.TokenStatusAllowed,
 		ExpiredAt: time.Now().UTC().Add(24 * time.Hour)})
 
-	InsertTokenEntity(t.db, entity.Token{
+	InsertTokenEntity(s.db, entity.Token{
 		Token:     "token_expired",
 		UserId:    userId,
 		Status:    entity.TokenStatusAllowed,
 		ExpiredAt: time.Now().UTC().Add(-2 * time.Hour)})
 
-	InsertTokenEntity(t.db, entity.Token{
+	InsertTokenEntity(s.db, entity.Token{
 		Token:     "token_expired2",
 		UserId:    userId,
 		Status:    entity.TokenStatusAllowed,
 		ExpiredAt: time.Now().UTC().Add(-24 * time.Hour)})
 
-	bgjobCli := bgjobx.NewClient(t.db, t.test.Logger())
+	bgjobCli := bgjobx.NewClient(s.db, s.test.Logger())
 
-	err := session_worker.EnqueueSeedJob(t.T().Context(), bgjobCli)
-	t.Require().NoError(err)
+	err := session_worker.EnqueueSeedJob(s.T().Context(), bgjobCli)
+	s.Require().NoError(err)
 
-	err = bgjobCli.Upgrade(t.T().Context(), t.config.BgJobCfg)
-	t.Require().NoError(err)
+	err = bgjobCli.Upgrade(s.T().Context(), s.config.BgJobCfg)
+	s.Require().NoError(err)
 
 	time.Sleep(2 * time.Second)
 
 	tokens := make([]entity.Token, 0)
-	t.db.Must().Select(&tokens, "SELECT * FROM tokens ORDER BY status ASC")
+	s.db.Must().Select(&tokens, "SELECT * FROM tokens ORDER BY status ASC")
 
-	t.Require().EqualValues(entity.TokenStatusAllowed, tokens[0].Status)
-	t.Require().EqualValues(entity.TokenStatusExpired, tokens[1].Status)
-	t.Require().EqualValues(entity.TokenStatusExpired, tokens[2].Status)
+	s.Require().EqualValues(entity.TokenStatusAllowed, tokens[0].Status)
+	s.Require().EqualValues(entity.TokenStatusExpired, tokens[1].Status)
+	s.Require().EqualValues(entity.TokenStatusExpired, tokens[2].Status)
 }

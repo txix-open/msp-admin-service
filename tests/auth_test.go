@@ -18,6 +18,7 @@ import (
 	"msp-admin-service/repository"
 
 	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/test/fake"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/stretchr/testify/suite"
@@ -40,27 +41,35 @@ func TestAuthTestSuite(t *testing.T) {
 type AuthTestSuite struct {
 	suite.Suite
 
-	test    *test.Test
-	db      *dbt.TestDb
-	grpcCli *client.Client
-	httpCli *httpcli.Client
+	test            *test.Test
+	db              *dbt.TestDb
+	grpcCli         *client.Client
+	sudirCli        *httpcli.Client
+	sudirClientName string
 }
 
 func (s *AuthTestSuite) SetupTest() {
 	testInstance, _ := test.New(s.T())
 	s.test = testInstance
 	s.db = dbt.New(testInstance, dbx.WithMigrationRunner("../migrations", testInstance.Logger()))
-	s.httpCli = httpcli.New()
+	s.sudirCli = httpcli.New()
+	s.sudirClientName = fake.It[string]()
 
 	mocksrv, host := s.initMockSudir()
 	sudirHost, _ := url.JoinPath(host, "/blitz/")
+	s.sudirCli.GlobalRequestConfig().BaseUrl = sudirHost
 
 	remote := conf.Remote{
 		SudirAuth: &conf.SudirAuth{
-			ClientId:     "admin",
-			ClientSecret: "admin",
-			Host:         sudirHost,
-			RedirectURI:  "http://localhost",
+			Host: sudirHost,
+			Clients: []conf.SudirClientConfig{
+				{
+					ClientName:   s.sudirClientName,
+					ClientId:     "admin",
+					ClientSecret: "admin",
+					RedirectURI:  "http://localhost",
+				},
+			},
 		},
 		ExpireSec: 3600,
 		AntiBruteforce: conf.AntiBruteforce{
@@ -68,8 +77,10 @@ func (s *AuthTestSuite) SetupTest() {
 			DelayLoginRequestInSec:   1,
 		},
 	}
-	cfg := assembly.NewLocator(testInstance.Logger(), s.httpCli, s.db).
-		Config(context.Background(), remote, time.Minute)
+
+	cfg, err := assembly.NewLocator(testInstance.Logger(), s.sudirCli, s.db).
+		Config(s.T().Context(), remote, time.Minute)
+	s.Require().NoError(err)
 
 	server, apiCli := grpct.TestServer(testInstance, cfg.Handler)
 	s.grpcCli = apiCli
@@ -169,7 +180,8 @@ func (s *AuthTestSuite) TestSudirLoginHappyPath() {
 
 	err := s.grpcCli.Invoke("admin/auth/login_with_sudir").
 		JsonRequestBody(domain.LoginSudirRequest{
-			AuthCode: "code",
+			AuthCode:   "code",
+			ClientName: s.sudirClientName,
 		}).
 		JsonResponseBody(&response).
 		Do(context.Background())
@@ -183,6 +195,22 @@ func (s *AuthTestSuite) TestSudirLoginHappyPath() {
 	s.Require().Equal(tokenInfo.UserId, user.Id)
 
 	time.Sleep(1 * time.Second) // wait for go SaveAuditAsync()
+}
+
+func (s *AuthTestSuite) TestSudirLogin_UnknownClient() {
+	response := domain.LoginResponse{}
+
+	err := s.grpcCli.Invoke("admin/auth/login_with_sudir").
+		JsonRequestBody(domain.LoginSudirRequest{
+			AuthCode:   "code",
+			ClientName: s.sudirClientName + fake.It[string](),
+		}).
+		JsonResponseBody(&response).
+		Do(context.Background())
+	s.Require().Error(err)
+	st, ok := status.FromError(err)
+	s.Require().True(ok)
+	s.Require().Equal(codes.Unauthenticated, st.Code())
 }
 
 func (s *AuthTestSuite) Test_Logout_HappyPath() {

@@ -52,10 +52,15 @@ type UIDesign struct {
 }
 
 type SudirAuth struct {
-	ClientId     string `validate:"required"`
-	ClientSecret string `validate:"required"`
-	Host         string `validate:"required" schema:"Хост, пример https://sudir.mos.ru"`
-	RedirectURI  string `validate:"required"`
+	Host    string              `validate:"required" schema:"Базовый путь до методов СУДИР, пример https://sudir.mos.ru"`
+	Clients []SudirClientConfig `validate:"required,min=1" schema:"Настройка взаимодействия с СУДИР для логина по authCode"`
+}
+
+type SudirClientConfig struct {
+	ClientName   string `validate:"required" schema:"Уникальное имя конфигурации клиента"`
+	ClientId     string `validate:"required" schema:"Идентификатор клиента,выданный СУДИР для basicAuth"`
+	ClientSecret string `validate:"required" schema:"Пароль клиента,выданный СУДИР для basicAuth"`
+	RedirectURI  string `validate:"required" schema:"URI для редиректа,передаётся в запросе токена в query"`
 }
 
 type AntiBruteforce struct {
