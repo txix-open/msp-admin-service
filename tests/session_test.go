@@ -1,7 +1,6 @@
 package tests_test
 
 import (
-	"context"
 	"strconv"
 	"testing"
 	"time"
@@ -73,7 +72,7 @@ func (s *SessionSuite) SetupTest() {
 		},
 	}
 	config, err := assembly.NewLocator(testInstance.Logger(), httpcli.New(), s.db).
-		Config(context.Background(), remote, 500*time.Millisecond)
+		Config(s.T().Context(), remote, 500*time.Millisecond)
 	s.Require().NoError(err)
 
 	s.config = config
@@ -129,7 +128,7 @@ func (s *SessionSuite) Test_All_Session() {
 		Invoke("admin/session/all").
 		JsonRequestBody(request).
 		JsonResponseBody(&response).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().NoError(err)
 
 	s.Require().Len(response.Items, 2)
@@ -149,7 +148,7 @@ func (s *SessionSuite) Test_All_Session() {
 		Invoke("admin/session/all").
 		JsonRequestBody(request).
 		JsonResponseBody(&response).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().NoError(err)
 
 	s.Require().Len(response.Items, 2)
@@ -168,7 +167,7 @@ func (s *SessionSuite) Test_All_Session() {
 		Invoke("admin/session/all").
 		JsonRequestBody(request).
 		JsonResponseBody(&response).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().NoError(err)
 
 	s.Require().Len(response.Items, 3)
@@ -188,7 +187,7 @@ func (s *SessionSuite) Test_All_Session() {
 		Invoke("admin/session/all").
 		JsonRequestBody(request).
 		JsonResponseBody(&response).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().NoError(err)
 
 	s.Require().Len(response.Items, 1)
@@ -225,7 +224,7 @@ func (s *SessionSuite) Test_All_Session() {
 		Invoke("admin/session/all").
 		JsonRequestBody(request).
 		JsonResponseBody(&response).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().NoError(err)
 
 	s.Require().Len(response.Items, 5)

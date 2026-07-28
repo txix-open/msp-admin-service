@@ -1,7 +1,6 @@
 package tests_test
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -72,7 +71,7 @@ func (s *AuditSuite) SetupTest() {
 		},
 	}
 	cfg, err := assembly.NewLocator(testInstance.Logger(), httpcli.New(), s.db).
-		Config(context.Background(), remote, time.Minute)
+		Config(s.T().Context(), remote, time.Minute)
 	s.Require().NoError(err)
 	s.insertAuditLogs()
 
@@ -89,7 +88,7 @@ func (s *AuditSuite) Test_Events_DefaultEvents() {
 	err := s.grpcCli.
 		Invoke("admin/log/events").
 		JsonResponseBody(&response).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().NoError(err)
 
 	expectedEventList := map[string]string{
@@ -111,7 +110,7 @@ func (s *AuditSuite) Test_Events_DefaultEvents() {
 
 func (s *AuditSuite) Test_Events_SortEvents() {
 	eventRep := repository.NewAuditEvent(s.db)
-	err := eventRep.Upsert(context.Background(), []entity.AuditEvent{
+	err := eventRep.Upsert(s.T().Context(), []entity.AuditEvent{
 		{Event: "новый#1", Enable: false},
 		{Event: entity.EventSuccessLogin, Enable: false},
 		{Event: entity.EventErrorLogin, Enable: true},
@@ -127,7 +126,7 @@ func (s *AuditSuite) Test_Events_SortEvents() {
 	err = s.grpcCli.
 		Invoke("admin/log/events").
 		JsonResponseBody(&response).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().NoError(err)
 
 	expectedSort := []bool{
@@ -146,7 +145,7 @@ func (s *AuditSuite) Test_SetEvents_HappyPath() {
 			{Event: entity.EventUserChanged, Enabled: true},
 			{Event: entity.EventRoleChanged, Enabled: false},
 		}).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().NoError(err)
 
 	expectedEventList := map[string]bool{
@@ -158,7 +157,7 @@ func (s *AuditSuite) Test_SetEvents_HappyPath() {
 		entity.EventUserBlocked:   true,
 	}
 	eventRep := repository.NewAuditEvent(s.db)
-	eventList, err := eventRep.All(context.Background())
+	eventList, err := eventRep.All(s.T().Context())
 	s.Require().NoError(err)
 	for _, event := range eventList {
 		enable, found := expectedEventList[event.Event]
@@ -169,18 +168,17 @@ func (s *AuditSuite) Test_SetEvents_HappyPath() {
 	s.Require().Empty(expectedEventList)
 }
 
-func (t *AuditSuite) Test_SetEvents_InvalidEvent() {
-	err := t.grpcCli.
-		Invoke("admin/log/set_events").
+func (s *AuditSuite) Test_SetEvents_InvalidEvent() {
+	err := s.grpcCli.Invoke("admin/log/set_events").
 		JsonRequestBody([]domain.SetAuditEvent{
 			{Event: entity.EventUserChanged, Enabled: true},
 			{Event: "новый#2", Enabled: false},
 		}).
-		Do(context.Background())
-	t.Require().Error(err)
-	s, isStatus := status.FromError(err)
-	t.Require().True(isStatus)
-	t.Require().Equal(codes.InvalidArgument, s.Code())
+		Do(s.T().Context())
+	s.Require().Error(err)
+	status, isStatus := status.FromError(err)
+	s.Require().True(isStatus)
+	s.Require().Equal(codes.InvalidArgument, status.Code())
 }
 
 func (s *AuditSuite) Test_All_Logs() {
@@ -200,7 +198,7 @@ func (s *AuditSuite) Test_All_Logs() {
 		Invoke("admin/log/all").
 		JsonRequestBody(request).
 		JsonResponseBody(&response).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().NoError(err)
 
 	s.Require().Len(response.Items, 3)
@@ -218,7 +216,7 @@ func (s *AuditSuite) Test_All_Logs() {
 		Invoke("admin/log/all").
 		JsonRequestBody(request).
 		JsonResponseBody(&response).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().NoError(err)
 
 	s.Require().Len(response.Items, 6)

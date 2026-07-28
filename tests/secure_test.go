@@ -1,7 +1,6 @@
 package tests_test
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -41,7 +40,7 @@ func (s *SecureSuite) SetupTest() {
 		ExpireSec: 3600,
 	}
 	cfg, err := assembly.NewLocator(s.test.Logger(), httpCli, s.db).
-		Config(context.Background(), remote, time.Minute)
+		Config(s.T().Context(), remote, time.Minute)
 	s.Require().NoError(err)
 
 	server, apiCli := grpct.TestServer(s.test, cfg.Handler)
@@ -66,7 +65,7 @@ func (s *SecureSuite) Test_Authenticate_HappyPath() {
 			Token: "happy_path",
 		}).
 		JsonResponseBody(&result).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.require.NoError(err)
 	s.require.Equal(domain.SecureAuthResponse{
 		Authenticated: true,
@@ -90,7 +89,7 @@ func (s *SecureSuite) Test_Authenticate_StatusRevoked() {
 			Token: "revoked",
 		}).
 		JsonResponseBody(&result).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.require.NoError(err)
 	s.require.Equal(domain.SecureAuthResponse{
 		Authenticated: false,
@@ -114,7 +113,7 @@ func (s *SecureSuite) Test_Authenticate_Expired() {
 			Token: "expired",
 		}).
 		JsonResponseBody(&result).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.require.NoError(err)
 	s.require.Equal(domain.SecureAuthResponse{
 		Authenticated: false,
@@ -130,7 +129,7 @@ func (s *SecureSuite) Test_Authenticate_NotFound() {
 			Token: "not_found",
 		}).
 		JsonResponseBody(&result).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.require.NoError(err)
 	s.require.Equal(domain.SecureAuthResponse{
 		Authenticated: false,
@@ -171,7 +170,7 @@ func (s *SecureSuite) Test_Authorize_HappyPath() {
 			Permission: "perm1",
 		}).
 		JsonResponseBody(&result).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.require.NoError(err)
 	s.require.True(result.Authorized)
 
@@ -182,7 +181,7 @@ func (s *SecureSuite) Test_Authorize_HappyPath() {
 			Permission: "perm2",
 		}).
 		JsonResponseBody(&result).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.require.NoError(err)
 	s.require.True(result.Authorized)
 
@@ -193,7 +192,7 @@ func (s *SecureSuite) Test_Authorize_HappyPath() {
 			Permission: "perm3",
 		}).
 		JsonResponseBody(&result).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.require.NoError(err)
 	s.require.False(result.Authorized)
 }

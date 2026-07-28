@@ -57,7 +57,7 @@ func (s *UserTestSuite) SetupTest() {
 		ExpireSec: 0,
 	}
 	cfg, err := assembly.NewLocator(testInstance.Logger(), s.httpCli, s.db).
-		Config(context.Background(), remote, time.Minute)
+		Config(s.T().Context(), remote, time.Minute)
 	s.Require().NoError(err)
 
 	server, apiCli := grpct.TestServer(testInstance, cfg.Handler)
@@ -93,7 +93,7 @@ func (s *UserTestSuite) TestGetProfileHappyPath() {
 	err := s.grpcCli.Invoke("admin/user/get_profile").
 		JsonResponseBody(&response).
 		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(id))).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().NoError(err)
 	expected := domain.AdminUserShort{
 		FirstName:   "name",
@@ -119,7 +119,7 @@ func (s *UserTestSuite) TestGetProfileNotFound() {
 
 	err := s.grpcCli.Invoke("admin/user/get_profile").
 		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(id+1))).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().Error(err)
 	st, ok := status.FromError(err)
 	s.Require().True(ok)
@@ -149,7 +149,7 @@ func (s *UserTestSuite) TestGetProfileSudir() {
 		Invoke("admin/user/get_profile").
 		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(id))).
 		JsonResponseBody(&response).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().NoError(err)
 	expected := domain.AdminUserShort{
 		FirstName:   "name",
@@ -200,7 +200,7 @@ func (s *UserTestSuite) TestGetUsers() {
 			},
 		}).
 		JsonResponseBody(&response).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().NoError(err)
 
 	roles := []int{int(roleId1), int(roleId2)}
@@ -228,7 +228,7 @@ func (s *UserTestSuite) TestGetUsers() {
 			},
 		}).
 		JsonResponseBody(&response).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().NoError(err)
 	s.Require().Empty(response.Items)
 }
@@ -251,7 +251,7 @@ func (s *UserTestSuite) TestAllGetUsers() {
 	InsertUserRole(s.db, entity.UserRole{RoleId: int(roleId2), UserId: int(userId2)})
 
 	response := domain.UsersResponse{}
-	err := s.grpcCli.Invoke("admin/user/get_all_users").JsonResponseBody(&response).Do(context.Background())
+	err := s.grpcCli.Invoke("admin/user/get_all_users").JsonResponseBody(&response).Do(s.T().Context())
 	s.Require().NoError(err)
 
 	s.Require().Len(response.Items, 7)
@@ -314,7 +314,7 @@ func (s *UserTestSuite) TestGetUsersFilterByLastActiveAt() {
 			},
 		}).
 		JsonResponseBody(&response).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().NoError(err)
 
 	s.Require().Len(response.Items, 2)
@@ -347,7 +347,7 @@ func (s *UserTestSuite) TestGetUsersSortByName() {
 			},
 		}).
 		JsonResponseBody(&response).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().NoError(err)
 
 	s.Require().Len(response.Items, 4)
@@ -374,7 +374,7 @@ func (s *UserTestSuite) TestCreateUserHappyPath() {
 			Password:  "password",
 		}).
 		JsonResponseBody(&response).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().NoError(err)
 
 	postCount := 0
@@ -402,7 +402,7 @@ func (s *UserTestSuite) TestCreateUserWithSameEmailSudirHappyPath() {
 			Password:  "password",
 		}).
 		JsonResponseBody(&response).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().NoError(err)
 
 	postCount := 0
@@ -424,7 +424,7 @@ func (s *UserTestSuite) TestCreateUserAlreadyExist() {
 			Email:     "exists@a.ru",
 			Password:  "password",
 		}).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().Error(err)
 	st, ok := status.FromError(err)
 	s.Require().True(ok)
@@ -445,7 +445,7 @@ func (s *AuthTestSuite) TestUpdateUserHappyPath() {
 		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(id))).
 		JsonRequestBody(req).
 		JsonResponseBody(&response).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().NoError(err)
 	expected := domain.UpdateUserRequest{
 		Id:        response.Id,
@@ -472,7 +472,7 @@ func (s *AuthTestSuite) TestUpdateSudirUserHappyPath() {
 		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(id))).
 		JsonRequestBody(req).
 		JsonResponseBody(&response).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().NoError(err)
 	expected := domain.UpdateUserRequest{
 		Id:        response.Id,
@@ -499,7 +499,7 @@ func (s *AuthTestSuite) TestUpdateUserAlreadyExist() {
 		Invoke("admin/user/update_user").
 		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(admin))).
 		JsonRequestBody(req).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().Error(err)
 	st, ok := status.FromError(err)
 	s.Require().True(ok)
@@ -522,7 +522,7 @@ func (s *AuthTestSuite) TestUpdateUserWithSudirAlreadyExist() {
 		Invoke("admin/user/update_user").
 		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(admin))).
 		JsonRequestBody(req).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().Error(err)
 	st, ok := status.FromError(err)
 	s.Require().True(ok)
@@ -541,7 +541,7 @@ func (s *UserTestSuite) TestDeleteUsers() {
 		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(admin))).
 		JsonRequestBody(domain.IdentitiesRequest{Ids: []int64{3, 4}}).
 		JsonResponseBody(&response).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().NoError(err)
 
 	s.Require().Equal(2, response.Deleted)
@@ -570,14 +570,14 @@ func (s *UserTestSuite) TestBlockUser() {
 	err := s.grpcCli.Invoke("admin/user/block_user").
 		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(id))).
 		JsonRequestBody(domain.IdRequest{UserId: int(id)}).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().NoError(err)
 
-	user, err := repository.NewUser(s.db).GetUserById(context.Background(), id)
+	user, err := repository.NewUser(s.db).GetUserById(s.T().Context(), id)
 	s.Require().NoError(err)
 	s.Require().True(user.Blocked)
 
-	t, err := repository.NewToken(s.db).Get(context.Background(), token)
+	t, err := repository.NewToken(s.db).Get(s.T().Context(), token)
 	s.Require().NoError(err)
 	s.EqualValues(entity.TokenStatusRevoked, t.Status)
 
@@ -601,7 +601,7 @@ func (s *UserTestSuite) TestChangePasswordUser() {
 	err := s.grpcCli.Invoke("admin/user/change_password").
 		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(adminId))).
 		JsonRequestBody(invalidReq).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().Error(err)
 	err = apierrors.FromError(err)
 	s.Require().Contains(err.Error(), strconv.Itoa(domain.ErrCodeInvalidPassword))
@@ -611,7 +611,7 @@ func (s *UserTestSuite) TestChangePasswordUser() {
 	err = s.grpcCli.Invoke("admin/user/change_password").
 		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(adminId))).
 		JsonRequestBody(changePswReq).
-		Do(context.Background())
+		Do(s.T().Context())
 
 	s.Require().NoError(err)
 

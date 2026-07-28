@@ -1,7 +1,6 @@
 package tests_test
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -106,7 +105,7 @@ func (s *AuthTestSuite) TestLoginHappyPath() {
 			Password: "password",
 		}).
 		JsonResponseBody(&response).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().NoError(err)
 
 	tokenInfo := SelectTokenEntityByToken(s.db, response.Token)
@@ -121,7 +120,7 @@ func (s *AuthTestSuite) TestLoginNotFound() {
 			Email:    "a1@a.ru",
 			Password: "password",
 		}).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().Error(err)
 	st, ok := status.FromError(err)
 	s.Require().True(ok)
@@ -144,7 +143,7 @@ func (s *AuthTestSuite) TestBlockedUser() {
 			Email:    "a@a.ru",
 			Password: "password",
 		}).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().Error(err)
 	st, ok := status.FromError(err)
 	s.Require().True(ok)
@@ -166,7 +165,7 @@ func (s *AuthTestSuite) TestLoginWrongPassword() {
 			Email:    "a@a.ru",
 			Password: "WrongPassword",
 		}).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().Error(err)
 	st, ok := status.FromError(err)
 	s.Require().True(ok)
@@ -184,7 +183,7 @@ func (s *AuthTestSuite) TestSudirLoginHappyPath() {
 			ClientName: s.sudirClientName,
 		}).
 		JsonResponseBody(&response).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().NoError(err)
 	user := entity.User{}
 	s.db.Must().SelectRow(&user, "select id, email, full_name from users where sudir_user_id = $1", "sudirUser1")
@@ -206,7 +205,7 @@ func (s *AuthTestSuite) TestSudirLogin_UnknownClient() {
 			ClientName: s.sudirClientName + fake.It[string](),
 		}).
 		JsonResponseBody(&response).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().Error(err)
 	st, ok := status.FromError(err)
 	s.Require().True(ok)
@@ -224,7 +223,7 @@ func (s *AuthTestSuite) Test_Logout_HappyPath() {
 	})
 	err := s.grpcCli.Invoke("admin/auth/logout").
 		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(userId))).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().NoError(err)
 
 	tokenInfo := SelectTokenEntityByToken(s.db, "token-841297641213")
@@ -236,12 +235,12 @@ func (s *AuthTestSuite) Test_Logout_HappyPath() {
 func (s *AuthTestSuite) Test_Logout_NotFound() {
 	err := s.grpcCli.Invoke("admin/auth/logout").
 		AppendMetadata(domain.AdminAuthIdHeader, "0143218411981").
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().NoError(err)
 
 	time.Sleep(time.Second)
 	audit := repository.NewAudit(s.db)
-	auditList, err := audit.AllByRequest(context.Background(), domain.AuditPageRequest{
+	auditList, err := audit.AllByRequest(s.T().Context(), domain.AuditPageRequest{
 		LimitOffestParams: domain.LimitOffestParams{
 			Limit:  10,
 			Offset: 0,
@@ -269,7 +268,7 @@ func (s *AuthTestSuite) Test_Logout_AlreadyRevoke() {
 	})
 	err := s.grpcCli.Invoke("admin/auth/logout").
 		AppendMetadata(domain.AdminAuthIdHeader, strconv.Itoa(int(userId))).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().NoError(err)
 
 	tokenInfo := SelectTokenEntityByToken(s.db, "token-148623719462")
@@ -288,7 +287,7 @@ func (s *AuthTestSuite) TestBruteForceLogin() {
 
 	tooManyRequestsErrorCount := &atomic.Int32{}
 	unauthorizedErrorCount := &atomic.Int32{}
-	group, ctx := errgroup.WithContext(context.Background())
+	group, ctx := errgroup.WithContext(s.T().Context())
 	for index := range 100 {
 		group.Go(func() error {
 			start := time.Now()
