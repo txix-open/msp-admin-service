@@ -10,19 +10,19 @@ import (
 )
 
 // nolint: gochecknoinits
-func init() { //
+func init() {
 	schema.CustomGenerators.Register("logLevel", func(field reflect.StructField, t *jsonschema.Schema) {
 		t.Type = "string"
 		t.Enum = []any{"debug", "info", "error", "fatal"}
 	})
 }
 
+//nolint:lll
 type Remote struct {
-	Audit     Audit
-	Database  dbx.Config
-	ExpireSec int      `validate:"required" schema:"Время жизни токена в секундах,in seconds"`
-	UiDesign  UIDesign `schema:"Кастомизация интерфейса"`
-	//nolint:lll
+	Audit               Audit               `schema:"Настройки audit"`
+	Database            dbx.Config          `schema:"Настройка подключения к БД"`
+	ExpireSec           int                 `validate:"required" schema:"Время жизни токена в секундах,in seconds"`
+	UiDesign            UIDesign            `schema:"Кастомизация интерфейса"`
 	IdleTimeoutMs       int                 `schema:"Время бездействия пользователя,в милисекундах, после указанного времени пользователь будет разлогирован из интерфейса в браузере, по умолчанию отключено"`
 	SudirAuth           *SudirAuth          `schema:"СУДИР авторизация"`
 	LogLevel            log.Level           `schemaGen:"logLevel" schema:"Уровень логирования"`
@@ -32,23 +32,23 @@ type Remote struct {
 }
 
 type Audit struct {
-	EventSettings []AuditEventSetting
-	AuditTTl      AuditTTlSetting
+	EventSettings []AuditEventSetting `schema:"Маппинг событий"`
+	AuditTTl      AuditTTlSetting     `schema:"Настройки TTL для audit"`
 }
 
 type AuditTTlSetting struct {
-	TimeToLiveInMin       int `validate:"required"`
-	ExpireSyncPeriodInMin int `validate:"required"`
+	TimeToLiveInMin       int `validate:"required" schema:"TTL события в минутах"`
+	ExpireSyncPeriodInMin int `validate:"required" schema:"Интервал запуска воркера"`
 }
 
 type AuditEventSetting struct {
-	Event string
-	Name  string
+	Event string `schema:"Ключ события"`
+	Name  string `schema:"Пользовательское название события"`
 }
 
 type UIDesign struct {
 	Name         string `schema:"Название стенда"`
-	PrimaryColor string `schema:"Цвет в HEX, примеры: #ff4d4f #fa8c16 #a0d911 #1890ff #722ed1 #d4b106 #e91e63 #ff5722 #795548 #abb8c3 #525252 #689f38"`
+	PrimaryColor string `schema:"Цвет в HEX,примеры: #ff4d4f #fa8c16 #a0d911 #1890ff #722ed1 #d4b106 #e91e63 #ff5722 #795548 #abb8c3 #525252 #689f38"`
 }
 
 type SudirAuth struct {
@@ -74,6 +74,6 @@ type BlockInactiveWorker struct {
 }
 
 type Permission struct {
-	Key  string
-	Name string
+	Key  string `schema:"Ключ прав"`
+	Name string `schema:"Пользовательское название"`
 }
