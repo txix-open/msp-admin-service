@@ -34,7 +34,7 @@ type Assembly struct {
 func New(boot *bootstrap.Bootstrap) (*Assembly, error) {
 	logger := boot.App.Logger()
 	server := grpc.NewServer()
-	httpCli := httpclix.Default(httpcli.WithMiddlewares(httpclix.Log(logger)))
+	sudirCli := httpclix.Default(httpcli.WithMiddlewares(httpclix.Log(logger)))
 	db := dbrx.New(logger, dbx.WithMigrationRunner(boot.MigrationsDir, logger))
 	bgjobCli := bgjobx.NewClient(db, logger)
 	return &Assembly{
@@ -42,7 +42,7 @@ func New(boot *bootstrap.Bootstrap) (*Assembly, error) {
 		db:       db,
 		server:   server,
 		logger:   logger,
-		httpCli:  httpCli,
+		httpCli:  sudirCli,
 		bgjobCli: bgjobCli,
 	}, nil
 }
@@ -63,6 +63,7 @@ func (a *Assembly) ReceiveConfig(ctx context.Context, remoteConfig []byte) error
 	if err != nil {
 		a.logger.Fatal(ctx, errors.WithMessage(err, "upgrade db client"))
 	}
+	a.httpCli.GlobalRequestConfig().BaseUrl = newCfg.SudirAuth.Host
 
 	locator := NewLocator(a.logger, a.httpCli, a.db)
 	config := locator.Config(ctx, newCfg, time.Minute)

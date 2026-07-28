@@ -29,16 +29,16 @@ type DB interface {
 }
 
 type Locator struct {
-	logger  log.Logger
-	httpCli *httpcli.Client
-	db      DB
+	logger   log.Logger
+	sudirCli *httpcli.Client
+	db       DB
 }
 
-func NewLocator(logger log.Logger, httpCli *httpcli.Client, db DB) Locator {
+func NewLocator(logger log.Logger, sudirCli *httpcli.Client, db DB) Locator {
 	return Locator{
-		logger:  logger,
-		httpCli: httpCli,
-		db:      db,
+		logger:   logger,
+		sudirCli: sudirCli,
+		db:       db,
 	}
 }
 
