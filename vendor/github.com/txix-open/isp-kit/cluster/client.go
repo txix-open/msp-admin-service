@@ -1,0 +1,397 @@
+// Package cluster provides client-side functionality for connecting to a isp-config-service
+// in a distributed system. It handles session management, event-driven configuration updates,
+// and module dependency management.
+//
+// The package uses the ETP (Event Transport Protocol) for communication and supports
+// automatic load balancing, liveness probing, and graceful reconnection.
+//
+// Basic usage:
+//
+//	client := cluster.NewClient(moduleInfo, configData, hosts, timeout, logger)
+//	eventHandler := cluster.NewEventHandler().
+//		RemoteConfigReceiver(myReceiver).
+//		RoutesReceiver(myRoutesReceiver)
+//	err := client.Run(ctx, eventHandler)
+package cluster
+
+import (
+	"context"
+	"fmt"
+	"net"
+	"net/url"
+	"sync"
+	"sync/atomic"
+	"time"
+
+	"github.com/pkg/errors"
+	"github.com/txix-open/etp/v4"
+	"github.com/txix-open/isp-kit/json"
+	"github.com/txix-open/isp-kit/lb"
+	"github.com/txix-open/isp-kit/log"
+	"github.com/txix-open/isp-kit/requestid"
+)
+
+const (
+	livenessProbeFrequency = 5 * time.Second
+	livenessProbeTimeout   = 3 * time.Second
+
+	awaitEventTimeout                   = 1 * time.Second
+	awaitConfigWhenConnectedBaseTimeout = 5 * time.Second
+
+	restartSessionWaitTime = 1 * time.Second
+
+	etpClientReadLimit = 4 * 1024 * 1024
+)
+
+// Client manages the connection to a isp-config-service, handling session lifecycle,
+// event processing, and automatic reconnection.
+type Client struct {
+	moduleInfo          ModuleInfo
+	configData          ConfigData
+	lb                  *lb.RoundRobin
+	eventHandler        *EventHandler
+	handleConfigTimeout time.Duration
+	logger              log.Logger
+	sessionIsActive     *atomic.Bool
+	closed              *atomic.Bool
+	applyConfigLock     sync.Mutex
+
+	cli *atomic.Pointer[clientWrapper]
+}
+
+// NewClient creates a new Client with the provided module information, configuration data,
+// list of hosts, timeout duration, and logger.
+func NewClient(
+	moduleInfo ModuleInfo,
+	configData ConfigData,
+	hosts []string,
+	handleConfigTimeout time.Duration,
+	logger log.Logger,
+) *Client {
+	return &Client{
+		moduleInfo:          moduleInfo,
+		configData:          configData,
+		lb:                  lb.NewRoundRobin(hosts),
+		handleConfigTimeout: handleConfigTimeout,
+		sessionIsActive:     &atomic.Bool{},
+		closed:              &atomic.Bool{},
+		cli:                 &atomic.Pointer[clientWrapper]{},
+		logger:              logger,
+	}
+}
+
+// Run starts the client's main loop, establishing a connection to the isp-config-service
+// and handling events through the provided event handler. It blocks until the context is
+// canceled or the client is closed.
+func (c *Client) Run(ctx context.Context, eventHandler *EventHandler) error {
+	if c.handleConfigTimeout != 0 {
+		eventHandler.handleConfigTimeout = c.handleConfigTimeout
+	}
+	c.eventHandler = eventHandler
+	c.closed.Store(false)
+
+	for {
+		if c.closed.Load() {
+			return nil
+		}
+
+		host, err := c.lb.Next()
+		if err != nil {
+			return errors.WithMessage(err, "peek config service host")
+		}
+
+		sessionId := requestid.Next()
+		sessionCtx := log.ToContext(ctx, log.String("sessionId", sessionId), log.String("configService", host))
+		c.logger.Info(sessionCtx, "run config service session")
+
+		err = c.runSession(sessionCtx, host)
+		if errors.Is(err, context.Canceled) {
+			return nil
+		}
+		cli := c.cli.Load()
+		if cli != nil {
+			_ = cli.Close()
+		}
+		if err != nil && !etp.IsNormalClose(err) {
+			c.logger.Error(sessionCtx, "run config service session", log.String("error", err.Error()))
+		}
+		c.logger.Info(sessionCtx, "config service session stopped")
+
+		select {
+		case <-sessionCtx.Done():
+			return nil
+		case <-time.After(restartSessionWaitTime):
+		}
+	}
+}
+
+// Close terminates the client and releases associated resources.
+func (c *Client) Close() error {
+	c.closed.Store(true)
+	cli := c.cli.Load()
+	if cli != nil {
+		return cli.Close()
+	}
+	return nil
+}
+
+// Healthcheck returns an error if the session is inactive, otherwise returns nil.
+func (c *Client) Healthcheck(ctx context.Context) error {
+	if c.sessionIsActive.Load() {
+		return nil
+	}
+	return errors.New("session inactive")
+}
+
+// runSession establishes and manages a single session with the isp-config-service.
+func (c *Client) runSession(ctx context.Context, host string) error {
+	defer c.sessionIsActive.Store(false)
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	requiredModules := make([]string, 0, len(c.eventHandler.requiredModules))
+	for moduleName := range c.eventHandler.requiredModules {
+		requiredModules = append(requiredModules, moduleName)
+	}
+	requirements := ModuleRequirements{
+		RequiredModules: requiredModules,
+		RequireRoutes:   c.eventHandler.routesReceiver != nil,
+	}
+
+	etpCli := etp.NewClient(etp.WithClientReadLimit(etpClientReadLimit))
+	cli := newClientWrapper(ctx, etpCli, c.logger)
+	c.cli.Store(cli)
+
+	disconnectCh := c.subscribeToEvents(cli)
+
+	err := c.dialClientWrapper(ctx, cli, host)
+	if err != nil {
+		return errors.WithMessage(err, "dial client wrapper")
+	}
+
+	_, err = cli.EmitJsonWithAck(ctx, ModuleSendConfigSchema, c.configData)
+	if err != nil {
+		return errors.WithMessage(err, "emit module config schema")
+	}
+
+	_, err = cli.EmitJsonWithAck(ctx, ModuleSendRequirements, requirements)
+	if err != nil {
+		return errors.WithMessage(err, "emit module requirements")
+	}
+
+	err = c.waitModuleReady(ctx, cli, requirements)
+	if err != nil {
+		return errors.WithMessage(err, "wait module ready")
+	}
+	err = c.notifyModuleReady(ctx, cli, requirements)
+	if err != nil {
+		return errors.WithMessage(err, "notify module ready")
+	}
+
+	c.sessionIsActive.Store(true)
+	go c.livenessProbeLoop(ctx)
+	err = <-disconnectCh
+	return err
+}
+
+// subscribeToEvents registers handlers for configuration and routing events.
+func (c *Client) subscribeToEvents(cli *clientWrapper) chan error {
+	for moduleName, upgrader := range c.eventHandler.requiredModules {
+		event := ModuleConnectedEvent(moduleName)
+		cli.RegisterEvent(event, func(eventId string, data []byte) error {
+			hosts, err := readHosts(data)
+			if err != nil {
+				return errors.WithMessage(err, "read hosts")
+			}
+			upgrader.Upgrade(hosts)
+			return nil
+		})
+	}
+
+	if c.eventHandler.remoteConfigReceiver != nil {
+		cli.RegisterEvent(ConfigSendConfigChanged, c.remoteConfigEventHandler)
+		cli.RegisterEvent(ConfigSendConfigWhenConnected, c.remoteConfigEventHandler)
+	}
+	if c.eventHandler.routesReceiver != nil {
+		cli.RegisterEvent(ConfigSendRoutesChanged, c.routesEventHandler)
+		cli.RegisterEvent(ConfigSendRoutesWhenConnected, c.routesEventHandler)
+	}
+
+	disconnectCh := make(chan error, 1)
+	cli.OnDisconnect(func(conn *etp.Conn, err error) {
+		disconnectCh <- err
+	})
+
+	return disconnectCh
+}
+
+// dialClientWrapper establishes a WebSocket connection to the isp-config-service.
+func (c *Client) dialClientWrapper(ctx context.Context, cli *clientWrapper, host string) error {
+	connUrl, err := url.Parse(fmt.Sprintf("ws://%s/isp-etp/", host))
+	if err != nil {
+		return errors.WithMessage(err, "parse conn url")
+	}
+	params := url.Values{}
+	params.Add("module_name", c.moduleInfo.ModuleName)
+	connUrl.RawQuery = params.Encode()
+
+	err = cli.Dial(ctx, connUrl.String())
+	if err != nil {
+		return errors.WithMessagef(err, "connect to config service %s", host)
+	}
+	return nil
+}
+
+// remoteConfigEventHandler processes incoming remote configuration updates.
+func (c *Client) remoteConfigEventHandler(eventId string, data []byte) error {
+	c.applyConfigLock.Lock()
+	defer c.applyConfigLock.Unlock()
+
+	cli := c.cli.Load()
+	ctx := log.ToContext(cli.ctx, log.String(EventIdContextKey, eventId))
+
+	c.logger.Info(ctx, "remote config applying...")
+	err := c.applyRemoteConfig(ctx, data)
+	if err != nil {
+		return errors.WithMessage(err, "apply remote config")
+	}
+	c.logger.Info(ctx, "remote config successfully applied")
+	return nil
+}
+
+// routesEventHandler processes incoming routing configuration updates.
+func (c *Client) routesEventHandler(eventId string, data []byte) error {
+	cli := c.cli.Load()
+
+	routes, err := readRoutes(data)
+	if err != nil {
+		return errors.WithMessage(err, "read route")
+	}
+	err = c.eventHandler.routesReceiver.ReceiveRoutes(cli.ctx, routes)
+	if err != nil {
+		return errors.WithMessage(err, "handle routes")
+	}
+	return nil
+}
+
+// waitModuleReady waits for all required modules and optional events (routes, config)
+// to be ready, with individual timeouts for each.
+func (c *Client) waitModuleReady(ctx context.Context, cli *clientWrapper, requirements ModuleRequirements) error {
+	awaitEvents := make(map[string]time.Duration, len(requirements.RequiredModules)+1)
+	if requirements.RequireRoutes {
+		awaitEvents[ConfigSendRoutesWhenConnected] = awaitEventTimeout
+	}
+	if c.eventHandler.remoteConfigReceiver != nil {
+		awaitEvents[ConfigSendConfigWhenConnected] = awaitConfigWhenConnectedBaseTimeout + c.eventHandler.handleConfigTimeout
+	}
+	for _, module := range requirements.RequiredModules {
+		event := ModuleConnectedEvent(module)
+		awaitEvents[event] = awaitEventTimeout
+	}
+
+	for event, timeout := range awaitEvents {
+		err := cli.AwaitEvent(ctx, event, timeout)
+		if err != nil {
+			return errors.WithMessagef(err, "await '%s' event", event)
+		}
+	}
+	return nil
+}
+
+// notifyModuleReady sends a ModuleReady event to the isp-config-service, announcing
+// the module's availability and its dependencies.
+func (c *Client) notifyModuleReady(ctx context.Context, cli *clientWrapper, requirements ModuleRequirements) error {
+	moduleDependencies := make([]ModuleDependency, 0, len(requirements.RequiredModules))
+	for _, module := range requirements.RequiredModules {
+		dep := ModuleDependency{
+			Name:     module,
+			Required: true,
+		}
+		moduleDependencies = append(moduleDependencies, dep)
+	}
+	declaration := BackendDeclaration{
+		ModuleName:           c.moduleInfo.ModuleName,
+		Version:              c.moduleInfo.ModuleVersion,
+		LibVersion:           c.moduleInfo.LibVersion,
+		Endpoints:            c.moduleInfo.Endpoints,
+		Transport:            c.moduleInfo.Transport,
+		RequiredModules:      moduleDependencies,
+		Address:              c.moduleInfo.GrpcOuterAddress,
+		MetricsAutodiscovery: c.moduleInfo.MetricsAutodiscovery,
+	}
+	_, err := cli.EmitJsonWithAck(ctx, ModuleReady, declaration)
+	if err != nil {
+		return errors.WithMessage(err, "emit module ready")
+	}
+
+	return nil
+}
+
+// applyRemoteConfig applies a remote configuration update with the configured timeout.
+func (c *Client) applyRemoteConfig(ctx context.Context, config []byte) error {
+	ctx, cancel := context.WithTimeout(ctx, c.eventHandler.handleConfigTimeout)
+	defer cancel()
+
+	errChan := make(chan error, 1)
+	go func() {
+		errChan <- c.eventHandler.remoteConfigReceiver.ReceiveConfig(ctx, config)
+	}()
+
+	select {
+	case err := <-errChan:
+		return err
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+// livenessProbeLoop periodically sends ping requests to verify the connection to the
+// isp-config-service is still alive.
+func (c *Client) livenessProbeLoop(ctx context.Context) {
+	for {
+		cli := c.cli.Load()
+		if cli == nil {
+			return
+		}
+
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(livenessProbeFrequency):
+		}
+
+		ctx, cancel := context.WithTimeout(ctx, livenessProbeTimeout)
+		err := cli.Ping(ctx)
+		cancel()
+
+		if err != nil {
+			c.logger.Warn(ctx, "ping config service", log.String("error", err.Error()))
+		}
+	}
+}
+
+// readRoutes unmarshals JSON data into a RoutingConfig.
+func readRoutes(data []byte) (RoutingConfig, error) {
+	var routes RoutingConfig
+	err := json.Unmarshal(data, &routes)
+	if err != nil {
+		return nil, errors.WithMessage(err, "unmarshal routes")
+	}
+	return routes, nil
+}
+
+// readHosts unmarshals JSON data into a list of host addresses.
+func readHosts(data []byte) ([]string, error) {
+	addresses := make([]AddressConfiguration, 0)
+	err := json.Unmarshal(data, &addresses)
+	if err != nil {
+		return nil, errors.WithMessagef(err, "unmarshal to address")
+	}
+	hosts := make([]string, 0, len(addresses))
+	for _, addr := range addresses {
+		host := net.JoinHostPort(addr.IP, addr.Port)
+		hosts = append(hosts, host)
+	}
+	return hosts, nil
+}
