@@ -66,7 +66,12 @@ func (a *Assembly) ReceiveConfig(ctx context.Context, remoteConfig []byte) error
 	if err != nil {
 		a.logger.Fatal(ctx, errors.WithMessage(err, "upgrade db client"))
 	}
-	a.sudirCli.GlobalRequestConfig().BaseUrl = newCfg.SudirAuth.Host
+
+	sudirBaseUrl := ""
+	if newCfg.SudirAuth != nil {
+		sudirBaseUrl = newCfg.SudirAuth.Host
+	}
+	a.sudirCli.GlobalRequestConfig().BaseUrl = sudirBaseUrl
 
 	locator := NewLocator(a.logger, a.sudirCli, a.db)
 	config, err := locator.Config(ctx, newCfg, time.Minute)
