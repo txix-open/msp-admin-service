@@ -1,7 +1,6 @@
 package tests_test
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -35,10 +34,10 @@ type AuditSuite struct {
 	grpcCli *client.Client
 }
 
-func (t *AuditSuite) SetupTest() {
-	testInstance, _ := test.New(t.T())
-	t.test = testInstance
-	t.db = dbt.New(testInstance, dbx.WithMigrationRunner("../migrations", testInstance.Logger()))
+func (s *AuditSuite) SetupTest() {
+	testInstance, _ := test.New(s.T())
+	s.test = testInstance
+	s.db = dbt.New(testInstance, dbx.WithMigrationRunner("../migrations", testInstance.Logger()))
 
 	remote := conf.Remote{
 		Audit: conf.Audit{
@@ -71,26 +70,26 @@ func (t *AuditSuite) SetupTest() {
 			AuditTTl: conf.AuditTTlSetting{},
 		},
 	}
-	cfg := assembly.NewLocator(testInstance.Logger(), httpcli.New(), t.db).
-		Config(context.Background(), remote, time.Minute)
-
-	t.insertAuditLogs()
+	cfg, err := assembly.NewLocator(testInstance.Logger(), httpcli.New(), s.db).
+		Config(s.T().Context(), remote, time.Minute)
+	s.Require().NoError(err)
+	s.insertAuditLogs()
 
 	server, apiCli := grpct.TestServer(testInstance, cfg.Handler)
-	t.grpcCli = apiCli
+	s.grpcCli = apiCli
 
 	testInstance.T().Cleanup(func() {
 		server.Shutdown()
 	})
 }
 
-func (t *AuditSuite) Test_Events_DefaultEvents() {
+func (s *AuditSuite) Test_Events_DefaultEvents() {
 	response := make([]domain.AuditEvent, 0)
-	err := t.grpcCli.
+	err := s.grpcCli.
 		Invoke("admin/log/events").
 		JsonResponseBody(&response).
-		Do(context.Background())
-	t.Require().NoError(err)
+		Do(s.T().Context())
+	s.Require().NoError(err)
 
 	expectedEventList := map[string]string{
 		entity.EventSuccessLogin:  "успешный вход",
@@ -102,16 +101,16 @@ func (t *AuditSuite) Test_Events_DefaultEvents() {
 	}
 	for _, event := range response {
 		name, found := expectedEventList[event.Event]
-		t.Require().Equal(found, event.Enabled)
-		t.Require().Equal(name, event.Name)
+		s.Require().Equal(found, event.Enabled)
+		s.Require().Equal(name, event.Name)
 		delete(expectedEventList, event.Event)
 	}
-	t.Require().Empty(expectedEventList)
+	s.Require().Empty(expectedEventList)
 }
 
-func (t *AuditSuite) Test_Events_SortEvents() {
-	eventRep := repository.NewAuditEvent(t.db)
-	err := eventRep.Upsert(context.Background(), []entity.AuditEvent{
+func (s *AuditSuite) Test_Events_SortEvents() {
+	eventRep := repository.NewAuditEvent(s.db)
+	err := eventRep.Upsert(s.T().Context(), []entity.AuditEvent{
 		{Event: "новый#1", Enable: false},
 		{Event: entity.EventSuccessLogin, Enable: false},
 		{Event: entity.EventErrorLogin, Enable: true},
@@ -121,33 +120,33 @@ func (t *AuditSuite) Test_Events_SortEvents() {
 		{Event: entity.EventUserBlocked, Enable: true},
 		{Event: "новый#2", Enable: false},
 	})
-	t.Require().NoError(err)
+	s.Require().NoError(err)
 
 	response := make([]domain.AuditEvent, 0)
-	err = t.grpcCli.
+	err = s.grpcCli.
 		Invoke("admin/log/events").
 		JsonResponseBody(&response).
-		Do(context.Background())
-	t.Require().NoError(err)
+		Do(s.T().Context())
+	s.Require().NoError(err)
 
 	expectedSort := []bool{
 		true, true, true, true, false, false, false, false,
 	}
-	t.Require().Equal(len(expectedSort), len(response)) // nolint:testifylint
+	s.Require().Equal(len(expectedSort), len(response)) // nolint:testifylint
 	for i, event := range response {
-		t.Require().Equal(expectedSort[i], event.Enabled)
+		s.Require().Equal(expectedSort[i], event.Enabled)
 	}
 }
 
-func (t *AuditSuite) Test_SetEvents_HappyPath() {
-	err := t.grpcCli.
+func (s *AuditSuite) Test_SetEvents_HappyPath() {
+	err := s.grpcCli.
 		Invoke("admin/log/set_events").
 		JsonRequestBody([]domain.SetAuditEvent{
 			{Event: entity.EventUserChanged, Enabled: true},
 			{Event: entity.EventRoleChanged, Enabled: false},
 		}).
-		Do(context.Background())
-	t.Require().NoError(err)
+		Do(s.T().Context())
+	s.Require().NoError(err)
 
 	expectedEventList := map[string]bool{
 		entity.EventSuccessLogin:  true,
@@ -157,33 +156,32 @@ func (t *AuditSuite) Test_SetEvents_HappyPath() {
 		entity.EventUserChanged:   true,
 		entity.EventUserBlocked:   true,
 	}
-	eventRep := repository.NewAuditEvent(t.db)
-	eventList, err := eventRep.All(context.Background())
-	t.Require().NoError(err)
+	eventRep := repository.NewAuditEvent(s.db)
+	eventList, err := eventRep.All(s.T().Context())
+	s.Require().NoError(err)
 	for _, event := range eventList {
 		enable, found := expectedEventList[event.Event]
-		t.Require().True(found)
-		t.Require().Equal(enable, event.Enable)
+		s.Require().True(found)
+		s.Require().Equal(enable, event.Enable)
 		delete(expectedEventList, event.Event)
 	}
-	t.Require().Empty(expectedEventList)
+	s.Require().Empty(expectedEventList)
 }
 
-func (t *AuditSuite) Test_SetEvents_InvalidEvent() {
-	err := t.grpcCli.
-		Invoke("admin/log/set_events").
+func (s *AuditSuite) Test_SetEvents_InvalidEvent() {
+	err := s.grpcCli.Invoke("admin/log/set_events").
 		JsonRequestBody([]domain.SetAuditEvent{
 			{Event: entity.EventUserChanged, Enabled: true},
 			{Event: "новый#2", Enabled: false},
 		}).
-		Do(context.Background())
-	t.Require().Error(err)
-	s, isStatus := status.FromError(err)
-	t.Require().True(isStatus)
-	t.Require().Equal(codes.InvalidArgument, s.Code())
+		Do(s.T().Context())
+	s.Require().Error(err)
+	status, isStatus := status.FromError(err)
+	s.Require().True(isStatus)
+	s.Require().Equal(codes.InvalidArgument, status.Code())
 }
 
-func (t *AuditSuite) Test_All_Logs() {
+func (s *AuditSuite) Test_All_Logs() {
 	request := domain.AuditPageRequest{
 		LimitOffestParams: domain.LimitOffestParams{
 			Limit:  3,
@@ -196,17 +194,17 @@ func (t *AuditSuite) Test_All_Logs() {
 	}
 
 	var response *domain.AuditResponse
-	err := t.grpcCli.
+	err := s.grpcCli.
 		Invoke("admin/log/all").
 		JsonRequestBody(request).
 		JsonResponseBody(&response).
-		Do(context.Background())
-	t.Require().NoError(err)
+		Do(s.T().Context())
+	s.Require().NoError(err)
 
-	t.Require().Len(response.Items, 3)
-	t.Require().EqualValues(5, response.Items[0].UserId)
-	t.Require().EqualValues(4, response.Items[1].UserId)
-	t.Require().EqualValues(3, response.Items[2].UserId)
+	s.Require().Len(response.Items, 3)
+	s.Require().EqualValues(5, response.Items[0].UserId)
+	s.Require().EqualValues(4, response.Items[1].UserId)
+	s.Require().EqualValues(3, response.Items[2].UserId)
 
 	request.Query = &domain.AuditQuery{
 		Message: new("Выход"),
@@ -214,25 +212,25 @@ func (t *AuditSuite) Test_All_Logs() {
 	request.Limit = 10
 	request.Offset = 0
 
-	err = t.grpcCli.
+	err = s.grpcCli.
 		Invoke("admin/log/all").
 		JsonRequestBody(request).
 		JsonResponseBody(&response).
-		Do(context.Background())
-	t.Require().NoError(err)
+		Do(s.T().Context())
+	s.Require().NoError(err)
 
-	t.Require().Len(response.Items, 6)
-	t.Require().EqualValues(6, response.TotalCount)
-	t.Require().EqualValues(10, response.Items[0].UserId)
-	t.Require().EqualValues(9, response.Items[1].UserId)
-	t.Require().EqualValues(8, response.Items[2].UserId)
-	t.Require().EqualValues(7, response.Items[3].UserId)
-	t.Require().EqualValues(6, response.Items[4].UserId)
-	t.Require().EqualValues(5, response.Items[5].UserId)
+	s.Require().Len(response.Items, 6)
+	s.Require().EqualValues(6, response.TotalCount)
+	s.Require().EqualValues(10, response.Items[0].UserId)
+	s.Require().EqualValues(9, response.Items[1].UserId)
+	s.Require().EqualValues(8, response.Items[2].UserId)
+	s.Require().EqualValues(7, response.Items[3].UserId)
+	s.Require().EqualValues(6, response.Items[4].UserId)
+	s.Require().EqualValues(5, response.Items[5].UserId)
 }
 
-func (t *AuditSuite) insertAuditLogs() {
-	t.db.Must().Exec(`INSERT INTO audit (user_id, message, created_at, event)
+func (s *AuditSuite) insertAuditLogs() {
+	s.db.Must().Exec(`INSERT INTO audit (user_id, message, created_at, event)
 	VALUES (1, 'Успешный вход', NOW(), 'success_login'),
 	       (2, 'Успешный вход', NOW(), 'success_login'),
 	       (3, 'Неуспешный вход', NOW(), 'unsuccess_login'),

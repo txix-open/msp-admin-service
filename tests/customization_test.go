@@ -1,7 +1,6 @@
 package tests_test
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -40,8 +39,9 @@ func (s *CustomizationTestSuite) SetupTest() {
 		},
 		ExpireSec: 0,
 	}
-	cfg := assembly.NewLocator(testInstance.Logger(), nil, s.db).
-		Config(context.Background(), remote, time.Minute)
+	cfg, err := assembly.NewLocator(testInstance.Logger(), nil, s.db).
+		Config(s.T().Context(), remote, time.Minute)
+	s.Require().NoError(err)
 
 	server, apiCli := grpct.TestServer(testInstance, cfg.Handler)
 	s.grpcCli = apiCli
@@ -57,7 +57,7 @@ func (s *CustomizationTestSuite) TestGetDesign() {
 		Invoke("admin/user/get_design").
 		JsonRequestBody(struct{}{}).
 		JsonResponseBody(&response).
-		Do(context.Background())
+		Do(s.T().Context())
 	s.Require().NoError(err)
 	expected := conf.UIDesign{
 		Name:         "test",

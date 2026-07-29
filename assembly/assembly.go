@@ -20,29 +20,32 @@ import (
 	"github.com/txix-open/isp-kit/http/httpcli"
 	"github.com/txix-open/isp-kit/http/httpclix"
 	"github.com/txix-open/isp-kit/log"
+	"github.com/txix-open/isp-kit/observability/sentry"
 )
 
 type Assembly struct {
 	boot     *bootstrap.Bootstrap
 	db       *dbrx.Client
 	server   *grpc.Server
-	httpCli  *httpcli.Client
+	sudirCli *httpcli.Client
 	logger   *log.Adapter
 	bgjobCli *bgjobx.Client
 }
 
 func New(boot *bootstrap.Bootstrap) (*Assembly, error) {
 	logger := boot.App.Logger()
-	server := grpc.NewServer()
-	httpCli := httpclix.Default(httpcli.WithMiddlewares(httpclix.Log(logger)))
-	db := dbrx.New(logger, dbx.WithMigrationRunner(boot.MigrationsDir, logger))
-	bgjobCli := bgjobx.NewClient(db, logger)
+	wrappedLogger := sentry.WrapErrorLogger(logger, boot.SentryHub)
+
+	db := dbrx.New(logger, dbx.WithMigrationRunner(boot.MigrationsDir, wrappedLogger))
+	boot.HealthcheckRegistry.Register("db", db)
+
+	bgjobCli := bgjobx.NewClient(db, wrappedLogger)
 	return &Assembly{
 		boot:     boot,
 		db:       db,
-		server:   server,
+		server:   grpc.NewServer(),
 		logger:   logger,
-		httpCli:  httpCli,
+		sudirCli: httpclix.Default(httpcli.WithMiddlewares(httpclix.Log(wrappedLogger))),
 		bgjobCli: bgjobCli,
 	}, nil
 }
@@ -64,8 +67,17 @@ func (a *Assembly) ReceiveConfig(ctx context.Context, remoteConfig []byte) error
 		a.logger.Fatal(ctx, errors.WithMessage(err, "upgrade db client"))
 	}
 
-	locator := NewLocator(a.logger, a.httpCli, a.db)
-	config := locator.Config(ctx, newCfg, time.Minute)
+	sudirBaseUrl := ""
+	if newCfg.SudirAuth != nil {
+		sudirBaseUrl = newCfg.SudirAuth.Host
+	}
+	a.sudirCli.GlobalRequestConfig().BaseUrl = sudirBaseUrl
+
+	locator := NewLocator(a.logger, a.sudirCli, a.db)
+	config, err := locator.Config(ctx, newCfg, time.Minute)
+	if err != nil {
+		a.logger.Fatal(ctx, errors.WithMessage(err, "locator config"))
+	}
 
 	a.server.Upgrade(config.Handler)
 

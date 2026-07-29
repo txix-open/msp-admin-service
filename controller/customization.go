@@ -2,15 +2,19 @@ package controller
 
 import (
 	"msp-admin-service/conf"
+	"msp-admin-service/domain"
 )
 
 type Customization struct {
-	uiCfg conf.UIDesign
+	uiCfg domain.UIDesign
 }
 
 func NewCustomization(uiCfg conf.UIDesign) Customization {
 	return Customization{
-		uiCfg: uiCfg,
+		uiCfg: domain.UIDesign{
+			Name:         uiCfg.Name,
+			PrimaryColor: uiCfg.PrimaryColor,
+		},
 	}
 }
 
@@ -21,10 +25,10 @@ func NewCustomization(uiCfg conf.UIDesign) Customization {
 // @Accept json
 // @Produce json
 // @Param X-AUTH-ADMIN header string true "Токен администратора"
-// @Success 200 {object} conf.UIDesign
+// @Success 200 {object} domain.UIDesign
 // @Failure 400 {object} domain.GrpcError "Невалидный токен"
 // @Failure 500 {object} domain.GrpcError
 // @Router /user/get_design [POST]
-func (c Customization) GetUIDesign() (conf.UIDesign, error) {
+func (c Customization) GetUIDesign() (domain.UIDesign, error) {
 	return c.uiCfg, nil
 }

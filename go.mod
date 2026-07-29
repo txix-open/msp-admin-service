@@ -9,7 +9,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.11.1
 	github.com/txix-open/bgjob v1.6.0
-	github.com/txix-open/isp-kit v1.71.1
+	github.com/txix-open/isp-kit v1.71.2
 	github.com/txix-open/jsonschema v1.3.0
 	golang.org/x/crypto v0.54.0
 	golang.org/x/sync v0.22.0
@@ -26,6 +26,7 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
 	github.com/getsentry/sentry-go v0.47.0 // indirect
+	github.com/go-faker/faker/v4 v4.9.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect

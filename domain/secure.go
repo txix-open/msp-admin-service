@@ -1,20 +1,20 @@
 package domain
 
 type SecureAuthRequest struct {
-	Token string
+	Token string // Токен
 }
 
 type SecureAuthResponse struct {
-	Authenticated bool
-	ErrorReason   string
-	AdminId       int64
+	Authenticated bool   // Флаг успешной аутентикации
+	ErrorReason   string // Причина ошибки
+	AdminId       int64  // Идентификатор администратора
 }
 
 type SecureAuthzRequest struct {
-	AdminId    int
-	Permission string
+	AdminId    int    // Идентификатор администратора
+	Permission string // Роль
 }
 
 type SecureAuthzResponse struct {
-	Authorized bool
+	Authorized bool // Флаг успешноЙ авторизации
 }

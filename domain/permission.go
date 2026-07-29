@@ -1,6 +1,6 @@
 package domain
 
 type Permission struct {
-	Key  string
-	Name string
+	Key  string // Ключ прав
+	Name string // Пользовательское название
 }

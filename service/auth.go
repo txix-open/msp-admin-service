@@ -41,7 +41,7 @@ type tokenService interface {
 }
 
 type sudirService interface {
-	Authenticate(ctx context.Context, authCode string, repo roleRepo) (*entity.SudirUser, error)
+	Authenticate(ctx context.Context, request domain.LoginSudirRequest, repo roleRepo) (*entity.SudirUser, error)
 }
 
 type Auth struct {
@@ -150,7 +150,7 @@ func (a Auth) LoginWithSudir(ctx context.Context, request domain.LoginSudirReque
 	)
 
 	err := a.txRunner.AuthTransaction(ctx, func(ctx context.Context, tx AuthTransaction) error {
-		sudirUser, err := a.sudirService.Authenticate(ctx, request.AuthCode, tx)
+		sudirUser, err := a.sudirService.Authenticate(ctx, request, tx)
 
 		var authErr *entity.SudirAuthError
 		switch {
