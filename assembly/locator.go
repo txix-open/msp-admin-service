@@ -15,9 +15,9 @@ import (
 	"msp-admin-service/service/session_worker"
 	"msp-admin-service/transaction"
 
-	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/bgjobx"
 	"github.com/txix-open/isp-kit/db"
+	"github.com/txix-open/isp-kit/errors"
 	"github.com/txix-open/isp-kit/grpc/endpoint"
 	"github.com/txix-open/isp-kit/grpc/isp"
 	"github.com/txix-open/isp-kit/http/httpcli"
@@ -64,7 +64,9 @@ func (l Locator) Config(
 
 	auditService := service.NewAudit(ctx, l.logger, auditRepo, auditEventRepo, cfg.Audit.EventSettings)
 	tokenService := service.NewToken(tokenRepo, cfg.ExpireSec)
-	sudirService, err := service.NewSudir(cfg.SudirAuth, sudirRepo)
+
+	sudirBaseUrl, sudirSettings := l.getSudirSettings(cfg.SudirAuth)
+	sudirService, err := service.NewSudir(sudirSettings, sudirRepo)
 	if err != nil {
 		return Config{}, errors.WithMessage(err, "new sudir")
 	}
@@ -93,6 +95,8 @@ func (l Locator) Config(
 
 	permissionsService := service.NewPermission(cfg.Permissions)
 
+	uiSettingsService := service.NewUiSettings(sudirBaseUrl, sudirSettings)
+
 	userController := controller.NewUser(userService)
 	customizationController := controller.NewCustomization(cfg.UiDesign)
 	authController := controller.NewAuth(authService, l.logger)
@@ -101,7 +105,7 @@ func (l Locator) Config(
 	auditController := controller.NewAudit(auditService)
 	roleController := controller.NewRole(roleService)
 	permissionController := controller.NewPermissions(permissionsService)
-
+	uiSettingsController := controller.NewUiSettings(uiSettingsService)
 	handler := routes.Handler(
 		endpoint.DefaultWrapper(l.logger),
 		routes.Controllers{
@@ -113,6 +117,7 @@ func (l Locator) Config(
 			Audit:         auditController,
 			Role:          roleController,
 			Permissions:   permissionController,
+			UiSettings:    uiSettingsController,
 		},
 	)
 
@@ -145,4 +150,12 @@ func (l Locator) Config(
 			Handle:       expireSessionWorker,
 		}},
 	}, nil
+}
+
+func (l Locator) getSudirSettings(sudirAuth *conf.SudirAuth) (string, []conf.SudirClientConfig) {
+	if sudirAuth == nil {
+		return "", []conf.SudirClientConfig{}
+	}
+
+	return sudirAuth.Host, sudirAuth.Clients
 }

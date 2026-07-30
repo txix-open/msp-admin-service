@@ -25,12 +25,7 @@ type Sudir struct {
 	clientSettings map[string]conf.SudirClientConfig
 }
 
-func NewSudir(cfg *conf.SudirAuth, sudirRepo sudirRepo) (Sudir, error) {
-	settings := make([]conf.SudirClientConfig, 0)
-	if cfg != nil {
-		settings = cfg.Clients
-	}
-
+func NewSudir(settings []conf.SudirClientConfig, sudirRepo sudirRepo) (Sudir, error) {
 	clientSettings := make(map[string]conf.SudirClientConfig, len(settings))
 	for i, setting := range settings {
 		_, ok := clientSettings[setting.ClientName]

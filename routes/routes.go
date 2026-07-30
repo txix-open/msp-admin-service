@@ -20,6 +20,7 @@ type Controllers struct {
 	Audit         controller.Audit
 	Role          controller.Role
 	Permissions   controller.Permissions
+	UiSettings    controller.UiSettings
 }
 
 func EndpointDescriptors() []cluster.EndpointDescriptor {
@@ -186,6 +187,11 @@ func endpointDescriptors(c Controllers) []cluster.EndpointDescriptor {
 			Path:    "admin/secure/authorize",
 			Inner:   true,
 			Handler: c.Secure.Authorize,
+		},
+		{
+			Path:    "admin/ui_settings/sudir",
+			Inner:   true,
+			Handler: c.UiSettings.SudirSettings,
 		},
 	}
 }

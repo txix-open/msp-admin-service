@@ -57,10 +57,16 @@ type SudirAuth struct {
 }
 
 type SudirClientConfig struct {
-	ClientName   string `validate:"required" schema:"Уникальное имя конфигурации клиента"`
-	ClientId     string `validate:"required" schema:"Идентификатор клиента,выданный СУДИР для basicAuth"`
-	ClientSecret string `validate:"required" schema:"Пароль клиента,выданный СУДИР для basicAuth"`
-	RedirectURI  string `validate:"required" schema:"URI для редиректа,передаётся в запросе токена в query"`
+	ClientName   string          `validate:"required" schema:"Уникальное имя конфигурации клиента"`
+	ClientId     string          `validate:"required" schema:"Идентификатор клиента,выданный СУДИР для basicAuth"`
+	ClientSecret string          `validate:"required" schema:"Пароль клиента,выданный СУДИР для basicAuth"`
+	RedirectURI  string          `validate:"required" schema:"URI для редиректа,передаётся в запросе токена в query"`
+	UiSetting    *UiSudirSetting `schema:"Настройки СУДИР для админки"`
+}
+
+type UiSudirSetting struct {
+	LoginEndpoint  string `validate:"required" schema:"Эндпоинт для входа через СУДИР в адмиинке,может содержать query параметры,client_id и redirect_uri добавляются автоматически"`
+	LogoutEndpoint string `validate:"required" schema:"Эндпоинт для выхода через СУДИР в адмиинке"`
 }
 
 type AntiBruteforce struct {
